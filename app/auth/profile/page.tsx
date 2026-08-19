@@ -13,6 +13,7 @@ export default function ProfileCompletionPage() {
     name: '',
     phone_number: '',
     address: '',
+    maps_url: '', // <-- Ditambah di sini
   });
   
   const [submitting, setSubmitting] = useState(false);
@@ -31,6 +32,7 @@ export default function ProfileCompletionPage() {
         name: profile.name || '',
         phone_number: profile.phone_number || '',
         address: profile.address || '',
+        maps_url: (profile as any).maps_url || '', // <-- Dimuatkan jika ada
       });
     }
   }, [user, profile, loading, router]);
@@ -66,7 +68,8 @@ export default function ProfileCompletionPage() {
         name: formData.name.trim(),
         phone_number: formData.phone_number.trim(),
         address: formData.address.trim() || undefined,
-      });
+        maps_url: formData.maps_url.trim() || undefined, // <-- Disimpan di sini
+      } as any);
 
       // Redirect to appropriate dashboard
       const redirectPath = getRedirectAfterLogin(profile?.role as UserRole || 'customer');
@@ -124,11 +127,6 @@ export default function ProfileCompletionPage() {
           <p className="text-gray-600">
             Sila lengkapkan maklumat anda untuk meneruskan
           </p>
-          {profile?.role && (
-            <div className="mt-2 inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-              Peranan: {profile.role.toUpperCase()}
-            </div>
-          )}
         </div>
 
         {/* Form */}
@@ -173,15 +171,12 @@ export default function ProfileCompletionPage() {
               required
               disabled={submitting}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Format: 01X-XXXXXXX atau 01XXXXXXXXX
-            </p>
           </div>
 
-          {/* Address (required for seller) */}
-          <div className="mb-6">
+          {/* Address */}
+          <div className="mb-4">
             <label htmlFor="address" className="block text-gray-700 font-medium mb-2">
-              Alamat {profile?.role === 'seller' && <span className="text-red-500">*</span>}
+              Alamat Penghantaran
             </label>
             <textarea
               id="address"
@@ -189,44 +184,38 @@ export default function ProfileCompletionPage() {
               value={formData.address}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Contoh: No 123, Jalan ABC, Taman XYZ, 12345 Kuala Lumpur"
+              placeholder="No 123, Jalan ABC..."
               rows={3}
-              required={profile?.role === 'seller'}
               disabled={submitting}
             />
-            {profile?.role === 'seller' && (
-              <p className="text-xs text-gray-500 mt-1">
-                Wajib untuk seller - alamat kedai/perniagaan
-              </p>
-            )}
+          </div>
+
+          {/* Google Maps URL */}
+          <div className="mb-6">
+            <label htmlFor="maps_url" className="block text-gray-700 font-medium mb-2">
+              Pautan Lokasi (Google Maps URL)
+            </label>
+            <input
+              type="url"
+              id="maps_url"
+              name="maps_url"
+              value={formData.maps_url}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="https://maps.app.goo.gl/..."
+              disabled={submitting}
+            />
           </div>
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50"
           >
-            {submitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                Menyimpan...
-              </span>
-            ) : (
-              'Simpan & Teruskan'
-            )}
+            {submitting ? 'Menyimpan...' : 'Simpan & Teruskan'}
           </button>
         </form>
-
-        {/* Info */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">ℹ️ Kenapa perlu lengkapkan profil?</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• Untuk pengenalan dan komunikasi</li>
-            <li>• Memudahkan pengurusan pesanan</li>
-            <li>• Keperluan sistem keselamatan</li>
-          </ul>
-        </div>
       </div>
     </div>
   );
