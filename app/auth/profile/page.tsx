@@ -18,13 +18,13 @@ export default function ProfileCompletionPage() {
   
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   useEffect(() => {
     // Redirect if not authenticated
     if (!loading && !user) {
       router.push('/auth/login');
       return;
     }
+
 
     // Pre-fill form with existing data
     if (profile) {

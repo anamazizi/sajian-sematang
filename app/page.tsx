@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client'; // Mengikut rujukan laluan standard projek Anam
+import { supabase } from '../lib/supabase/client'; // Mengikut rujukan laluan standard projek Anam
 
 export default function Home() {
   const router = useRouter();
@@ -89,11 +89,14 @@ export default function Home() {
                   <p className="text-sm font-bold text-gray-800">{profile?.name || 'Pengguna'}</p>
                   <p className="text-xs text-gray-500">{profile?.phone_number || 'Tiada No Phone'}</p>
                 </div>
+                
+                {/* BUTANG EDIT PROFIL (DIKEMASKINI KE HALAMAN PROFIL) */}
                 <Link href="/auth/profile">
-                  <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md text-xs font-medium transition">
+                  <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-xs font-medium rounded-md text-gray-700 transition">
                     Edit Profil
                   </button>
                 </Link>
+
                 <button 
                   onClick={handleLogout}
                   className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-md text-xs font-medium transition"

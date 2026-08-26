@@ -1,15 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // TypeScript strict mode enabled - build akan fail jika ada errors
+  // Ini memastikan code quality dan mengelak bugs dalam production
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // ✅ FIXED: Enable type checking untuk production safety
+  },
+  
+  // Enable React strict mode untuk detect potential issues
+  reactStrictMode: true,
+  
+  // Image optimization configuration
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co', // Untuk Supabase Storage images
+      },
+    ],
   },
 };
 
