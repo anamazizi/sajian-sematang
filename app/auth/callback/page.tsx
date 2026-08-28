@@ -26,7 +26,7 @@ export default function AuthCallbackPage() {
       setMessage("Memeriksa profil...");
       
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .eq('id', session.user.id)
         .single();

@@ -13,7 +13,9 @@ export default function ProfileCompletionPage() {
     name: '',
     phone_number: '',
     address: '',
-    maps_url: '', // <-- Ditambah di sini
+    google_maps_url: '', // Renamed from maps_url for consistency
+    latitude: '',
+    longitude: '',
   });
   
   const [submitting, setSubmitting] = useState(false);
@@ -32,7 +34,9 @@ export default function ProfileCompletionPage() {
         name: profile.name || '',
         phone_number: profile.phone_number || '',
         address: profile.address || '',
-        maps_url: (profile as any).maps_url || '', // <-- Dimuatkan jika ada
+        google_maps_url: (profile as any).google_maps_url || '',
+        latitude: (profile as any).latitude?.toString() || '',
+        longitude: (profile as any).longitude?.toString() || '',
       });
     }
   }, [user, profile, loading, router]);
@@ -63,12 +67,18 @@ export default function ProfileCompletionPage() {
         throw new Error('Seller mesti masukkan alamat');
       }
 
+      // Parse coordinates if provided
+      const lat = formData.latitude.trim() ? parseFloat(formData.latitude.trim()) : null;
+      const lng = formData.longitude.trim() ? parseFloat(formData.longitude.trim()) : null;
+
       // Update profile
       await updateUserProfile(user!.id, {
         name: formData.name.trim(),
         phone_number: formData.phone_number.trim(),
         address: formData.address.trim() || undefined,
-        maps_url: formData.maps_url.trim() || undefined, // <-- Disimpan di sini
+        google_maps_url: formData.google_maps_url.trim() || undefined,
+        latitude: lat,
+        longitude: lng,
       } as any);
 
       // Redirect to appropriate dashboard
@@ -191,20 +201,65 @@ export default function ProfileCompletionPage() {
           </div>
 
           {/* Google Maps URL */}
-          <div className="mb-6">
-            <label htmlFor="maps_url" className="block text-gray-700 font-medium mb-2">
+          <div className="mb-4">
+            <label htmlFor="google_maps_url" className="block text-gray-700 font-medium mb-2">
               Pautan Lokasi (Google Maps URL)
             </label>
             <input
               type="url"
-              id="maps_url"
-              name="maps_url"
-              value={formData.maps_url}
+              id="google_maps_url"
+              name="google_maps_url"
+              value={formData.google_maps_url}
               onChange={handleChange}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               placeholder="https://maps.app.goo.gl/..."
               disabled={submitting}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Kongsi lokasi anda dari Google Maps untuk pengiraan caj penghantaran
+            </p>
+          </div>
+
+          {/* Latitude & Longitude */}
+          <div className="mb-6 grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="latitude" className="block text-gray-700 font-medium mb-2">
+                Latitude
+              </label>
+              <input
+                type="number"
+                step="0.000001"
+                id="latitude"
+                name="latitude"
+                value={formData.latitude}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="3.123456"
+                disabled={submitting}
+              />
+            </div>
+            <div>
+              <label htmlFor="longitude" className="block text-gray-700 font-medium mb-2">
+                Longitude
+              </label>
+              <input
+                type="number"
+                step="0.000001"
+                id="longitude"
+                name="longitude"
+                value={formData.longitude}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="101.654321"
+                disabled={submitting}
+              />
+            </div>
+          </div>
+          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs text-blue-800">
+              💡 <strong>Tip:</strong> Buka Google Maps, klik pada lokasi anda, salin koordinat (latitude, longitude) dan tampal di atas. 
+              Atau kongsi link Google Maps sahaja.
+            </p>
           </div>
 
           {/* Submit Button */}

@@ -25,7 +25,7 @@ export default function Home() {
         
         // Ambil profil pelanggan terakhir
         const { data } = await supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('id', session.user.id)
           .single();
@@ -39,7 +39,8 @@ export default function Home() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    localStorage.clear();
+    // Note: Supabase handles session clearing via cookies
+    // No need to manually clear localStorage
     setUser(null);
     setProfile(null);
     window.location.reload(); // Muat semula laman untuk kosongkan paparan
