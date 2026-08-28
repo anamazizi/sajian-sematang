@@ -143,9 +143,14 @@ export function canAccessRoute(role: UserRole, route: string): boolean {
     return role === 'admin' || role === 'staff';
   }
   
-  // Seller dashboard
+  // Seller dashboard (NEW ROUTE)
+  if (route.startsWith('/seller')) {
+    return role === 'seller' || role === 'admin';
+  }
+  
+  // OLD dashboard route (deprecated, redirect to /seller)
   if (route.startsWith('/dashboard')) {
-    return role === 'admin' || role === 'staff' || role === 'seller';
+    return false; // Force redirect
   }
   
   // Auth routes (accessible to all authenticated users)
@@ -166,7 +171,7 @@ export function getDefaultRedirectPath(role: UserRole): string {
     case 'staff':
       return '/staff';
     case 'seller':
-      return '/dashboard';
+      return '/seller'; // FIXED: Was /dashboard
     case 'customer':
     default:
       return '/sellers';
