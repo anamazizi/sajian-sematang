@@ -38,8 +38,29 @@ export default function AuthCallbackPage() {
         return;
       }
 
+      // If seller role, check if seller record exists
+      if (profile.role === 'seller') {
+        const { data: sellerRecord } = await supabase
+          .from('sellers')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .single();
+
+        // If no seller record, redirect to onboarding
+        if (!sellerRecord) {
+          setMessage("Mengalihkan ke pendaftaran kedai...");
+          router.push('/seller/onboarding');
+          return;
+        }
+
+        // Seller record exists, go to dashboard
+        setMessage("Log masuk berjaya!");
+        router.push('/seller');
+        return;
+      }
+
       // Jika admin, staf, atau seller, arahkan ke laluan khusus mereka
-      const redirectPath = profile.role === 'admin' ? '/admin' : profile.role === 'sellers' ? '/sellers' : '/dashboard';
+      const redirectPath = profile.role === 'admin' ? '/admin' : profile.role === 'staff' ? '/staff' : '/sellers';
       router.push(redirectPath);
 
     } catch (error: any) {
