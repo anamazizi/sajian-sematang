@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase/client';
 import { CustomerProduct, Seller } from '../../types/database';
+import { getMalaysiaTime } from '../../lib/utils';
 import Link from 'next/link';
 
 // Phase R5.4: Use CustomerProduct (without cost_price) for customer-facing preorder
@@ -33,9 +34,8 @@ export default function CustomPreOrderPage() {
 
   useEffect(() => {
     fetchPreOrderProducts();
-    
-    // Set minimum date to tomorrow
-    const tomorrow = new Date();
+    // Phase R6.3: Set minimum date to tomorrow (Malaysia timezone)
+    const tomorrow = getMalaysiaTime();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const minDate = tomorrow.toISOString().split('T')[0];
     setDeliveryDate(minDate);

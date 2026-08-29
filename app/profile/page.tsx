@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@/types/database';
+import { getMalaysiaTime } from '@/lib/utils';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -80,6 +81,7 @@ export default function ProfilePage() {
 
       if (!user) throw new Error('Sesi tamat');
 
+      // Phase R6.3: Use Malaysia timezone for updated_at
       const profileData = {
         id: user.id,
         name: name.trim(),
@@ -89,7 +91,7 @@ export default function ProfilePage() {
         google_maps_url: googleMapsUrl.trim() || null,
         role: profile?.role || 'customer',
         is_active: true,
-        updated_at: new Date().toISOString(),
+        updated_at: getMalaysiaTime().toISOString(),
       };
 
       const { error: upsertError } = await supabase

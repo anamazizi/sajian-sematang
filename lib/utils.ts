@@ -1,6 +1,13 @@
 import { CustomerProfile } from '../types/database';
 
-// LocalStorage keys
+// ============================================
+// PHASE R6.2: Profile Management
+// ============================================
+// Master Prompt Seksyen 12: Database is source of truth
+// LocalStorage functions are DEPRECATED - use database instead
+// ============================================
+
+// LocalStorage keys (DEPRECATED)
 const CUSTOMER_PROFILE_KEY = 'sajian_customer_profile';
 
 // Default store coordinates (Seri Manjung, Perak)
@@ -9,15 +16,25 @@ const DEFAULT_STORE_COORDS = {
   lng: 100.6333
 };
 
-// Save customer profile to localStorage
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
 export function saveCustomerProfile(profile: CustomerProfile): void {
+  console.warn('⚠️ saveCustomerProfile is DEPRECATED. Use database (users table) instead.');
   if (typeof window !== 'undefined') {
     localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile));
   }
 }
 
-// Get customer profile from localStorage
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
 export function getCustomerProfile(): CustomerProfile | null {
+  console.warn('⚠️ getCustomerProfile is DEPRECATED. Use database (users table) instead.');
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(CUSTOMER_PROFILE_KEY);
     if (stored) {
@@ -32,8 +49,13 @@ export function getCustomerProfile(): CustomerProfile | null {
   return null;
 }
 
-// Clear customer profile from localStorage
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
 export function clearCustomerProfile(): void {
+  console.warn('⚠️ clearCustomerProfile is DEPRECATED. Use database (users table) instead.');
   if (typeof window !== 'undefined') {
     localStorage.removeItem(CUSTOMER_PROFILE_KEY);
   }
@@ -273,9 +295,66 @@ export function generateSimpleWhatsAppLink(orderDetails: {
   return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
 }
 
-// Format date for display
+// ============================================
+// PHASE R6.3: Timezone Handling
+// ============================================
+// Master Prompt Seksyen 107: All operations in Asia/Kuala_Lumpur (UTC+8)
+// ============================================
+
+/**
+ * Get current date/time in Malaysia timezone (Asia/Kuala_Lumpur)
+ * Use this for ALL business logic requiring "today" or "now"
+ */
+export function getMalaysiaTime(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+}
+
+/**
+ * Convert UTC timestamp to Malaysia date (for "today" comparisons)
+ * @param utcTimestamp - ISO string from database (timestamptz stored as UTC)
+ * @returns Date object in Malaysia timezone
+ */
+export function convertToMalaysiaTime(utcTimestamp: string): Date {
+  return new Date(new Date(utcTimestamp).toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+}
+
+/**
+ * Get start of today in Malaysia timezone (00:00:00)
+ * Use for "today's orders" queries
+ */
+export function getMalaysiaTodayStart(): Date {
+  const now = getMalaysiaTime();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+
+/**
+ * Get end of today in Malaysia timezone (23:59:59)
+ * Use for "today's orders" queries
+ */
+export function getMalaysiaTodayEnd(): Date {
+  const now = getMalaysiaTime();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+}
+
+/**
+ * Check if a UTC timestamp is "today" in Malaysia timezone
+ * @param utcTimestamp - ISO string from database
+ */
+export function isTodayInMalaysia(utcTimestamp: string): boolean {
+  const malaysiaDate = convertToMalaysiaTime(utcTimestamp);
+  const today = getMalaysiaTime();
+  
+  return (
+    malaysiaDate.getDate() === today.getDate() &&
+    malaysiaDate.getMonth() === today.getMonth() &&
+    malaysiaDate.getFullYear() === today.getFullYear()
+  );
+}
+
+// Format date for display (Malaysia timezone)
 export function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString('ms-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
     weekday: 'short',
     year: 'numeric',
     month: 'short',
