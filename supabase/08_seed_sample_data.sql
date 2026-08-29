@@ -36,51 +36,60 @@ BEGIN
   RAISE NOTICE '✅ Sample users created';
 
   -- ========================================
-  -- 2. CREATE SELLERS
+  -- 2. CREATE SELLERS (with existence check)
   -- ========================================
   
-  INSERT INTO public.sellers (id, user_id, shop_name, description, phone_number, created_at)
-  VALUES 
-    (
-      uuid_generate_v4(),
+  -- Check and insert Seller 1
+  IF NOT EXISTS (SELECT 1 FROM public.sellers WHERE user_id = seller1_user_id) THEN
+    INSERT INTO public.sellers (user_id, shop_name, description, phone_number, created_at)
+    VALUES (
       seller1_user_id,
       'Warung Kak Siti',
       'Nasi lemak dan lauk-pauk tradisional. Sedap macam masakan mak!',
       '0123456789',
       NOW()
-    ),
-    (
-      uuid_generate_v4(),
+    );
+  END IF;
+  
+  -- Check and insert Seller 2
+  IF NOT EXISTS (SELECT 1 FROM public.sellers WHERE user_id = seller2_user_id) THEN
+    INSERT INTO public.sellers (user_id, shop_name, description, phone_number, created_at)
+    VALUES (
       seller2_user_id,
       'Restoran Pak Ahmad',
       'Nasi ayam, nasi goreng, dan minuman segar. Murah dan sedap!',
       '0129876543',
       NOW()
-    ),
-    (
-      uuid_generate_v4(),
+    );
+  END IF;
+  
+  -- Check and insert Seller 3
+  IF NOT EXISTS (SELECT 1 FROM public.sellers WHERE user_id = seller3_user_id) THEN
+    INSERT INTO public.sellers (user_id, shop_name, description, phone_number, created_at)
+    VALUES (
       seller3_user_id,
       'Kedai Makan Azizah',
       'Kafe & minuman. Kopi, teh, dan kudap-kudapan. Best untuk lepak!',
       '0198765432',
       NOW()
-    )
-  ON CONFLICT (user_id) DO NOTHING
-  RETURNING id INTO seller1_id;
+    );
+  END IF;
   
   -- Get actual seller IDs
   SELECT id INTO seller1_id FROM public.sellers WHERE user_id = seller1_user_id;
   SELECT id INTO seller2_id FROM public.sellers WHERE user_id = seller2_user_id;
   SELECT id INTO seller3_id FROM public.sellers WHERE user_id = seller3_user_id;
 
-  RAISE NOTICE '✅ Sample sellers created';
+  RAISE NOTICE '✅ Sample sellers created (or already exist)';
 
   -- ========================================
   -- 3. CREATE PRODUCTS - WARUNG KAK SITI
   -- ========================================
   
-  INSERT INTO public.products (seller_id, name, description, price, cost_price, category, stock_quantity, is_available, is_preorder)
-  VALUES
+  -- Only insert if products don't exist for this seller
+  IF NOT EXISTS (SELECT 1 FROM public.products WHERE seller_id = seller1_id LIMIT 1) THEN
+    INSERT INTO public.products (seller_id, name, description, price, cost_price, category, stock_quantity, is_available, is_preorder)
+    VALUES
     -- Makanan
     (seller1_id, 'Nasi Lemak Biasa', 'Nasi lemak dengan sambal, ikan bilis, kacang, telur, dan timun', 5.00, 3.00, 'Makanan', 50, true, false),
     (seller1_id, 'Nasi Lemak Ayam Goreng', 'Nasi lemak dengan ayam goreng berempah', 8.00, 5.50, 'Makanan', 30, true, false),
@@ -92,6 +101,7 @@ BEGIN
     (seller1_id, 'Teh Tarik', 'Teh susu yang ditarik panas', 2.50, 1.00, 'Minuman', 100, true, false),
     (seller1_id, 'Kopi O', 'Kopi hitam pekat tanpa susu', 2.00, 0.80, 'Minuman', 100, true, false),
     (seller1_id, 'Milo Ais', 'Milo sejuk dengan ais', 3.50, 1.50, 'Minuman', 80, true, false);
+  END IF;
 
   RAISE NOTICE '✅ Warung Kak Siti products created (8 items)';
 
@@ -99,8 +109,9 @@ BEGIN
   -- 4. CREATE PRODUCTS - RESTORAN PAK AHMAD
   -- ========================================
   
-  INSERT INTO public.products (seller_id, name, description, price, cost_price, category, stock_quantity, is_available, is_preorder)
-  VALUES
+  IF NOT EXISTS (SELECT 1 FROM public.products WHERE seller_id = seller2_id LIMIT 1) THEN
+    INSERT INTO public.products (seller_id, name, description, price, cost_price, category, stock_quantity, is_available, is_preorder)
+    VALUES
     -- Makanan
     (seller2_id, 'Nasi Ayam Goreng', 'Nasi putih dengan ayam goreng berempah dan sos', 7.50, 5.00, 'Makanan', 40, true, false),
     (seller2_id, 'Nasi Goreng Kampung', 'Nasi goreng dengan ikan bilis, telur, dan sayur', 6.00, 3.50, 'Makanan', 50, true, false),
@@ -112,6 +123,7 @@ BEGIN
     (seller2_id, 'Air Limau Ais', 'Limau kasturi sejuk yang menyegarkan', 3.00, 1.20, 'Minuman', 100, true, false),
     (seller2_id, 'Teh O Ais Limau', 'Teh O dengan limau dan ais', 3.50, 1.50, 'Minuman', 80, true, false),
     (seller2_id, 'Sirap Bandung', 'Minuman manis merah jambu dengan susu', 3.50, 1.30, 'Minuman', 60, true, false);
+  END IF;
 
   RAISE NOTICE '✅ Restoran Pak Ahmad products created (8 items)';
 
@@ -119,8 +131,9 @@ BEGIN
   -- 5. CREATE PRODUCTS - KEDAI MAKAN AZIZAH
   -- ========================================
   
-  INSERT INTO public.products (seller_id, name, description, price, cost_price, category, stock_quantity, is_available, is_preorder)
-  VALUES
+  IF NOT EXISTS (SELECT 1 FROM public.products WHERE seller_id = seller3_id LIMIT 1) THEN
+    INSERT INTO public.products (seller_id, name, description, price, cost_price, category, stock_quantity, is_available, is_preorder)
+    VALUES
     -- Makanan
     (seller3_id, 'Roti Bakar Kaya', 'Roti bakar dengan mentega dan kaya', 4.00, 2.00, 'Makanan', 50, true, false),
     (seller3_id, 'Roti Telur Bawang', 'Roti telur dengan bawang goreng', 5.50, 3.00, 'Makanan', 40, true, false),
@@ -134,6 +147,7 @@ BEGIN
     (seller3_id, 'Milo Panas', 'Milo susu panas', 3.50, 1.50, 'Minuman', 80, true, false),
     (seller3_id, 'Nescafe Ais', 'Nescafe sejuk yang sedap', 3.50, 1.50, 'Minuman', 70, true, false),
     (seller3_id, 'Air Mata Kucing', 'Minuman herba sejuk yang menyegarkan', 4.00, 2.00, 'Minuman', 50, true, false);
+  END IF;
 
   RAISE NOTICE '✅ Kedai Makan Azizah products created (10 items)';
 
