@@ -4,20 +4,19 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase/client';
 import { Seller, Product } from '../../../types/database';
+import { useCart } from '../../../contexts/CartContext';
 import Link from 'next/link';
-
-interface CartItem extends Product {
-  quantity: number;
-}
 
 export default function SellerMenuPage() {
   const params = useParams();
   const router = useRouter();
   const sellerId = params.id as string;
+  
+  // Use Cart Context
+  const { cart, addToCart, removeFromCart, getCartTotal, getCartCount } = useCart();
 
   const [seller, setSeller] = useState<Seller | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,42 +52,20 @@ export default function SellerMenuPage() {
     }
   }
 
-  function addToCart(product: Product) {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === product.id);
-      if (existingItem) {
-        return prevCart.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prevCart, { ...product, quantity: 1 }];
+  function handleAddToCart(product: Product) {
+    // Convert Product to CartItem format
+    addToCart({
+      id: product.id,
+      seller_id: product.seller_id,
+      name: product.name,
+      price: product.price,
+      image_url: product.image_url,
     });
-  }
-
-  function removeFromCart(productId: string) {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.id === productId);
-      if (existingItem && existingItem.quantity > 1) {
-        return prevCart.map((item) =>
-          item.id === productId
-            ? { ...item, quantity: item.quantity - 1 }
-            : item
-        );
-      }
-      return prevCart.filter((item) => item.id !== productId);
-    });
-  }
-
-  function getTotalPrice() {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
   }
 
   function proceedToOrder() {
-    // Store cart in sessionStorage and navigate to order form
-    sessionStorage.setItem('cart', JSON.stringify(cart));
-    sessionStorage.setItem('sellerId', sellerId);
+    // Cart is already in Context + sessionStorage
+    // Just navigate to order page
     router.push(`/order/${sellerId}`);
   }
 
@@ -202,7 +179,7 @@ export default function SellerMenuPage() {
                   
                   {quantity === 0 ? (
                     <button
-                      onClick={() => addToCart(product)}
+                      onClick={() => handleAddToCart(product)}
                       className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition"
                     >
                       Tambah ke Pesanan
@@ -219,7 +196,7 @@ export default function SellerMenuPage() {
                         {quantity}
                       </span>
                       <button
-                        onClick={() => addToCart(product)}
+                        onClick={() => handleAddToCart(product)}
                         className="bg-orange-500 text-white w-8 h-8 rounded-lg hover:bg-orange-600 transition"
                       >
                         +
@@ -239,10 +216,10 @@ export default function SellerMenuPage() {
           <div className="container mx-auto flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">
-                {cart.reduce((total, item) => total + item.quantity, 0)} item(s)
+                {getCartCount()} item(s)
               </p>
               <p className="text-xl font-bold text-gray-800">
-                RM {getTotalPrice().toFixed(2)}
+                RM {getCartTotal().toFixed(2)}
               </p>
             </div>
             <button

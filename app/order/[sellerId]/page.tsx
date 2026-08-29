@@ -3,21 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase/client';
-import { Product, CustomerProfile } from '../../../types/database';
+import { CustomerProfile } from '../../../types/database';
 import { getCustomerProfile, saveCustomerProfile, clearCustomerProfile, calculateDeliveryFee } from '../../../lib/utils';
 import { createOrder } from '../../actions/create-order';
+import { useCart } from '../../../contexts/CartContext';
 import Link from 'next/link';
-
-interface CartItem extends Product {
-  quantity: number;
-}
 
 export default function OrderFormPage() {
   const params = useParams();
   const router = useRouter();
   const sellerId = params.sellerId as string;
-
-  const [cart, setCart] = useState<CartItem[]>([]);
+  
+  // Use Cart Context
+  const { cart, getCartTotal: getCartSubtotal, getCartCount, clearCart } = useCart();
   const [profile, setProfile] = useState<CustomerProfile | null>(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   
@@ -34,16 +32,11 @@ export default function OrderFormPage() {
   const [calculatedDistance, setCalculatedDistance] = useState(0);
 
   useEffect(() => {
-    // Load cart from sessionStorage
-    const savedCart = sessionStorage.getItem('cart');
-    const savedSellerId = sessionStorage.getItem('sellerId');
-
-    if (!savedCart || savedSellerId !== sellerId) {
+    // Check if cart is empty
+    if (cart.length === 0) {
       router.push('/sellers');
       return;
     }
-
-    setCart(JSON.parse(savedCart));
     
     // Load customer profile
     const savedProfile = getCustomerProfile();
@@ -56,7 +49,7 @@ export default function OrderFormPage() {
     } else {
       setIsEditingProfile(true);
     }
-  }, [sellerId, router]);
+  }, [cart, router]);
 
   // Calculate delivery fee when mode or pin location changes
   useEffect(() => {
@@ -70,12 +63,8 @@ export default function OrderFormPage() {
     }
   }, [deliveryMode, customerPinLocation]);
 
-  function getSubtotal() {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
-  }
-
   function getTotalPrice() {
-    return getSubtotal() + deliveryFee;
+    return getCartSubtotal() + deliveryFee;
   }
 
   async function handleSubmit(e?: React.FormEvent) {
@@ -132,9 +121,8 @@ export default function OrderFormPage() {
       };
       saveCustomerProfile(profileData);
 
-      // Clear cart
-      sessionStorage.removeItem('cart');
-      sessionStorage.removeItem('sellerId');
+      // Clear cart (Context will handle sessionStorage)
+      clearCart();
 
       // Redirect to success page
       router.push(`/order/success/${result.order_id}`);
@@ -199,7 +187,7 @@ export default function OrderFormPage() {
           <div className="border-t mt-4 pt-4 space-y-2">
             <div className="flex justify-between items-center text-gray-700">
               <p>Subtotal</p>
-              <p className="font-semibold">RM {getSubtotal().toFixed(2)}</p>
+              <p className="font-semibold">RM {getCartSubtotal().toFixed(2)}</p>
             </div>
             <div className="flex justify-between items-center text-gray-700">
               <p>Caj Penghantaran</p>

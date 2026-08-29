@@ -48,6 +48,16 @@ export interface Product {
   updated_at?: string;
 }
 
+// Cart Item interface (Product with quantity)
+export interface CartItem {
+  id: string;
+  seller_id: string;
+  name: string;
+  price: number;
+  image_url?: string;
+  quantity: number;
+}
+
 export interface Order {
   id: string;
   customer_name: string;
