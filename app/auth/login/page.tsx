@@ -71,7 +71,7 @@ function LoginContent() {
             Sajian Sematang
           </h1>
           <p className="text-gray-600">
-            Log masuk untuk mengurus pesanan dan produk
+            Tempah makanan & minuman dengan mudah
           </p>
         </div>
 
@@ -134,25 +134,15 @@ function LoginContent() {
           </div>
         </div>
 
-        {/* Info for different roles */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <h3 className="font-semibold text-blue-900 mb-2">ℹ️ Maklumat</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>• <strong>Admin:</strong> Akses penuh sistem & kewangan</li>
-            <li>• <strong>Staf:</strong> Urus pesanan & produk</li>
-            <li>• <strong>Seller:</strong> Urus kedai sendiri</li>
-            <li>• <strong>Customer:</strong> Buat pesanan</li>
+        {/* Info Box */}
+        <div className="mt-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <h3 className="font-semibold text-orange-900 mb-2">✨ Selepas log masuk</h3>
+          <ul className="text-sm text-orange-800 space-y-1">
+            <li>• Lihat menu makanan & minuman</li>
+            <li>• Tambah item ke bakul pesanan</li>
+            <li>• Pilih penghantaran atau ambil sendiri</li>
+            <li>• Tempahan terus ke WhatsApp</li>
           </ul>
-        </div>
-
-        {/* Back to home */}
-        <div className="mt-6 text-center">
-          <a
-            href="/"
-            className="text-green-600 hover:text-green-700 font-medium"
-          >
-            ← Kembali ke Halaman Utama
-          </a>
         </div>
       </div>
     </div>

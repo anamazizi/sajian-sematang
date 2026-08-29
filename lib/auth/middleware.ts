@@ -67,8 +67,9 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Public routes that don't need authentication
-  const publicRoutes = ['/', '/sellers', '/preorder', '/auth/login'];
-  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith('/sellers/'));
+  // UPDATED: Remove '/' from public routes - require login to see menu
+  const publicRoutes = ['/auth/login', '/auth/callback'];
+  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith(route));
 
   // If not authenticated and trying to access protected route
   if (!user && !isPublicRoute && !pathname.startsWith('/auth')) {
@@ -79,31 +80,26 @@ export async function updateSession(request: NextRequest) {
   }
 
   // If authenticated, check profile completion
-  if (user && !pathname.startsWith('/auth/profile') && !isPublicRoute) {
+  if (user && !pathname.startsWith('/auth/profile') && pathname !== '/auth/callback') {
     const { data: profile } = await supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single();
 
-    // Check if profile is complete
+    // Check if profile is complete (UPDATED: All users need complete profile)
     if (profile) {
-      const hasName = !!profile.name;
-      const hasEmail = !!profile.email;
-      const hasPhone = !!profile.phone_number;
+      const hasName = !!profile.name && profile.name.trim() !== '';
+      const hasPhone = !!profile.phone_number && profile.phone_number.trim() !== '';
+      const hasAddress = !!profile.address && profile.address.trim() !== '';
       
-      let isComplete = hasName && hasEmail;
-      
-      if (profile.role === 'seller') {
-        isComplete = isComplete && hasPhone && !!profile.address;
-      } else if (profile.role === 'admin' || profile.role === 'staff') {
-        isComplete = isComplete && hasPhone;
-      }
+      // All users (including customers) must complete profile before accessing menu
+      const isComplete = hasName && hasPhone && hasAddress;
 
       // Redirect to profile completion if incomplete
       if (!isComplete) {
         const redirectUrl = request.nextUrl.clone();
-        redirectUrl.pathname = '/auth/profile';
+        redirectUrl.pathname = '/profile';
         return NextResponse.redirect(redirectUrl);
       }
 

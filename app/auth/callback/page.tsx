@@ -31,8 +31,28 @@ export default function AuthCallbackPage() {
         .eq('id', session.user.id)
         .single();
 
-      // Jika tiada profil atau pengguna ialah customer, terus ke halaman utama (/)
-      if (!profile || profile.role === 'customer') {
+      // Check profile completion (ALL users need complete profile)
+      if (!profile) {
+        // No profile yet - redirect to profile page
+        setMessage("Sila lengkapkan profil anda...");
+        router.push('/profile');
+        return;
+      }
+
+      const hasName = !!profile.name && profile.name.trim() !== '';
+      const hasPhone = !!profile.phone_number && profile.phone_number.trim() !== '';
+      const hasAddress = !!profile.address && profile.address.trim() !== '';
+      const isComplete = hasName && hasPhone && hasAddress;
+
+      if (!isComplete) {
+        // Profile incomplete - redirect to profile page
+        setMessage("Sila lengkapkan profil anda...");
+        router.push('/profile');
+        return;
+      }
+
+      // Profile is complete - redirect based on role
+      if (profile.role === 'customer' || !profile.role) {
         setMessage("Log masuk berjaya! Mengalihkan...");
         router.push('/');
         return;

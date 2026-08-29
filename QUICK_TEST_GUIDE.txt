@@ -1,0 +1,108 @@
+===============================================================
+QUICK TEST GUIDE: AUTH & PROFILE WALL
+===============================================================
+
+🎯 TEST 1: Non-Authenticated User
+---------------------------------------------------------------
+1. Open browser in incognito mode
+2. Go to: http://localhost:3000/
+3. EXPECTED: Auto-redirect to /auth/login
+4. See "Sajian Sematang" login page with Google button
+5. Click "Log Masuk dengan Google"
+6. Complete Google OAuth
+7. EXPECTED: Redirect to /profile (profile completion page)
+
+🎯 TEST 2: Profile Completion
+---------------------------------------------------------------
+1. At /profile page
+2. See form with 3 fields: Name, Phone, Address
+3. Try submit empty form
+   EXPECTED: Validation error
+4. Fill:
+   - Name: "Ahmad bin Abdullah"
+   - Phone: "0123456789"
+   - Address: "No 123, Jalan ABC, 12345 KL"
+5. Click "Simpan & Teruskan"
+6. EXPECTED: Success message + redirect to /
+7. See menu products
+
+🎯 TEST 3: Profile Button & Data
+---------------------------------------------------------------
+1. At homepage
+2. See header with "Profil" and "Keluar" buttons
+3. Click "Profil"
+4. EXPECTED: Go to /profile
+5. Form pre-filled with data from database
+6. Change address to "No 456, Jalan XYZ"
+7. Click "Kemaskini Profil"
+8. EXPECTED: Success + back to /
+
+🎯 TEST 4: Logout & Re-login
+---------------------------------------------------------------
+1. At homepage
+2. Click "Keluar" button
+3. EXPECTED: Redirect to /auth/login
+4. Log in with Google again
+5. EXPECTED: Direct to / (no profile page - already complete)
+6. Click "Profil"
+7. EXPECTED: See updated address "No 456, Jalan XYZ"
+   (Data from database, not localStorage)
+
+🎯 TEST 5: Order Creation (Foreign Key)
+---------------------------------------------------------------
+1. At homepage (logged in)
+2. Add product to cart
+3. Proceed to checkout
+4. Fill delivery details
+5. Submit order
+6. EXPECTED: Order created successfully
+7. Open Supabase dashboard
+8. Go to SQL Editor:
+   
+   SELECT id, customer_name, created_by 
+   FROM orders 
+   ORDER BY created_at DESC 
+   LIMIT 1;
+
+9. EXPECTED: created_by field has UUID (not null)
+
+🎯 TEST 6: Profile Wall Enforcement
+---------------------------------------------------------------
+1. Log in with Google
+2. At /profile page (profile incomplete)
+3. Manually type in browser: http://localhost:3000/
+4. EXPECTED: Middleware redirect back to /profile
+5. Cannot bypass profile completion
+
+===============================================================
+EXPECTED RESULTS SUMMARY
+===============================================================
+
+[✓] Non-auth user cannot see menu
+[✓] Login redirects to profile if incomplete
+[✓] Profile form validates all fields
+[✓] Cannot bypass profile wall
+[✓] Profile data from database (not cache)
+[✓] Logout works correctly
+[✓] Re-login skips profile if complete
+[✓] Order created_by populated with auth.uid()
+[✓] Profile & Logout buttons visible
+[✓] Profile updates saved to database
+
+===============================================================
+DEBUG TIPS
+===============================================================
+
+If test fails:
+
+1. Check browser console for errors
+2. Check Network tab for failed requests
+3. Verify Supabase connection:
+   - Check .env.local has correct keys
+   - Test connection in Supabase dashboard
+4. Check middleware is active:
+   - Look for redirect in Network tab
+5. Clear browser cookies & localStorage
+6. Restart dev server
+
+===============================================================

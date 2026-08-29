@@ -26,14 +26,22 @@ export default function HomePage() {
 
   useEffect(() => {
     checkUser();
-    fetchProducts();
   }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchProducts();
+    }
+  }, [user]);
 
   async function checkUser() {
     const supabase = createClient();
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
       setUser(session.user);
+    } else {
+      // No session - middleware should redirect, but just in case
+      setLoading(false);
     }
   }
 
@@ -148,7 +156,7 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               {user ? (
                 <>
-                  <Link href="/auth/profile">
+                  <Link href="/profile">
                     <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-medium rounded-md text-gray-700 transition">
                       👤 Profil
                     </button>
