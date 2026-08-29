@@ -72,6 +72,12 @@ export interface Order {
   created_by?: string | null; // User ID yang buat order (null jika customer)
   created_at: string;
   updated_at?: string;
+  // Snapshot fields (Phase R4B)
+  customer_name_snapshot?: string | null;
+  customer_phone_snapshot?: string | null;
+  customer_address_snapshot?: string | null;
+  delivery_distance_snapshot?: number | null;
+  delivery_fee_snapshot?: number | null;
 }
 
 export interface OrderItem {
@@ -79,7 +85,10 @@ export interface OrderItem {
   order_id: string;
   product_id: string;
   quantity: number;
-  unit_price: number;
+  unit_price: number; // This is selling_price_snapshot
+  // Snapshot fields (Phase R4B)
+  product_name_snapshot?: string | null;
+  cost_price_snapshot?: number | null;
 }
 
 export interface Payout {
