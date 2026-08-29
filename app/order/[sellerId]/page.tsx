@@ -103,6 +103,7 @@ export default function OrderFormPage() {
         items: cart.map((item) => ({
           product_id: item.id,
           quantity: item.quantity,
+          selectedOptions: item.selectedOptions || [],  // Phase R4D: Pass options to server
         })),
         special_notes: undefined, // Can add customer notes field later
       });
@@ -170,19 +171,47 @@ export default function OrderFormPage() {
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-xl font-semibold mb-4">Ringkasan Pesanan</h2>
           <div className="space-y-3">
-            {cart.map((item) => (
-              <div key={item.id} className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium text-gray-800">{item.name}</p>
-                  <p className="text-sm text-gray-600">
-                    {item.quantity} x RM {item.price.toFixed(2)}
+            {cart.map((item) => {
+              // Calculate item total including options (Phase R4D)
+              const basePrice = item.price;
+              const optionsTotal = item.selectedOptions?.reduce(
+                (sum, opt) => sum + opt.price_adjustment,
+                0
+              ) || 0;
+              const itemUnitPrice = basePrice + optionsTotal;
+              const itemTotal = itemUnitPrice * item.quantity;
+
+              return (
+                <div key={`${item.id}-${JSON.stringify(item.selectedOptions)}`} className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-800">{item.name}</p>
+                    
+                    {/* Display selected options (Phase R4D) */}
+                    {item.selectedOptions && item.selectedOptions.length > 0 && (
+                      <div className="ml-2 mt-1 space-y-0.5">
+                        {item.selectedOptions.map((opt, idx) => (
+                          <p key={idx} className="text-xs text-gray-600">
+                            • {opt.option_name}
+                            {opt.price_adjustment > 0 && (
+                              <span className="text-green-600">
+                                {' '}+RM{opt.price_adjustment.toFixed(2)}
+                              </span>
+                            )}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <p className="text-sm text-gray-600 mt-1">
+                      {item.quantity} x RM {itemUnitPrice.toFixed(2)}
+                    </p>
+                  </div>
+                  <p className="font-semibold text-gray-800 ml-2">
+                    RM {itemTotal.toFixed(2)}
                   </p>
                 </div>
-                <p className="font-semibold text-gray-800">
-                  RM {(item.price * item.quantity).toFixed(2)}
-                </p>
-              </div>
-            ))}
+              );
+            })}
           </div>
           <div className="border-t mt-4 pt-4 space-y-2">
             <div className="flex justify-between items-center text-gray-700">

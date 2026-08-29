@@ -12,6 +12,12 @@ import { generateWhatsAppLink } from '../../lib/utils';
 interface OrderItemInput {
   product_id: string;
   quantity: number;
+  selectedOptions?: Array<{
+    option_id: string;
+    option_group: string;
+    option_name: string;
+    price_adjustment: number;
+  }>;
 }
 
 interface CreateOrderInput {
@@ -159,6 +165,7 @@ export async function createOrder(
         name: item.product_name_snapshot || item.product?.name || 'Unknown',
         quantity: item.quantity,
         price: item.unit_price,
+        selectedOptions: item.selected_options || [],  // Phase R4D: Include options snapshot
       })) || [],
       specialNotes: orderData.special_notes,
     });

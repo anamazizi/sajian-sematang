@@ -121,6 +121,13 @@ export interface OrderItem {
   // Snapshot fields (Phase R4B)
   product_name_snapshot?: string | null;
   cost_price_snapshot?: number | null;
+  // Options snapshot (Phase R4D)
+  selected_options?: Array<{
+    option_id: string;
+    option_group: string;
+    option_name: string;
+    price_adjustment: number;
+  }> | null;
 }
 
 export interface Payout {

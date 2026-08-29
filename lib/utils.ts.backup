@@ -181,18 +181,6 @@ export function generateWhatsAppLink(orderDetails: {
   message += `🛒 *Item Pesanan:*\n`;
   orderDetails.items.forEach((item, index) => {
     message += `${index + 1}. ${item.name}\n`;
-    
-    // Display selected options (Phase R4D)
-    if (item.selectedOptions && item.selectedOptions.length > 0) {
-      item.selectedOptions.forEach((opt) => {
-        message += `   • ${opt.option_name}`;
-        if (opt.price_adjustment > 0) {
-          message += ` (+RM${opt.price_adjustment.toFixed(2)})`;
-        }
-        message += `\n`;
-      });
-    }
-    
     message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\n`;
   });
   message += `\n`;
