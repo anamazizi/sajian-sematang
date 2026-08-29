@@ -10,6 +10,9 @@ export interface User {
   role: 'customer' | 'seller' | 'admin' | 'staff';
   phone_number?: string;
   address?: string;
+  google_maps_url?: string;  // For delivery location
+  latitude?: number;
+  longitude?: number;
   is_active: boolean;
   seller_id?: string;
   created_at: string;

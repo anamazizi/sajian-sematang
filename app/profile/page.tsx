@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [googleMapsUrl, setGoogleMapsUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -48,6 +49,7 @@ export default function ProfilePage() {
         setName(existingProfile.name || session.user.user_metadata?.full_name || '');
         setPhone(existingProfile.phone_number || '');
         setAddress(existingProfile.address || '');
+        setGoogleMapsUrl(existingProfile.google_maps_url || '');
       } else {
         setName(session.user.user_metadata?.full_name || '');
       }
@@ -84,6 +86,7 @@ export default function ProfilePage() {
         email: user.email,
         phone_number: phone.trim(),
         address: address.trim(),
+        google_maps_url: googleMapsUrl.trim() || null,
         role: profile?.role || 'customer',
         is_active: true,
         updated_at: new Date().toISOString(),
@@ -210,6 +213,25 @@ export default function ProfilePage() {
                 required
                 disabled={saving}
               />
+            </div>
+
+            {/* Google Maps URL */}
+            <div>
+              <label htmlFor="googleMapsUrl" className="block text-gray-700 font-medium mb-2">
+                Pautan Google Maps (Pilihan)
+              </label>
+              <input
+                type="url"
+                id="googleMapsUrl"
+                value={googleMapsUrl}
+                onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                placeholder="https://maps.google.com/..."
+                disabled={saving}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                📍 Untuk pengiraan jarak penghantaran yang tepat
+              </p>
             </div>
 
             {/* Submit Button */}

@@ -38,30 +38,68 @@ export default function OrderFormPage() {
       return;
     }
     
-    // Load customer profile
-    const savedProfile = getCustomerProfile();
-    if (savedProfile) {
-      setProfile(savedProfile);
-      setCustomerName(savedProfile.name);
-      setCustomerPhone(savedProfile.phone);
-      setCustomerAddress(savedProfile.address);
-      setCustomerPinLocation(savedProfile.pinLocation);
-    } else {
-      setIsEditingProfile(true);
-    }
+    // Load customer profile from DATABASE (source of truth)
+    loadProfileFromDatabase();
   }, [cart, router]);
 
-  // Calculate delivery fee when mode or pin location changes
+  async function loadProfileFromDatabase() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        router.push('/auth/login');
+        return;
+      }
+
+      // Fetch profile from database
+      const { data: userProfile, error } = await supabase
+        .from('users')
+        .select('name, phone_number, address, google_maps_url')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        setIsEditingProfile(true);
+        return;
+      }
+
+      if (userProfile && userProfile.name && userProfile.phone_number && userProfile.address) {
+        // Auto-fill from database
+        setCustomerName(userProfile.name);
+        setCustomerPhone(userProfile.phone_number);
+        setCustomerAddress(userProfile.address);
+        setCustomerPinLocation(userProfile.google_maps_url || '');
+        
+        // Also save to CustomerProfile format (for backward compatibility)
+        const profileData: CustomerProfile = {
+          name: userProfile.name,
+          phone: userProfile.phone_number,
+          address: userProfile.address,
+          pinLocation: userProfile.google_maps_url || '',
+        };
+        setProfile(profileData);
+      } else {
+        // Profile incomplete - should not happen if middleware works
+        setIsEditingProfile(true);
+      }
+    } catch (err) {
+      console.error('Error loading profile:', err);
+      setIsEditingProfile(true);
+    }
+  }
+
+  // Manual delivery fee logic (pending Google API integration)
   useEffect(() => {
-    if (deliveryMode === 'Delivery' && customerPinLocation) {
-      const { distance, fee } = calculateDeliveryFee(customerPinLocation);
-      setCalculatedDistance(distance);
-      setDeliveryFee(fee);
+    if (deliveryMode === 'Delivery') {
+      // Set to RM 0.00 - will be confirmed via WhatsApp
+      setDeliveryFee(0);
+      setCalculatedDistance(0);
     } else {
       setDeliveryFee(0);
       setCalculatedDistance(0);
     }
-  }, [deliveryMode, customerPinLocation]);
+  }, [deliveryMode]);
 
   function getTotalPrice() {
     return getCartSubtotal() + deliveryFee;
@@ -387,15 +425,20 @@ export default function OrderFormPage() {
                 >
                   <div className="text-2xl mb-1">🚗</div>
                   <div className="font-semibold">Penghantaran</div>
-                  <div className="text-xs text-gray-600">
-                    {deliveryFee > 0 ? `RM${deliveryFee.toFixed(2)}` : 'Auto-calculate'}
-                  </div>
+                  <div className="text-xs text-gray-600">Caj disahkan kemudian</div>
                 </button>
               </div>
             </div>
 
             {deliveryMode === 'Delivery' && (
               <>
+                {/* Delivery Fee Notice */}
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-800">
+                    💡 <strong>Nota:</strong> Caj penghantaran akan dikira mengikut jarak dan disahkan melalui WhatsApp.
+                  </p>
+                </div>
+
                 <div className="mb-4">
                   <label htmlFor="address" className="block text-gray-700 font-medium mb-2">
                     Alamat Kompleks/Rumah <span className="text-red-500">*</span>
@@ -426,23 +469,9 @@ export default function OrderFormPage() {
                     disabled={submitting}
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Untuk pengiraan caj penghantaran yang tepat
+                    📍 Untuk admin/runner semak lokasi anda dengan mudah
                   </p>
                 </div>
-
-                {calculatedDistance > 0 && (
-                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700">
-                      📏 Jarak anggaran: ~{calculatedDistance.toFixed(1)}km
-                      <br />
-                      💵 Caj penghantaran: RM{deliveryFee.toFixed(2)}
-                      <br />
-                      <span className="text-xs">
-                        (Minima RM1 untuk bawah 1km, nombor bulat untuk 1km ke atas)
-                      </span>
-                    </p>
-                  </div>
-                )}
               </>
             )}
 
