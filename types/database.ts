@@ -175,3 +175,27 @@ export interface UserFormData {
   seller_id?: string;
   is_active: boolean;
 }
+
+// Stock Movement (Phase R3E)
+export interface StockMovement {
+  id: string;
+  product_id: string;
+  seller_id: string;
+  previous_quantity: number;
+  adjustment_quantity: number; // Positive = increase, Negative = decrease
+  new_quantity: number;
+  reason: string;
+  changed_by?: string | null; // User ID who made the change
+  changed_by_role?: string | null; // 'admin', 'staff', 'seller', 'system'
+  notes?: string | null;
+  created_at: string;
+}
+
+// Extended type with product details
+export interface StockMovementWithProduct extends StockMovement {
+  product?: Product;
+  changed_by_user?: {
+    name: string;
+    email: string;
+  };
+}

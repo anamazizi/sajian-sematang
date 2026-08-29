@@ -249,6 +249,12 @@ export default function SellerDashboard() {
               📦 Produk Saya
             </Link>
             <Link
+              href="/seller/stock-history"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
+            >
+              📊 Sejarah Stok
+            </Link>
+            <Link
               href="/seller/profile"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
             >
