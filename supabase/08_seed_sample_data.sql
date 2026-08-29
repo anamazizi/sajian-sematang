@@ -41,9 +41,10 @@ BEGIN
   
   -- Check and insert Seller 1
   IF NOT EXISTS (SELECT 1 FROM public.sellers WHERE user_id = seller1_user_id) THEN
-    INSERT INTO public.sellers (user_id, shop_name, description, phone_number, created_at)
+    INSERT INTO public.sellers (user_id, name, shop_name, description, phone_number, created_at)
     VALUES (
       seller1_user_id,
+      'Warung Kak Siti',
       'Warung Kak Siti',
       'Nasi lemak dan lauk-pauk tradisional. Sedap macam masakan mak!',
       '0123456789',
@@ -53,9 +54,10 @@ BEGIN
   
   -- Check and insert Seller 2
   IF NOT EXISTS (SELECT 1 FROM public.sellers WHERE user_id = seller2_user_id) THEN
-    INSERT INTO public.sellers (user_id, shop_name, description, phone_number, created_at)
+    INSERT INTO public.sellers (user_id, name, shop_name, description, phone_number, created_at)
     VALUES (
       seller2_user_id,
+      'Restoran Pak Ahmad',
       'Restoran Pak Ahmad',
       'Nasi ayam, nasi goreng, dan minuman segar. Murah dan sedap!',
       '0129876543',
@@ -65,9 +67,10 @@ BEGIN
   
   -- Check and insert Seller 3
   IF NOT EXISTS (SELECT 1 FROM public.sellers WHERE user_id = seller3_user_id) THEN
-    INSERT INTO public.sellers (user_id, shop_name, description, phone_number, created_at)
+    INSERT INTO public.sellers (user_id, name, shop_name, description, phone_number, created_at)
     VALUES (
       seller3_user_id,
+      'Kedai Makan Azizah',
       'Kedai Makan Azizah',
       'Kafe & minuman. Kopi, teh, dan kudap-kudapan. Best untuk lepak!',
       '0198765432',
