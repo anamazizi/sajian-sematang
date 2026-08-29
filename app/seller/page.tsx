@@ -47,26 +47,27 @@ export default function SellerDashboard() {
     if (sellerId) {
       fetchOrders();
     
-    // Set up real-time subscription for new orders
-    const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders',
-        },
-        () => {
-          fetchOrders();
-        }
-      )
-      .subscribe();
+      // Set up real-time subscription for new orders
+      const channel = supabase
+        .channel('orders-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'orders',
+          },
+          () => {
+            fetchOrders();
+          }
+        )
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [sellerId]);
 
   async function fetchSellerRecord() {
     if (!user) return;
@@ -237,6 +238,22 @@ export default function SellerDashboard() {
               <p className="text-sm text-gray-600">Jumlah Pesanan</p>
               <p className="text-3xl font-bold text-green-600">{orders.length}</p>
             </div>
+          </div>
+
+          {/* Quick Links */}
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/seller/products"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+            >
+              📦 Produk Saya
+            </Link>
+            <Link
+              href="/seller/profile"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            >
+              ⚙️ Tetapan Kedai
+            </Link>
           </div>
         </header>
 

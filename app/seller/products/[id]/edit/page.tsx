@@ -4,11 +4,11 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '../../../../../../lib/auth/hooks';
-import { supabase } from '../../../../../../lib/supabase/client';
-import ProductForm, { ProductFormData } from '../../../../../../components/seller/ProductForm';
-import { uploadProductImage, replaceProductImage } from '../../../../../../lib/storage/product-images';
-import { Product } from '../../../../../../types/database';
+import { useAuth } from '../../../../../lib/auth/hooks';
+import { supabase } from '../../../../../lib/supabase/client';
+import ProductForm, { ProductFormData } from '../../../../../components/seller/ProductForm';
+import { uploadProductImage, replaceProductImage } from '../../../../../lib/storage/product-images';
+import { Product } from '../../../../../types/database';
 import Link from 'next/link';
 
 export default function EditProductPage() {
