@@ -48,7 +48,28 @@ export interface Product {
   updated_at?: string;
 }
 
-// Cart Item interface (Product with quantity)
+// Product Option interface (Phase R4D)
+export interface ProductOption {
+  id: string;
+  product_id: string;
+  option_group: string;      // e.g., "Temperature", "Add-ons", "Size"
+  option_name: string;        // e.g., "Hot", "Iced", "Extra Cheese"
+  price_adjustment: number;   // e.g., 0.00, 1.00, 2.50
+  is_available: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at?: string;
+}
+
+// Selected Option (for cart/order)
+export interface SelectedOption {
+  option_id: string;
+  option_group: string;
+  option_name: string;
+  price_adjustment: number;
+}
+
+// Cart Item interface (Product with quantity and options)
 export interface CartItem {
   id: string;
   seller_id: string;
@@ -56,6 +77,7 @@ export interface CartItem {
   price: number;
   image_url?: string;
   quantity: number;
+  selectedOptions?: SelectedOption[];  // Phase R4D: Support options
 }
 
 export interface Order {
