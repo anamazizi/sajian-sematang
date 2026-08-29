@@ -14,7 +14,7 @@ CREATE OR REPLACE FUNCTION public.create_order_with_stock_check(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS \$\$
+AS $$
 DECLARE
   v_order_id uuid;
   v_item jsonb;
@@ -48,17 +48,17 @@ BEGIN
     FOR UPDATE; -- Lock row
 
     IF NOT FOUND THEN
-      RAISE EXCEPTION 'Product not found: %%', v_item->>'product_id';
+      RAISE EXCEPTION 'Product not found: %', v_item->>'product_id';
     END IF;
 
     IF NOT v_product.is_available THEN
-      RAISE EXCEPTION 'Product not available: %%', v_product.name;
+      RAISE EXCEPTION 'Product not available: %', v_product.name;
     END IF;
 
     -- Check stock (not for pre-order)
     IF NOT v_product.is_preorder THEN
       IF v_product.stock_quantity < (v_item->>'quantity')::integer THEN
-        RAISE EXCEPTION 'Insufficient stock: %% (Available: %%, Requested: %%)', 
+        RAISE EXCEPTION 'Insufficient stock: % (Available: %, Requested: %)', 
           v_product.name, v_product.stock_quantity, (v_item->>'quantity')::integer;
       END IF;
     END IF;
@@ -75,7 +75,7 @@ BEGIN
 
   -- STEP 2: Validate total
   IF ABS(v_calculated_total - (order_data->>'total_price')::decimal(10, 2)) > 0.01 THEN
-    RAISE EXCEPTION 'Price mismatch - Server: %%, Client: %%', 
+    RAISE EXCEPTION 'Price mismatch - Server: %, Client: %', 
       v_calculated_total, (order_data->>'total_price')::decimal(10, 2);
   END IF;
 
@@ -155,15 +155,15 @@ EXCEPTION
       'message', 'Order creation failed: ' || SQLERRM
     );
 END;
-\$\$;
+$$;
 
 GRANT EXECUTE ON FUNCTION public.create_order_with_stock_check(jsonb) TO authenticated;
 
 COMMENT ON FUNCTION public.create_order_with_stock_check(jsonb) IS 
 'Atomic order creation with stock validation and price verification';
 
-DO \$\$
+DO $$
 BEGIN
   RAISE NOTICE '✅ RPC Function created: create_order_with_stock_check()';
   RAISE NOTICE 'Features: Atomic stock check, server price validation, snapshots';
-END \$\$;
+END $$;

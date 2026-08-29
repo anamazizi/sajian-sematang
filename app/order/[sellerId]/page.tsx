@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '../../../lib/supabase/client';
 import { Product, CustomerProfile } from '../../../types/database';
 import { getCustomerProfile, saveCustomerProfile, clearCustomerProfile, calculateDeliveryFee } from '../../../lib/utils';
+import { createOrder } from '../../actions/create-order';
 import Link from 'next/link';
 
 interface CartItem extends Product {
@@ -83,7 +84,7 @@ export default function OrderFormPage() {
     setSubmitting(true);
 
     try {
-      // Validation
+      // Client-side validation
       if (!customerName.trim() || !customerPhone.trim()) {
         throw new Error('Sila isi nama dan nombor telefon');
       }
@@ -96,45 +97,33 @@ export default function OrderFormPage() {
         throw new Error('Tiada item dalam pesanan');
       }
 
-      const subtotal = getSubtotal();
       const totalPrice = getTotalPrice();
 
-      // Insert order
-      const { data: orderData, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          customer_name: customerName.trim(),
-          customer_phone: customerPhone.trim(),
-          customer_address: deliveryMode === 'Delivery' ? customerAddress.trim() : null,
-          customer_pin_location: deliveryMode === 'Delivery' ? (customerPinLocation.trim() || null) : null,
-          seller_id: sellerId,
-          subtotal: subtotal,
-          delivery_fee: deliveryFee,
-          total_price: totalPrice,
-          delivery_mode: deliveryMode,
-          calculated_distance: deliveryMode === 'Delivery' ? calculatedDistance : null,
-          status: 'New',
-        })
-        .select()
-        .single();
+      // Call Server Action (replaces direct Supabase insert)
+      // Server will validate prices, check stock, and create order atomically
+      const result = await createOrder({
+        seller_id: sellerId,
+        customer_name: customerName.trim(),
+        customer_phone: customerPhone.trim(),
+        customer_address: deliveryMode === 'Delivery' ? customerAddress.trim() : undefined,
+        customer_pin_location: deliveryMode === 'Delivery' ? customerPinLocation.trim() : undefined,
+        delivery_mode: deliveryMode,
+        delivery_fee: deliveryFee,
+        calculated_distance: calculatedDistance,
+        total_price: totalPrice, // Will be validated server-side
+        items: cart.map((item) => ({
+          product_id: item.id,
+          quantity: item.quantity,
+        })),
+        special_notes: undefined, // Can add customer notes field later
+      });
 
-      if (orderError) throw orderError;
+      // Handle server response
+      if (!result.success) {
+        throw new Error(result.error || 'Gagal membuat tempahan');
+      }
 
-      // Insert order items
-      const orderItems = cart.map((item) => ({
-        order_id: orderData.id,
-        product_id: item.id,
-        quantity: item.quantity,
-        unit_price: item.price,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Save customer profile to localStorage
+      // Success! Save customer profile to localStorage
       const profileData: CustomerProfile = {
         name: customerName.trim(),
         phone: customerPhone.trim(),
@@ -148,7 +137,7 @@ export default function OrderFormPage() {
       sessionStorage.removeItem('sellerId');
 
       // Redirect to success page
-      router.push(`/order/success/${orderData.id}`);
+      router.push(`/order/success/${result.order_id}`);
     } catch (err: any) {
       console.error('Error submitting order:', err);
       setError(err.message || 'Ralat semasa menghantar pesanan. Sila cuba lagi.');
