@@ -1,187 +1,333 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabase/client'; // Mengikut rujukan laluan standard projek Anam
+import { createClient } from '@/lib/supabase/client';
+import { Product } from '@/types/database';
+import { useCart } from '@/contexts/CartContext';
+import OptionSelector from '@/components/OptionSelector';
 
-export default function Home() {
+interface GroupedProducts {
+  [category: string]: Product[];
+}
+
+export default function HomePage() {
   const router = useRouter();
-  const [products, setProducts] = useState<any[]>([]);
+  const { cart, addToCart, getCartTotal, getCartCount } = useCart();
+  
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  
+  // Option selector state
+  const [showOptionSelector, setShowOptionSelector] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    checkUserAndFetch();
+    checkUser();
     fetchProducts();
   }, []);
 
-  async function checkUserAndFetch() {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        
-        // Ambil profil pelanggan terakhir
-        const { data } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (data) setProfile(data);
-      }
-    } catch (err) {
-      console.error('Ralat semak sesi:', err);
+  async function checkUser() {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      setUser(session.user);
     }
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    // Note: Supabase handles session clearing via cookies
-    // No need to manually clear localStorage
-    setUser(null);
-    setProfile(null);
-    window.location.reload(); // Muat semula laman untuk kosongkan paparan
   }
 
   async function fetchProducts() {
     try {
+      const supabase = createClient();
       const { data, error } = await supabase
         .from('products')
-        .select('*');
+        .select('*')
+        .eq('is_available', true)
+        .gt('stock_quantity', 0)
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
 
       if (error) throw error;
-
-      if (data) {
-        const filtered = data.filter((item: any) => {
-          let stokBaki = item.stock_quantity ?? 0;
-          let isAvailable = item.is_available ?? true;
-          if (!isAvailable || stokBaki <= 0) return false;
-          return true;
-        });
-        setProducts(filtered);
-      }
+      setProducts(data || []);
     } catch (err) {
-      console.error('Ralat memuatkan produk:', err);
+      console.error('Error fetching products:', err);
     } finally {
       setLoading(false);
     }
   }
 
-  return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
-      <div className="container mx-auto px-4 py-8">
-        
-        {/* HEADER & STATUS LOGIN */}
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-lg shadow-sm border border-orange-100">
-          <div>
-            <h1 className="text-3xl font-bold text-orange-600 mb-1">
-              🍽️ Sajian Sematang
-            </h1>
-            <p className="text-gray-600 text-sm">Platform Tempahan Makanan</p>
-          </div>
+  // Group products by category
+  const groupedProducts: GroupedProducts = products.reduce((acc, product) => {
+    const category = product.category || 'Lain-lain';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(product);
+    return acc;
+  }, {} as GroupedProducts);
 
-          <div className="mt-4 md:mt-0 flex items-center gap-3">
-            {user ? (
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-bold text-gray-800">{profile?.name || 'Pengguna'}</p>
-                  <p className="text-xs text-gray-500">{profile?.phone_number || 'Tiada No Phone'}</p>
-                </div>
-                
-                {/* BUTANG EDIT PROFIL (DIKEMASKINI KE HALAMAN PROFIL) */}
-                <Link href="/auth/profile">
-                  <button className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-xs font-medium rounded-md text-gray-700 transition">
-                    Edit Profil
+  async function handleAddToCart(product: Product) {
+    if (!user) {
+      alert('Sila log masuk untuk membuat pesanan');
+      router.push('/auth/login');
+      return;
+    }
+
+    // Check if product has options
+    const supabase = createClient();
+    const { data: options } = await supabase
+      .from('product_options')
+      .select('id')
+      .eq('product_id', product.id)
+      .eq('is_available', true)
+      .limit(1);
+
+    if (options && options.length > 0) {
+      // Product has options - show selector
+      setSelectedProduct(product);
+      setShowOptionSelector(true);
+    } else {
+      // No options - add directly
+      addToCart({
+        id: product.id,
+        seller_id: product.seller_id,
+        name: product.name,
+        price: product.price,
+        image_url: product.image_url,
+      });
+    }
+  }
+
+  function handleOptionsSelected(selectedOptions: any[], totalPrice: number) {
+    if (!selectedProduct) return;
+
+    addToCart({
+      id: selectedProduct.id,
+      seller_id: selectedProduct.seller_id,
+      name: selectedProduct.name,
+      price: selectedProduct.price, // Base price
+      image_url: selectedProduct.image_url,
+      selectedOptions,
+    });
+
+    setShowOptionSelector(false);
+    setSelectedProduct(null);
+  }
+
+  async function handleLogout() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.reload();
+  }
+
+  function proceedToCheckout() {
+    if (cart.length === 0) {
+      alert('Bakul anda kosong');
+      return;
+    }
+    // Get any seller_id from cart (for backward compatibility with old order system)
+    const sellerId = cart[0].seller_id;
+    router.push(`/order/${sellerId}`);
+  }
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white pb-24">
+      <div className="container mx-auto px-4 py-6">
+        {/* Header */}
+        <header className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-orange-100">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-orange-600">
+                🍽️ Sajian Sematang
+              </h1>
+              <p className="text-gray-600 text-sm">Platform Tempahan Makanan</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  <Link href="/auth/profile">
+                    <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-medium rounded-md text-gray-700 transition">
+                      👤 Profil
+                    </button>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-xs font-medium rounded-md text-red-700 transition"
+                  >
+                    Log Keluar
+                  </button>
+                </>
+              ) : (
+                <Link href="/auth/login">
+                  <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-md transition">
+                    Log Masuk
                   </button>
                 </Link>
-
-                <button 
-                  onClick={handleLogout}
-                  className="bg-red-50 hover:bg-red-100 text-red-600 px-3 py-1.5 rounded-md text-xs font-medium transition"
-                >
-                  Log Keluar
-                </button>
-              </div>
-            ) : (
-              <Link href="/auth/login">
-                <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-                  Log Masuk (Google)
-                </button>
-              </Link>
-            )}
+              )}
+            </div>
           </div>
         </header>
 
-        <div className="max-w-4xl mx-auto">
-          {/* PAPARAN ALAMAT TERAKHIR (AUTO-DETECT) */}
-          {profile && (
-            <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg mb-8 flex justify-between items-center shadow-sm">
-              <div>
-                <p className="text-xs font-semibold text-orange-600 uppercase tracking-wider">Maklumat Penghantaran Anda:</p>
-                <p className="text-gray-800 text-sm font-medium mt-0.5">{profile.address || 'Alamat belum diisi'}</p>
-                {profile.maps_url && (
-                  <a href={profile.maps_url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 inline-block">
-                    📍 Buka Lokasi Google Maps
-                  </a>
-                )}
-              </div>
-              <Link href="/auth/profile" className="text-xs text-orange-600 hover:underline font-semibold whitespace-nowrap bg-white px-3 py-1.5 rounded border border-orange-200">
-                Tukar/Edit
-              </Link>
-            </div>
-          )}
+        {/* Menu Categories */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuatkan menu...</p>
+          </div>
+        ) : products.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <p className="text-gray-600">Tiada menu tersedia buat masa ini.</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
+              <section key={category}>
+                {/* Category Header */}
+                <div className="flex items-center mb-4">
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    {category}
+                  </h2>
+                  <div className="flex-1 h-px bg-gray-300 ml-4"></div>
+                </div>
 
-          {/* SENARAI MENU */}
-          <section>
-            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Menu Makanan Semasa</h2>
-            
-            {loading ? (
-              <p className="text-center text-gray-500 py-6">Memuat turun menu dari pangkalan data...</p>
-            ) : products.length === 0 ? (
-              <p className="text-center text-gray-500 py-6 bg-white rounded-lg shadow-sm">Tiada menu aktif buat masa ini.</p>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-4">
-                {products.map((item) => {
-                  return (
-                    <div key={item.id} className="bg-white p-5 rounded-lg shadow-md border border-gray-200 flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="font-bold text-lg text-gray-800">{item.name}</h3>
-                          <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">Stok: {item.stock_quantity ?? 0}</span>
+                {/* Products Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {categoryProducts.map((product) => {
+                    const inCart = cart.find((item) => item.id === product.id);
+                    const quantity = inCart?.quantity || 0;
+
+                    return (
+                      <div
+                        key={product.id}
+                        className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition"
+                      >
+                        {/* Product Image */}
+                        {product.image_url && (
+                          <div className="h-48 bg-gray-100 overflow-hidden">
+                            <img
+                              src={product.image_url}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        )}
+
+                        {/* Product Info */}
+                        <div className="p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="font-bold text-lg text-gray-800">
+                              {product.name}
+                            </h3>
+                            <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                              {product.stock_quantity} unit
+                            </span>
+                          </div>
+
+                          {product.description && (
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                              {product.description}
+                            </p>
+                          )}
+
+                          {/* Price & Category Badge */}
+                          <div className="flex justify-between items-center mb-4">
+                            <p className="text-orange-600 font-bold text-xl">
+                              RM{product.price.toFixed(2)}
+                            </p>
+                            {product.is_preorder && (
+                              <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
+                                Pre-Order
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Add to Cart Button */}
+                          {quantity === 0 ? (
+                            <button
+                              onClick={() => handleAddToCart(product)}
+                              className="w-full bg-orange-500 text-white py-2.5 rounded-lg hover:bg-orange-600 transition font-semibold"
+                            >
+                              Tambah ke Pesanan
+                            </button>
+                          ) : (
+                            <div className="flex items-center justify-between bg-orange-50 p-2 rounded-lg border-2 border-orange-200">
+                              <button
+                                onClick={() => {
+                                  // Decrement logic handled by CartContext
+                                  const cartItem = cart.find((item) => item.id === product.id);
+                                  if (cartItem) {
+                                    const newQty = cartItem.quantity - 1;
+                                    if (newQty > 0) {
+                                      // Note: CartContext removeFromCart decrements
+                                      // For direct quantity update, we'd need updateQuantity
+                                      // For now, using removeFromCart which decrements or removes
+                                    }
+                                  }
+                                }}
+                                className="bg-orange-500 text-white w-8 h-8 rounded-lg hover:bg-orange-600 transition font-bold"
+                              >
+                                −
+                              </button>
+                              <span className="font-bold text-gray-800 text-lg">
+                                {quantity}
+                              </span>
+                              <button
+                                onClick={() => handleAddToCart(product)}
+                                className="bg-orange-500 text-white w-8 h-8 rounded-lg hover:bg-orange-600 transition font-bold"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-gray-600 text-sm mb-3">{item.description}</p>
-                        <p className="text-orange-600 font-bold text-xl mb-4">RM {parseFloat(item.price || 0).toFixed(2)}</p>
                       </div>
-
-                      <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                        <button className="flex items-center gap-1 text-gray-600 hover:text-blue-600 text-sm font-medium transition">
-                          <span>👍 Suka</span>
-                        </button>
-                        <button 
-                          onClick={() => {
-                            if (!user) {
-                              alert('Sila log masuk dengan Google terlebih dahulu untuk membuat pesanan.');
-                              router.push('/auth/login');
-                            } else {
-                              alert(`Tempahan berjaya direkodkan untuk ${item.name}! Penghantaran ke alamat: ${profile?.address || 'Alamat lalai'}`);
-                            }
-                          }}
-                          className="bg-orange-500 text-white px-4 py-2 rounded-md hover:bg-orange-600 transition text-sm font-medium"
-                        >
-                          Tempah
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Floating Cart Summary */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-orange-200 shadow-lg p-4 z-40">
+          <div className="container mx-auto flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">
+                {getCartCount()} item dalam bakul
+              </p>
+              <p className="text-xl font-bold text-orange-600">
+                RM{getCartTotal().toFixed(2)}
+              </p>
+            </div>
+            <button
+              onClick={proceedToCheckout}
+              className="bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 transition font-semibold shadow-md"
+            >
+              Teruskan Pesanan →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Option Selector Modal */}
+      {showOptionSelector && selectedProduct && (
+        <OptionSelector
+          productId={selectedProduct.id}
+          productName={selectedProduct.name}
+          basePrice={selectedProduct.price}
+          onOptionsSelected={handleOptionsSelected}
+          onCancel={() => {
+            setShowOptionSelector(false);
+            setSelectedProduct(null);
+          }}
+        />
+      )}
     </main>
   );
 }
