@@ -55,9 +55,26 @@ export default function ProductsPage() {
 
       setSellerId(seller.id);
 
+      // Phase R5.4: Explicit column selection (seller CAN see cost_price for own products)
       const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          id,
+          seller_id,
+          name,
+          description,
+          price,
+          cost_price,
+          category,
+          image_url,
+          is_available,
+          stock_quantity,
+          is_preorder,
+          available_from,
+          available_until,
+          created_at,
+          updated_at
+        `)
         .eq('seller_id', seller.id)
         .order('created_at', { ascending: false });
 

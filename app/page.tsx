@@ -4,25 +4,25 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Product } from '@/types/database';
+import { CustomerProduct } from '@/types/database';
 import { useCart } from '@/contexts/CartContext';
 import OptionSelector from '@/components/OptionSelector';
 
 interface GroupedProducts {
-  [category: string]: Product[];
+  [category: string]: CustomerProduct[];
 }
 
 export default function HomePage() {
   const router = useRouter();
   const { cart, addToCart, getCartTotal, getCartCount } = useCart();
   
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<CustomerProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   
   // Option selector state
   const [showOptionSelector, setShowOptionSelector] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<CustomerProduct | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -48,9 +48,26 @@ export default function HomePage() {
   async function fetchProducts() {
     try {
       const supabase = createClient();
+      // Phase R5.4: Explicit column selection - NEVER include cost_price for customers
+      // Master Prompt Seksyen 66: Customer tidak boleh lihat cost_price
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          id,
+          seller_id,
+          name,
+          description,
+          price,
+          category,
+          image_url,
+          is_available,
+          stock_quantity,
+          is_preorder,
+          available_from,
+          available_until,
+          created_at,
+          updated_at
+        `)
         .eq('is_available', true)
         .gt('stock_quantity', 0)
         .order('category', { ascending: true })
@@ -75,7 +92,7 @@ export default function HomePage() {
     return acc;
   }, {} as GroupedProducts);
 
-  async function handleAddToCart(product: Product) {
+  async function handleAddToCart(product: CustomerProduct) {
     if (!user) {
       alert('Sila log masuk untuk membuat pesanan');
       router.push('/auth/login');

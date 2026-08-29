@@ -54,9 +54,26 @@ export default function EditProductPage() {
       setSellerId(seller.id);
 
       // Fetch product (with ownership check)
+      // Phase R5.4: Explicit column selection (seller CAN see cost_price for own products)
       const { data: productData, error: productError } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          id,
+          seller_id,
+          name,
+          description,
+          price,
+          cost_price,
+          category,
+          image_url,
+          is_available,
+          stock_quantity,
+          is_preorder,
+          available_from,
+          available_until,
+          created_at,
+          updated_at
+        `)
         .eq('id', productId)
         .eq('seller_id', seller.id) // SECURITY: Only seller's own products
         .single();

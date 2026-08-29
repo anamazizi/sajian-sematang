@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase/client';
-import { Product, Seller } from '../../types/database';
+import { CustomerProduct, Seller } from '../../types/database';
 import Link from 'next/link';
 
-interface ProductWithSeller extends Product {
+// Phase R5.4: Use CustomerProduct (without cost_price) for customer-facing preorder
+interface ProductWithSeller extends CustomerProduct {
   seller?: Seller;
 }
 
@@ -43,18 +44,44 @@ export default function CustomPreOrderPage() {
   async function fetchPreOrderProducts() {
     try {
       // Fetch all pre-order products with seller info
+      // Phase R5.4: Explicit column selection - exclude cost_price for customers
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
-          *,
-          seller:sellers(*)
+          id,
+          seller_id,
+          name,
+          description,
+          price,
+          category,
+          image_url,
+          is_available,
+          stock_quantity,
+          is_preorder,
+          available_from,
+          available_until,
+          created_at,
+          updated_at,
+          seller:sellers(
+            id,
+            shop_name,
+            description,
+            phone_number
+          )
         `)
         .eq('is_preorder', true)
         .eq('is_available', true)
         .order('seller_id', { ascending: true });
 
       if (productsError) throw productsError;
-      setProducts(productsData || []);
+      
+      // Transform data to match ProductWithSeller type (seller is single object, not array)
+      const transformedProducts = (productsData || []).map((p: any) => ({
+        ...p,
+        seller: Array.isArray(p.seller) && p.seller.length > 0 ? p.seller[0] : undefined,
+      }));
+      
+      setProducts(transformedProducts);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
