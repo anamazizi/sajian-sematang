@@ -51,18 +51,34 @@ export function CartProvider({ children }: CartProviderProps) {
 
   const addToCart = (item: Omit<CartItem, 'quantity'>) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find((cartItem) => cartItem.id === item.id);
+      // Check if exact same item with same options exists
+      const existingItem = prevCart.find((cartItem) => {
+        if (cartItem.id !== item.id) return false;
+        
+        // Compare options (Phase R4D)
+        const cartOptions = cartItem.selectedOptions || [];
+        const newOptions = item.selectedOptions || [];
+        
+        if (cartOptions.length !== newOptions.length) return false;
+        
+        // Check if all options match
+        return cartOptions.every((cartOpt) =>
+          newOptions.some(
+            (newOpt) => newOpt.option_id === cartOpt.option_id
+          )
+        );
+      });
       
       if (existingItem) {
-        // Increment quantity if item already in cart
+        // Increment quantity if exact item (with same options) exists
         return prevCart.map((cartItem) =>
-          cartItem.id === item.id
+          cartItem === existingItem
             ? { ...cartItem, quantity: cartItem.quantity + 1 }
             : cartItem
         );
       }
       
-      // Add new item with quantity 1
+      // Add new item with quantity 1 (different product or different options)
       return [...prevCart, { ...item, quantity: 1 }];
     });
   };
@@ -104,7 +120,21 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   const getCartTotal = (): number => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
+    return cart.reduce((total, item) => {
+      // Base price
+      let itemPrice = item.price;
+      
+      // Add option prices (Phase R4D)
+      if (item.selectedOptions && item.selectedOptions.length > 0) {
+        const optionsTotal = item.selectedOptions.reduce(
+          (sum, opt) => sum + opt.price_adjustment,
+          0
+        );
+        itemPrice += optionsTotal;
+      }
+      
+      return total + itemPrice * item.quantity;
+    }, 0);
   };
 
   const getCartCount = (): number => {
