@@ -16,7 +16,7 @@ export default function SellerOutstanding({
   const hasOutstanding = seller.total_outstanding > 0;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500">
+    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
       <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
         {/* Seller Info */}
         <div className="flex-1">
@@ -32,7 +32,7 @@ export default function SellerOutstanding({
           {/* Outstanding Amount */}
           <div className="mt-3">
             <p className="text-sm text-gray-500 mb-1">Tunggakan:</p>
-            <p className={`text-3xl font-bold ${hasOutstanding ? 'text-orange-600' : 'text-green-600'}`}>
+            <p className={`text-3xl font-bold ${hasOutstanding ? 'text-slate-600' : 'text-green-600'}`}>
               RM {seller.total_outstanding.toFixed(2)}
             </p>
           </div>
@@ -86,7 +86,7 @@ export default function SellerOutstanding({
         <div className="mt-4">
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
-              className="bg-orange-500 h-2 rounded-full transition-all"
+              className="bg-yellow-500 h-2 rounded-full transition-all"
               style={{
                 width: `${Math.min((seller.total_outstanding / 1000) * 100, 100)}%`
               }}

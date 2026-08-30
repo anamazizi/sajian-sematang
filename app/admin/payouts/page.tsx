@@ -107,9 +107,9 @@ export default function AdminPayoutsPage() {
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Total Outstanding */}
-            <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-orange-500">
+            <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
               <p className="text-sm text-gray-600 mb-1">Total Tunggakan</p>
-              <p className="text-3xl font-bold text-orange-600">
+              <p className="text-3xl font-bold text-slate-600">
                 RM {totalOutstanding.toFixed(2)}
               </p>
               <p className="text-xs text-gray-500 mt-2">

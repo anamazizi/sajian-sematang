@@ -22,7 +22,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition">
       <div className="flex justify-between items-start mb-3">
         <h3 className="text-xl font-semibold text-gray-800">{product.name}</h3>
-        <span className="text-lg font-bold text-orange-600">
+        <span className="text-lg font-bold text-slate-900">
           RM {product.price.toFixed(2)}
         </span>
       </div>
@@ -48,7 +48,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       
       <p className="text-gray-600 mb-4">{product.description}</p>
       
-      <button className="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition">
+      <button className="w-full bg-yellow-400 text-slate-900 py-2 rounded-lg hover:bg-yellow-500 transition font-semibold">
         Tambah ke Pesanan
       </button>
     </div>

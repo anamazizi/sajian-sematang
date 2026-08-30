@@ -143,7 +143,7 @@ export default function OptionSelector({
         <div className="border-b border-gray-200 p-4">
           <h2 className="text-xl font-bold text-gray-800 mb-1">Pilih Opsyen</h2>
           <p className="text-gray-600 text-sm">{productName}</p>
-          <p className="text-orange-600 font-semibold mt-1">Harga Asas: RM{basePrice.toFixed(2)}</p>
+          <p className="text-slate-600 font-semibold mt-1">Harga Asas: RM{basePrice.toFixed(2)}</p>
         </div>
 
         <div className="p-4 max-h-96 overflow-y-auto">
@@ -164,20 +164,20 @@ export default function OptionSelector({
                       key={option.id}
                       onClick={() => handleOptionToggle(option)}
                       className={`w-full text-left p-3 rounded-lg border-2 transition ${
-                        isSelected ? 'border-orange-500 bg-orange-50' : 'border-gray-200 hover:border-orange-300'
+                        isSelected ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200 hover:border-yellow-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mr-3 ${
-                            isSelected ? 'border-orange-500 bg-orange-500' : 'border-gray-300'
+                            isSelected ? 'border-yellow-500 bg-yellow-500' : 'border-gray-300'
                           }`}>
                             {isSelected && <div className="w-2 h-2 bg-white rounded-full" />}
                           </div>
                           <span className="font-medium text-gray-800">{option.option_name}</span>
                         </div>
                         <span className={`text-sm font-semibold ${
-                          option.price_adjustment === 0 ? 'text-green-600' : 'text-orange-600'
+                          option.price_adjustment === 0 ? 'text-green-600' : 'text-slate-600'
                         }`}>
                           {priceText}
                         </span>
@@ -198,7 +198,7 @@ export default function OptionSelector({
                 <div key={opt.option_id} className="text-sm text-gray-700 flex justify-between">
                   <span>{opt.option_group}: <b>{opt.option_name}</b></span>
                   {opt.price_adjustment > 0 && (
-                    <span className="text-orange-600">+RM{opt.price_adjustment.toFixed(2)}</span>
+                    <span className="text-slate-600">+RM{opt.price_adjustment.toFixed(2)}</span>
                   )}
                 </div>
               ))}
@@ -207,14 +207,14 @@ export default function OptionSelector({
 
           <div className="flex items-center justify-between mb-4">
             <span className="text-gray-700 font-semibold">Jumlah:</span>
-            <span className="text-2xl font-bold text-orange-600">RM{totalPrice.toFixed(2)}</span>
+            <span className="text-2xl font-bold text-slate-600">RM{totalPrice.toFixed(2)}</span>
           </div>
 
           <div className="flex gap-3">
             <button onClick={onCancel} className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-semibold">
               Batal
             </button>
-            <button onClick={handleConfirm} className="flex-1 bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition font-semibold">
+            <button onClick={handleConfirm} className="flex-1 bg-yellow-400 text-slate-900 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold">
               Tambah ke Bakul
             </button>
           </div>

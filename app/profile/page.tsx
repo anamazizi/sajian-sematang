@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@/types/database';
 import { getMalaysiaTime } from '@/lib/utils';
@@ -123,7 +124,7 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Memuatkan...</p>
         </div>
       </div>
@@ -131,11 +132,17 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-8 px-4">
       <div className="max-w-md mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-block bg-orange-600 text-white p-4 rounded-full mb-4">
+          <Link
+            href="/"
+            className="inline-block mb-4 text-slate-700 hover:text-slate-900 font-medium"
+          >
+            ← Kembali ke Halaman Utama
+          </Link>
+          <div className="inline-block bg-yellow-400 text-slate-900 p-4 rounded-full mb-4">
             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -176,7 +183,7 @@ export default function ProfilePage() {
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Contoh: Ahmad bin Abdullah"
                 required
                 disabled={saving}
@@ -193,7 +200,7 @@ export default function ProfilePage() {
                 id="phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Contoh: 0123456789"
                 required
                 disabled={saving}
@@ -209,7 +216,7 @@ export default function ProfilePage() {
                 id="address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Contoh: No 123, Jalan ABC, 12345 Kuala Lumpur"
                 rows={3}
                 required
@@ -227,7 +234,7 @@ export default function ProfilePage() {
                 id="googleMapsUrl"
                 value={googleMapsUrl}
                 onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="https://maps.google.com/..."
                 disabled={saving}
               />
@@ -240,7 +247,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-yellow-400 text-slate-900 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {saving ? 'Menyimpan...' : (profile ? 'Kemaskini Profil' : 'Simpan & Teruskan')}
             </button>

@@ -158,13 +158,13 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-orange-50 to-white pb-24">
+    <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
-        <header className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-orange-100">
+        <header className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-yellow-100">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-orange-600">
+              <h1 className="text-3xl font-bold text-slate-600">
                 🍽️ Sajian Sematang
               </h1>
               <p className="text-gray-600 text-sm">Platform Tempahan Makanan</p>
@@ -187,7 +187,7 @@ export default function HomePage() {
                 </>
               ) : (
                 <Link href="/auth/login">
-                  <button className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-md transition">
+                  <button className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-medium rounded-md transition">
                     Log Masuk
                   </button>
                 </Link>
@@ -199,7 +199,7 @@ export default function HomePage() {
         {/* Menu Categories */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Memuatkan menu...</p>
           </div>
         ) : products.length === 0 ? (
@@ -259,7 +259,7 @@ export default function HomePage() {
 
                           {/* Price & Category Badge */}
                           <div className="flex justify-between items-center mb-4">
-                            <p className="text-orange-600 font-bold text-xl">
+                            <p className="text-slate-600 font-bold text-xl">
                               RM{product.price.toFixed(2)}
                             </p>
                             {product.is_preorder && (
@@ -273,12 +273,12 @@ export default function HomePage() {
                           {quantity === 0 ? (
                             <button
                               onClick={() => handleAddToCart(product)}
-                              className="w-full bg-orange-500 text-white py-2.5 rounded-lg hover:bg-orange-600 transition font-semibold"
+                              className="w-full bg-yellow-500 text-white py-2.5 rounded-lg hover:bg-yellow-600 transition font-semibold"
                             >
                               Tambah ke Pesanan
                             </button>
                           ) : (
-                            <div className="flex items-center justify-between bg-orange-50 p-2 rounded-lg border-2 border-orange-200">
+                            <div className="flex items-center justify-between bg-yellow-50 p-2 rounded-lg border-2 border-yellow-200">
                               <button
                                 onClick={() => {
                                   // Decrement logic handled by CartContext
@@ -292,7 +292,7 @@ export default function HomePage() {
                                     }
                                   }
                                 }}
-                                className="bg-orange-500 text-white w-8 h-8 rounded-lg hover:bg-orange-600 transition font-bold"
+                                className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
                               >
                                 −
                               </button>
@@ -301,7 +301,7 @@ export default function HomePage() {
                               </span>
                               <button
                                 onClick={() => handleAddToCart(product)}
-                                className="bg-orange-500 text-white w-8 h-8 rounded-lg hover:bg-orange-600 transition font-bold"
+                                className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
                               >
                                 +
                               </button>
@@ -320,19 +320,19 @@ export default function HomePage() {
 
       {/* Floating Cart Summary */}
       {cart.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-orange-200 shadow-lg p-4 z-40">
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-yellow-200 shadow-lg p-4 z-40">
           <div className="container mx-auto flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">
                 {getCartCount()} item dalam bakul
               </p>
-              <p className="text-xl font-bold text-orange-600">
+              <p className="text-xl font-bold text-slate-600">
                 RM{getCartTotal().toFixed(2)}
               </p>
             </div>
             <button
               onClick={proceedToCheckout}
-              className="bg-orange-500 text-white px-8 py-3 rounded-lg hover:bg-orange-600 transition font-semibold shadow-md"
+              className="bg-yellow-500 text-white px-8 py-3 rounded-lg hover:bg-yellow-600 transition font-semibold shadow-md"
             >
               Teruskan Pesanan →
             </button>

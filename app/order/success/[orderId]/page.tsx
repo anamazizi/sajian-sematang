@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../../lib/supabase/client';
 import { Order } from '../../../../types/database';
-import { generateSimpleWhatsAppLink } from '../../../../lib/utils';
+import { generateWhatsAppLink } from '../../../../lib/utils';
 import Link from 'next/link';
 
 export default function OrderSuccessPage() {
@@ -30,28 +30,35 @@ export default function OrderSuccessPage() {
       if (error) throw error;
       setOrder(data);
 
-      // Fetch order items with product details
+      // Fetch order items with product details including options
       const { data: itemsData } = await supabase
         .from('order_items')
         .select('*, product:products(*)')
         .eq('order_id', orderId);
 
       if (itemsData) {
-        // Generate WhatsApp link
-        const waLink = generateSimpleWhatsAppLink({
+        // Generate WhatsApp link with full details
+        const subtotal = itemsData.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+        
+        const waLink = generateWhatsAppLink({
           orderId: data.id,
           customerName: data.customer_name,
           customerPhone: data.customer_phone,
-          customerAddress: data.customer_address,
-          customerPinLocation: data.customer_pin_location,
+          customerAddress: data.customer_address || undefined,
+          customerPinLocation: data.customer_pin_location || undefined,
           items: itemsData.map(item => ({
             name: item.product?.name || 'Produk',
             quantity: item.quantity,
             price: item.unit_price,
+            selectedOptions: item.selected_options || [],
           })),
+          subtotal: subtotal,
+          deliveryFee: data.delivery_fee || 0,
           totalPrice: data.total_price,
-          deliveryDateTime: data.delivery_datetime,
-          specialNotes: data.special_notes,
+          deliveryMode: data.delivery_mode || 'Self-Pickup',
+          calculatedDistance: data.calculated_distance || undefined,
+          deliveryDateTime: data.delivery_datetime || undefined,
+          specialNotes: data.special_notes || undefined,
         });
         setWhatsappLink(waLink);
       }
@@ -64,9 +71,9 @@ export default function OrderSuccessPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Memuatkan...</p>
         </div>
       </div>
@@ -75,10 +82,10 @@ export default function OrderSuccessPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Pesanan tidak dijumpai</p>
-          <Link href="/sellers" className="text-orange-600 hover:text-orange-700">
+          <Link href="/sellers" className="text-slate-600 hover:text-slate-700">
             Kembali ke Senarai Peniaga
           </Link>
         </div>
@@ -87,7 +94,7 @@ export default function OrderSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <div className="bg-white p-8 rounded-lg shadow-md text-center">
           <div className="mb-6">
@@ -114,7 +121,7 @@ export default function OrderSuccessPage() {
             </p>
           </div>
 
-          <div className="bg-orange-50 p-6 rounded-lg mb-6">
+          <div className="bg-yellow-50 p-6 rounded-lg mb-6">
             <h2 className="text-lg font-semibold text-gray-800 mb-4">
               Maklumat Pesanan
             </h2>
@@ -135,7 +142,7 @@ export default function OrderSuccessPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Jumlah:</span>
-                <span className="font-bold text-orange-600">
+                <span className="font-bold text-slate-600">
                   RM {order.total_price.toFixed(2)}
                 </span>
               </div>
@@ -164,7 +171,7 @@ export default function OrderSuccessPage() {
             
             <Link
               href="/sellers"
-              className="inline-block w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition font-semibold text-center"
+              className="inline-block w-full bg-yellow-500 text-white py-3 rounded-lg hover:bg-yellow-600 transition font-semibold text-center"
             >
               Kembali ke Senarai Peniaga
             </Link>

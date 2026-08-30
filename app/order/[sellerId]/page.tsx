@@ -175,7 +175,7 @@ export default function OrderFormPage() {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600">Memuatkan...</p>
         </div>
@@ -184,12 +184,12 @@ export default function OrderFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <header className="mb-8">
           <Link
             href={`/sellers/${sellerId}`}
-            className="text-orange-600 hover:text-orange-700 mb-4 inline-block"
+            className="text-slate-600 hover:text-slate-700 mb-4 inline-block"
           >
             ← Kembali ke Menu
           </Link>
@@ -262,7 +262,7 @@ export default function OrderFormPage() {
             </div>
             <div className="flex justify-between items-center border-t pt-2">
               <p className="text-lg font-bold text-gray-800">Jumlah</p>
-              <p className="text-2xl font-bold text-orange-600">
+              <p className="text-2xl font-bold text-slate-900">
                 RM {getTotalPrice().toFixed(2)}
               </p>
             </div>
@@ -272,13 +272,13 @@ export default function OrderFormPage() {
         {/* Profile Confirmation or Form */}
         {profile && !isEditingProfile ? (
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 className="text-xl font-semibold mb-4">✅ Maklumat Anda</h2>
-            <div className="space-y-2 mb-4 bg-gray-50 p-4 rounded-lg text-slate-900">
-              <p><strong>Nama:</strong> {profile.name}</p>
-              <p><strong>Telefon:</strong> {profile.phone}</p>
-              <p><strong>Alamat:</strong> {profile.address}</p>
+            <h2 className="text-xl font-semibold mb-4 text-slate-900">✅ Maklumat Anda</h2>
+            <div className="space-y-2 mb-4 bg-slate-50 p-4 rounded-lg">
+              <p className="text-slate-900 dark:text-slate-900"><strong>Nama:</strong> {profile.name}</p>
+              <p className="text-slate-900 dark:text-slate-900"><strong>Telefon:</strong> {profile.phone}</p>
+              <p className="text-slate-900 dark:text-slate-900"><strong>Alamat:</strong> {profile.address}</p>
               {profile.pinLocation && (
-                <p><strong>Pin Location:</strong> <a href={profile.pinLocation} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Lihat di Maps</a></p>
+                <p className="text-slate-900 dark:text-slate-900"><strong>Pin Location:</strong> <a href={profile.pinLocation} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Lihat di Maps</a></p>
               )}
             </div>
             
@@ -293,8 +293,8 @@ export default function OrderFormPage() {
                   onClick={() => setDeliveryMode('Self-Pickup')}
                   className={`p-4 rounded-lg border-2 transition ${
                     deliveryMode === 'Self-Pickup'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-300 hover:border-orange-300'
+                      ? 'border-yellow-400 bg-yellow-50'
+                      : 'border-gray-300 hover:border-yellow-300'
                   }`}
                 >
                   <div className="text-2xl mb-1">🏪</div>
@@ -306,8 +306,8 @@ export default function OrderFormPage() {
                   onClick={() => setDeliveryMode('Delivery')}
                   className={`p-4 rounded-lg border-2 transition ${
                     deliveryMode === 'Delivery'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-300 hover:border-orange-300'
+                      ? 'border-yellow-400 bg-yellow-50'
+                      : 'border-gray-300 hover:border-yellow-300'
                   }`}
                 >
                   <div className="text-2xl mb-1">🚗</div>
@@ -329,34 +329,20 @@ export default function OrderFormPage() {
               </div>
             )}
             
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => handleSubmit()}
                 disabled={submitting}
-                className="flex-1 bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition font-semibold disabled:bg-gray-400"
+                className="w-full bg-yellow-400 text-slate-900 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold disabled:bg-gray-400"
               >
                 {submitting ? 'Menghantar...' : 'Teruskan Order'}
               </button>
-              <button
-                onClick={() => setIsEditingProfile(true)}
-                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-semibold"
+              <Link
+                href="/profile"
+                className="w-full text-center bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-semibold"
               >
                 Edit Maklumat
-              </button>
-              <button
-                onClick={() => {
-                  clearCustomerProfile();
-                  setProfile(null);
-                  setCustomerName('');
-                  setCustomerPhone('');
-                  setCustomerAddress('');
-                  setCustomerPinLocation('');
-                  setIsEditingProfile(true);
-                }}
-                className="px-4 bg-red-100 text-red-700 py-3 rounded-lg hover:bg-red-200 transition font-semibold"
-              >
-                Tukar Pengguna
-              </button>
+              </Link>
             </div>
           </div>
         ) : (
@@ -372,7 +358,7 @@ export default function OrderFormPage() {
                 id="name"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Masukkan nama anda"
                 required
                 disabled={submitting}
@@ -388,7 +374,7 @@ export default function OrderFormPage() {
                 id="phone"
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Contoh: 0123456789"
                 required
                 disabled={submitting}
@@ -406,8 +392,8 @@ export default function OrderFormPage() {
                   onClick={() => setDeliveryMode('Self-Pickup')}
                   className={`p-4 rounded-lg border-2 transition ${
                     deliveryMode === 'Self-Pickup'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-300 hover:border-orange-300'
+                      ? 'border-orange-500 bg-yellow-50'
+                      : 'border-gray-300 hover:border-yellow-300'
                   }`}
                 >
                   <div className="text-2xl mb-1">🏪</div>
@@ -419,8 +405,8 @@ export default function OrderFormPage() {
                   onClick={() => setDeliveryMode('Delivery')}
                   className={`p-4 rounded-lg border-2 transition ${
                     deliveryMode === 'Delivery'
-                      ? 'border-orange-500 bg-orange-50'
-                      : 'border-gray-300 hover:border-orange-300'
+                      ? 'border-orange-500 bg-yellow-50'
+                      : 'border-gray-300 hover:border-yellow-300'
                   }`}
                 >
                   <div className="text-2xl mb-1">🚗</div>
@@ -447,7 +433,7 @@ export default function OrderFormPage() {
                     id="address"
                     value={customerAddress}
                     onChange={(e) => setCustomerAddress(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                     placeholder="Contoh: No 123, Jalan ABC, Taman XYZ, 12345 Kuala Lumpur"
                     rows={3}
                     required
@@ -464,7 +450,7 @@ export default function OrderFormPage() {
                     id="pinLocation"
                     value={customerPinLocation}
                     onChange={(e) => setCustomerPinLocation(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                     placeholder="https://maps.google.com/..."
                     disabled={submitting}
                   />
@@ -478,7 +464,7 @@ export default function OrderFormPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-orange-500 text-white py-3 rounded-lg hover:bg-orange-600 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full bg-yellow-400 text-slate-900 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {submitting ? 'Menghantar Pesanan...' : 'Hantar Pesanan'}
             </button>

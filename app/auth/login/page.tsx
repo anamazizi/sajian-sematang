@@ -135,9 +135,9 @@ function LoginContent() {
         </div>
 
         {/* Info Box */}
-        <div className="mt-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
-          <h3 className="font-semibold text-orange-900 mb-2">✨ Selepas log masuk</h3>
-          <ul className="text-sm text-orange-800 space-y-1">
+        <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h3 className="font-semibold text-slate-900 mb-2">✨ Selepas log masuk</h3>
+          <ul className="text-sm text-slate-800 space-y-1">
             <li>• Lihat menu makanan & minuman</li>
             <li>• Tambah item ke bakul pesanan</li>
             <li>• Pilih penghantaran atau ambil sendiri</li>

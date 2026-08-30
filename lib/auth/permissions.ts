@@ -133,24 +133,24 @@ export function canAccessRoute(role: UserRole, route: string): boolean {
     return true;
   }
   
-  // Admin routes
+  // Kawalan routes (Admin & Staff)
+  if (route.startsWith('/kawalan')) {
+    return role === 'admin' || role === 'staff';
+  }
+  
+  // Jualan routes (Seller & Admin)
+  if (route.startsWith('/jualan')) {
+    return role === 'seller' || role === 'admin';
+  }
+  
+  // Admin routes (for backward compatibility - e.g. /admin/payouts)
   if (route.startsWith('/admin')) {
     return role === 'admin';
   }
   
-  // Staff routes
-  if (route.startsWith('/staff')) {
-    return role === 'admin' || role === 'staff';
-  }
-  
-  // Seller dashboard (NEW ROUTE)
-  if (route.startsWith('/seller')) {
-    return role === 'seller' || role === 'admin';
-  }
-  
-  // OLD dashboard route (deprecated, redirect to /seller)
-  if (route.startsWith('/dashboard')) {
-    return false; // Force redirect
+  // OLD routes (deprecated, redirect)
+  if (route.startsWith('/staff') || route.startsWith('/seller') || route.startsWith('/dashboard')) {
+    return false; // Force redirect to new routes
   }
   
   // Auth routes (accessible to all authenticated users)
@@ -167,13 +167,13 @@ export function canAccessRoute(role: UserRole, route: string): boolean {
 export function getDefaultRedirectPath(role: UserRole): string {
   switch (role) {
     case 'admin':
-      return '/admin';
+      return '/kawalan'; // New admin/staff dashboard
     case 'staff':
-      return '/staff';
+      return '/kawalan'; // New admin/staff dashboard
     case 'seller':
-      return '/seller'; // FIXED: Was /dashboard
+      return '/jualan'; // New seller dashboard
     case 'customer':
     default:
-      return '/sellers';
+      return '/';
   }
 }
