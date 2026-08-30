@@ -50,6 +50,12 @@ COMMENT ON COLUMN public.product_options.price_adjustment IS
 -- Enable RLS
 ALTER TABLE public.product_options ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies for idempotency
+DROP POLICY IF EXISTS "Anyone can view available product options" ON public.product_options;
+DROP POLICY IF EXISTS "Sellers can manage own product options" ON public.product_options;
+DROP POLICY IF EXISTS "Admin can manage all product options" ON public.product_options;
+DROP POLICY IF EXISTS "Staff can view all product options" ON public.product_options;
+
 -- Policy: Public can view available options
 CREATE POLICY "Anyone can view available product options"
   ON public.product_options

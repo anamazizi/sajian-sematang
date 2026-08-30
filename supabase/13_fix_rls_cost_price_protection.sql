@@ -10,6 +10,11 @@ DROP POLICY IF EXISTS "products_select_public" ON public.products;
 DROP POLICY IF EXISTS "products_select_customer" ON public.products;
 DROP POLICY IF EXISTS "products_select_all" ON public.products;
 
+-- Drop NEW policies for idempotency (in case re-running)
+DROP POLICY IF EXISTS "products_select_customer_safe" ON public.products;
+DROP POLICY IF EXISTS "products_select_seller_own_full" ON public.products;
+DROP POLICY IF EXISTS "products_select_admin_staff_full" ON public.products;
+
 -- ============================================
 -- STRATEGY: Use PostgreSQL Column-Level Security
 -- ============================================
