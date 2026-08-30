@@ -127,6 +127,68 @@ GRANT SELECT ON public.sellers_customer_view TO anon;
 -- MINIMAL RLS POLICIES PART 2
 -- ============================================
 
+-- ============================================
+-- DROP ALL NEW POLICIES FOR IDEMPOTENCY
+-- ============================================
+
+-- USERS (6 policies)
+DROP POLICY IF EXISTS "users_select_own" ON public.users;
+DROP POLICY IF EXISTS "users_select_admin" ON public.users;
+DROP POLICY IF EXISTS "users_update_own" ON public.users;
+DROP POLICY IF EXISTS "users_update_admin" ON public.users;
+DROP POLICY IF EXISTS "users_insert_signup" ON public.users;
+DROP POLICY IF EXISTS "users_delete_admin" ON public.users;
+
+-- SELLERS (6 policies)
+DROP POLICY IF EXISTS "sellers_select_admin_staff" ON public.sellers;
+DROP POLICY IF EXISTS "sellers_select_own" ON public.sellers;
+DROP POLICY IF EXISTS "sellers_update_own" ON public.sellers;
+DROP POLICY IF EXISTS "sellers_update_admin" ON public.sellers;
+DROP POLICY IF EXISTS "sellers_insert_admin" ON public.sellers;
+DROP POLICY IF EXISTS "sellers_delete_admin" ON public.sellers;
+
+-- PRODUCTS (8 policies)
+DROP POLICY IF EXISTS "products_select_seller_own" ON public.products;
+DROP POLICY IF EXISTS "products_select_admin_staff" ON public.products;
+DROP POLICY IF EXISTS "products_insert_seller_own" ON public.products;
+DROP POLICY IF EXISTS "products_insert_admin_staff" ON public.products;
+DROP POLICY IF EXISTS "products_update_seller_own" ON public.products;
+DROP POLICY IF EXISTS "products_update_admin_staff" ON public.products;
+DROP POLICY IF EXISTS "products_delete_seller_own" ON public.products;
+DROP POLICY IF EXISTS "products_delete_admin_staff" ON public.products;
+
+-- ORDERS (8 policies)
+DROP POLICY IF EXISTS "orders_select_customer_own" ON public.orders;
+DROP POLICY IF EXISTS "orders_select_seller_own" ON public.orders;
+DROP POLICY IF EXISTS "orders_select_admin_staff" ON public.orders;
+DROP POLICY IF EXISTS "orders_insert_customer" ON public.orders;
+DROP POLICY IF EXISTS "orders_insert_admin_staff" ON public.orders;
+DROP POLICY IF EXISTS "orders_update_seller_status" ON public.orders;
+DROP POLICY IF EXISTS "orders_update_admin_staff" ON public.orders;
+DROP POLICY IF EXISTS "orders_delete_admin" ON public.orders;
+
+-- ORDER_ITEMS (4 policies)
+DROP POLICY IF EXISTS "order_items_select_via_order" ON public.order_items;
+DROP POLICY IF EXISTS "order_items_insert_admin_staff" ON public.order_items;
+DROP POLICY IF EXISTS "order_items_update_admin" ON public.order_items;
+DROP POLICY IF EXISTS "order_items_delete_admin" ON public.order_items;
+
+-- PAYOUTS (5 policies - conditional)
+DROP POLICY IF EXISTS "payouts_select_admin" ON public.payouts;
+DROP POLICY IF EXISTS "payouts_select_seller_own" ON public.payouts;
+DROP POLICY IF EXISTS "payouts_insert_admin" ON public.payouts;
+DROP POLICY IF EXISTS "payouts_update_admin" ON public.payouts;
+DROP POLICY IF EXISTS "payouts_delete_admin" ON public.payouts;
+
+-- AUDIT_LOGS (3 policies - conditional)
+DROP POLICY IF EXISTS "audit_logs_select_admin" ON public.audit_logs;
+DROP POLICY IF EXISTS "audit_logs_select_own" ON public.audit_logs;
+DROP POLICY IF EXISTS "audit_logs_insert_system" ON public.audit_logs;
+
+-- ============================================
+-- CREATE NEW POLICIES
+-- ============================================
+
 -- USERS
 CREATE POLICY "users_select_own" ON public.users FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "users_select_admin" ON public.users FOR SELECT USING (is_admin());
