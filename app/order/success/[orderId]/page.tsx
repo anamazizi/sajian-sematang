@@ -156,32 +156,32 @@ export default function OrderSuccessPage() {
           </div>
 
           <div className="space-y-3">
-            <p className="text-sm text-gray-600">
-              Sila simpan nombor telefon anda untuk dihubungi oleh peniaga.
-            </p>
-            
-            {whatsappLink && (
-              <button
-                onClick={() => window.location.href = whatsappLink}
-                className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition font-semibold text-center"
+              <p className="text-sm text-gray-600">
+                Sila simpan nombor telefon anda untuk dihubungi oleh admin.
+              </p>
+              
+              {whatsappLink && (
+                <button
+                  onClick={() => window.location.href = whatsappLink}
+                  className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition font-semibold text-center"
+                >
+                  📱 Hantar ke WhatsApp Admin HQ
+                </button>
+              )}
+              
+              <Link
+                href="/sellers"
+                className="inline-block w-full bg-yellow-500 text-white py-3 rounded-lg hover:bg-yellow-600 transition font-semibold text-center"
               >
-                📱 Hantar ke WhatsApp Admin
-              </button>
-            )}
-            
-            <Link
-              href="/sellers"
-              className="inline-block w-full bg-yellow-500 text-white py-3 rounded-lg hover:bg-yellow-600 transition font-semibold text-center"
-            >
-              Kembali ke Senarai Peniaga
-            </Link>
-            <Link
-              href="/"
-              className="inline-block w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-semibold text-center"
-            >
-              Halaman Utama
-            </Link>
-          </div>
+                Kembali ke Senarai Peniaga
+              </Link>
+              <Link
+                href="/"
+                className="inline-block w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-semibold text-center"
+              >
+                Halaman Utama
+              </Link>
+            </div>
         </div>
       </div>
     </div>

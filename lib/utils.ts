@@ -137,12 +137,41 @@ export function calculateDeliveryFee(googleMapsUrl: string, storeCoords = DEFAUL
   return { distance, fee };
 }
 
+// Format phone number to WhatsApp format (+60XXXXXXXXX)
+// Format phone number to WhatsApp format (+60XXXXXXXXX)
+export function formatPhoneNumberForWhatsApp(phone: string): string {
+  if (!phone) return '601110890100'; // Default admin number
+  
+  // Remove all non-digit characters
+  const digitsOnly = phone.replace(/[^\d]/g, '');
+  
+  if (!digitsOnly) return '601110890100';
+  
+  // If number starts with 0, replace with 60
+  if (digitsOnly.startsWith('0')) {
+    return '60' + digitsOnly.substring(1);
+  }
+  
+  // If number starts with 60, keep as is
+  if (digitsOnly.startsWith('60')) {
+    return digitsOnly;
+  }
+  
+  // If number starts with country code +, keep digits only
+  if (digitsOnly.startsWith('6')) {
+    return digitsOnly;
+  }
+  
+  // Default: prepend 60
+  return '60' + digitsOnly;
+}
+
 // Helper to format delivery mode
 export function formatDeliveryMode(mode: string): string {
   return mode === 'Delivery' ? '🚗 Penghantaran' : '🏪 Ambil Sendiri';
 }
 
-// Generate WhatsApp message link (with delivery mode)
+// Generate WhatsApp message link (HARDCODED TO ADMIN HQ)
 export function generateWhatsAppLink(orderDetails: {
   orderId: string;
   customerName: string;
@@ -151,7 +180,7 @@ export function generateWhatsAppLink(orderDetails: {
   customerPinLocation?: string;
   items: Array<{ 
     name: string; 
-    quantity: number; 
+    quantity: number;
     price: number;
     selectedOptions?: Array<{
       option_name: string;
@@ -166,30 +195,31 @@ export function generateWhatsAppLink(orderDetails: {
   deliveryDateTime?: string;
   specialNotes?: string;
 }): string {
-  const adminNumber = '601110890100'; // +60 11-1089 0100
+  // HARUS KE ADMIN HQ SAHAJA: +601110890100
+  const adminNumber = '601110890100';
   
-  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\n\n`;
-  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\n\n`;
+  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\\n\\n`;
+  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\\n\\n`;
   
-  message += `👤 *Maklumat Pelanggan:*\n`;
-  message += `Nama: ${orderDetails.customerName}\n`;
-  message += `Telefon: ${orderDetails.customerPhone}\n`;
+  message += `👤 *Maklumat Pelanggan:*\\n`;
+  message += `Nama: ${orderDetails.customerName}\\n`;
+  message += `Telefon: ${orderDetails.customerPhone}\\n`;
   if (orderDetails.customerAddress) {
-    message += `Alamat: ${orderDetails.customerAddress}\n`;
+    message += `Alamat: ${orderDetails.customerAddress}\\n`;
   }
   if (orderDetails.customerPinLocation) {
-    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\n`;
+    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\\n`;
   }
-  message += `\n`;
+  message += `\\n`;
   
-  message += `🚚 *Mod Pesanan:* ${formatDeliveryMode(orderDetails.deliveryMode)}\n`;
+  message += `🚚 *Mod Pesanan:* ${formatDeliveryMode(orderDetails.deliveryMode)}\\n`;
   if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
-    message += `📏 Jarak: ~${orderDetails.calculatedDistance.toFixed(1)}km\n`;
+    message += `📏 Jarak: ~${orderDetails.calculatedDistance.toFixed(1)}km\\n`;
   }
-  message += `\n`;
+  message += `\\n`;
   
   if (orderDetails.deliveryDateTime) {
-    message += `📅 *Masa Penghantaran:*\n`;
+    message += `📅 *Masa Penghantaran:*\\n`;
     message += `${new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
       weekday: 'long',
       year: 'numeric',
@@ -197,12 +227,12 @@ export function generateWhatsAppLink(orderDetails: {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    })}\n\n`;
+    })}\\n\\n`;
   }
   
-  message += `🛒 *Item Pesanan:*\n`;
+  message += `🛒 *Item Pesanan:*\\n`;
   orderDetails.items.forEach((item, index) => {
-    message += `${index + 1}. ${item.name}\n`;
+    message += `${index + 1}. ${item.name}\\n`;
     
     // Display selected options (Phase R4D)
     if (item.selectedOptions && item.selectedOptions.length > 0) {
@@ -211,30 +241,32 @@ export function generateWhatsAppLink(orderDetails: {
         if (opt.price_adjustment > 0) {
           message += ` (+RM${opt.price_adjustment.toFixed(2)})`;
         }
-        message += `\n`;
+        message += `\\n`;
       });
     }
     
-    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\n`;
+    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\\n`;
   });
-  message += `\n`;
+  message += `\\n`;
   
-  message += `💵 *Ringkasan Harga:*\n`;
-  message += `Subtotal: RM${orderDetails.subtotal.toFixed(2)}\n`;
-  message += `Caj Penghantaran: RM${orderDetails.deliveryFee.toFixed(2)}\n`;
-  message += `*JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\n`;
+  message += `💵 *Ringkasan Harga:*\\n`;
+  message += `Subtotal: RM${orderDetails.subtotal.toFixed(2)}\\n`;
+  message += `Caj Penghantaran: RM${orderDetails.deliveryFee.toFixed(2)}\\n`;
+  message += `*JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\\n`;
   
   if (orderDetails.specialNotes) {
-    message += `\n📝 *Catatan Khas:*\n${orderDetails.specialNotes}\n`;
+    message += `\\n📝 *Catatan Khas:*\\n${orderDetails.specialNotes}\\n`;
   }
   
-  message += `\n---\n`;
+  message += `\\n---\\n`;
   message += `Pesanan dibuat melalui Sajian Sematang`;
   
   const encodedMessage = encodeURIComponent(message);
   return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
 }
 
+
+// Generate WhatsApp message link (simple version for basic orders)
 // Generate WhatsApp message link (simple version for basic orders)
 export function generateSimpleWhatsAppLink(orderDetails: {
   orderId: string;

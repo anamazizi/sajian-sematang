@@ -163,8 +163,17 @@ export default function OrderFormPage() {
       // Clear cart (Context will handle sessionStorage)
       clearCart();
 
-      // Redirect to success page
-      router.push(`/order/success/${result.order_id}`);
+      // Check if WhatsApp link is available for automatic redirect
+      if (result.whatsapp_link) {
+        // Open WhatsApp automatically in new tab
+        window.open(result.whatsapp_link, '_blank');
+        
+        // Also navigate to success page as fallback
+        router.push(`/order/success/${result.order_id}`);
+      } else {
+        // Fallback: redirect to success page only
+        router.push(`/order/success/${result.order_id}`);
+      }
     } catch (err: any) {
       console.error('Error submitting order:', err);
       setError(err.message || 'Ralat semasa menghantar pesanan. Sila cuba lagi.');

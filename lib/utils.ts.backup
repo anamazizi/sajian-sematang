@@ -1,6 +1,13 @@
 import { CustomerProfile } from '../types/database';
 
-// LocalStorage keys
+// ============================================
+// PHASE R6.2: Profile Management
+// ============================================
+// Master Prompt Seksyen 12: Database is source of truth
+// LocalStorage functions are DEPRECATED - use database instead
+// ============================================
+
+// LocalStorage keys (DEPRECATED)
 const CUSTOMER_PROFILE_KEY = 'sajian_customer_profile';
 
 // Default store coordinates (Seri Manjung, Perak)
@@ -9,15 +16,25 @@ const DEFAULT_STORE_COORDS = {
   lng: 100.6333
 };
 
-// Save customer profile to localStorage
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
 export function saveCustomerProfile(profile: CustomerProfile): void {
+  console.warn('⚠️ saveCustomerProfile is DEPRECATED. Use database (users table) instead.');
   if (typeof window !== 'undefined') {
     localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile));
   }
 }
 
-// Get customer profile from localStorage
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
 export function getCustomerProfile(): CustomerProfile | null {
+  console.warn('⚠️ getCustomerProfile is DEPRECATED. Use database (users table) instead.');
   if (typeof window !== 'undefined') {
     const stored = localStorage.getItem(CUSTOMER_PROFILE_KEY);
     if (stored) {
@@ -32,8 +49,13 @@ export function getCustomerProfile(): CustomerProfile | null {
   return null;
 }
 
-// Clear customer profile from localStorage
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
 export function clearCustomerProfile(): void {
+  console.warn('⚠️ clearCustomerProfile is DEPRECATED. Use database (users table) instead.');
   if (typeof window !== 'undefined') {
     localStorage.removeItem(CUSTOMER_PROFILE_KEY);
   }
@@ -115,12 +137,41 @@ export function calculateDeliveryFee(googleMapsUrl: string, storeCoords = DEFAUL
   return { distance, fee };
 }
 
+// Format phone number to WhatsApp format (+60XXXXXXXXX)
+// Format phone number to WhatsApp format (+60XXXXXXXXX)
+export function formatPhoneNumberForWhatsApp(phone: string): string {
+  if (!phone) return '601110890100'; // Default admin number
+  
+  // Remove all non-digit characters
+  const digitsOnly = phone.replace(/[^\d]/g, '');
+  
+  if (!digitsOnly) return '601110890100';
+  
+  // If number starts with 0, replace with 60
+  if (digitsOnly.startsWith('0')) {
+    return '60' + digitsOnly.substring(1);
+  }
+  
+  // If number starts with 60, keep as is
+  if (digitsOnly.startsWith('60')) {
+    return digitsOnly;
+  }
+  
+  // If number starts with country code +, keep digits only
+  if (digitsOnly.startsWith('6')) {
+    return digitsOnly;
+  }
+  
+  // Default: prepend 60
+  return '60' + digitsOnly;
+}
+
 // Helper to format delivery mode
 export function formatDeliveryMode(mode: string): string {
   return mode === 'Delivery' ? '🚗 Penghantaran' : '🏪 Ambil Sendiri';
 }
 
-// Generate WhatsApp message link (with delivery mode)
+// Generate WhatsApp message link (HARDCODED TO ADMIN HQ)
 export function generateWhatsAppLink(orderDetails: {
   orderId: string;
   customerName: string;
@@ -129,7 +180,7 @@ export function generateWhatsAppLink(orderDetails: {
   customerPinLocation?: string;
   items: Array<{ 
     name: string; 
-    quantity: number; 
+    quantity: number;
     price: number;
     selectedOptions?: Array<{
       option_name: string;
@@ -144,30 +195,31 @@ export function generateWhatsAppLink(orderDetails: {
   deliveryDateTime?: string;
   specialNotes?: string;
 }): string {
-  const adminNumber = '601110890100'; // +60 11-1089 0100
+  // HARUS KE ADMIN HQ SAHAJA: +601110890100
+  const adminNumber = '601110890100';
   
-  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\n\n`;
-  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\n\n`;
+  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\\n\\n`;
+  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\\n\\n`;
   
-  message += `👤 *Maklumat Pelanggan:*\n`;
-  message += `Nama: ${orderDetails.customerName}\n`;
-  message += `Telefon: ${orderDetails.customerPhone}\n`;
+  message += `👤 *Maklumat Pelanggan:*\\n`;
+  message += `Nama: ${orderDetails.customerName}\\n`;
+  message += `Telefon: ${orderDetails.customerPhone}\\n`;
   if (orderDetails.customerAddress) {
-    message += `Alamat: ${orderDetails.customerAddress}\n`;
+    message += `Alamat: ${orderDetails.customerAddress}\\n`;
   }
   if (orderDetails.customerPinLocation) {
-    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\n`;
+    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\\n`;
   }
-  message += `\n`;
+  message += `\\n`;
   
-  message += `🚚 *Mod Pesanan:* ${formatDeliveryMode(orderDetails.deliveryMode)}\n`;
+  message += `🚚 *Mod Pesanan:* ${formatDeliveryMode(orderDetails.deliveryMode)}\\n`;
   if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
-    message += `📏 Jarak: ~${orderDetails.calculatedDistance.toFixed(1)}km\n`;
+    message += `📏 Jarak: ~${orderDetails.calculatedDistance.toFixed(1)}km\\n`;
   }
-  message += `\n`;
+  message += `\\n`;
   
   if (orderDetails.deliveryDateTime) {
-    message += `📅 *Masa Penghantaran:*\n`;
+    message += `📅 *Masa Penghantaran:*\\n`;
     message += `${new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
       weekday: 'long',
       year: 'numeric',
@@ -175,32 +227,48 @@ export function generateWhatsAppLink(orderDetails: {
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    })}\n\n`;
+    })}\\n\\n`;
   }
   
-  message += `🛒 *Item Pesanan:*\n`;
+  message += `🛒 *Item Pesanan:*\\n`;
   orderDetails.items.forEach((item, index) => {
-    message += `${index + 1}. ${item.name}\n`;
-    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\n`;
+    message += `${index + 1}. ${item.name}\\n`;
+    
+    // Display selected options (Phase R4D)
+    if (item.selectedOptions && item.selectedOptions.length > 0) {
+      item.selectedOptions.forEach((opt) => {
+        message += `   • ${opt.option_name}`;
+        if (opt.price_adjustment > 0) {
+          message += ` (+RM${opt.price_adjustment.toFixed(2)})`;
+        }
+        message += `\\n`;
+      });
+    }
+    
+    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\\n`;
   });
-  message += `\n`;
+  message += `\\n`;
   
-  message += `💵 *Ringkasan Harga:*\n`;
-  message += `Subtotal: RM${orderDetails.subtotal.toFixed(2)}\n`;
-  message += `Caj Penghantaran: RM${orderDetails.deliveryFee.toFixed(2)}\n`;
-  message += `*JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\n`;
+  message += `💵 *Ringkasan Harga:*\\n`;
+  message += `Subtotal: RM${orderDetails.subtotal.toFixed(2)}\\n`;
+  message += `Caj Penghantaran: RM${orderDetails.deliveryFee.toFixed(2)}\\n`;
+  message += `*JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\\n`;
   
   if (orderDetails.specialNotes) {
-    message += `\n📝 *Catatan Khas:*\n${orderDetails.specialNotes}\n`;
+    message += `\\n📝 *Catatan Khas:*\\n${orderDetails.specialNotes}\\n`;
   }
   
-  message += `\n---\n`;
+  message += `\\n---\\n`;
   message += `Pesanan dibuat melalui Sajian Sematang`;
   
   const encodedMessage = encodeURIComponent(message);
   return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
 }
+}
+}
 
+
+// Generate WhatsApp message link (simple version for basic orders)
 // Generate WhatsApp message link (simple version for basic orders)
 export function generateSimpleWhatsAppLink(orderDetails: {
   orderId: string;
@@ -261,9 +329,66 @@ export function generateSimpleWhatsAppLink(orderDetails: {
   return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
 }
 
-// Format date for display
+// ============================================
+// PHASE R6.3: Timezone Handling
+// ============================================
+// Master Prompt Seksyen 107: All operations in Asia/Kuala_Lumpur (UTC+8)
+// ============================================
+
+/**
+ * Get current date/time in Malaysia timezone (Asia/Kuala_Lumpur)
+ * Use this for ALL business logic requiring "today" or "now"
+ */
+export function getMalaysiaTime(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+}
+
+/**
+ * Convert UTC timestamp to Malaysia date (for "today" comparisons)
+ * @param utcTimestamp - ISO string from database (timestamptz stored as UTC)
+ * @returns Date object in Malaysia timezone
+ */
+export function convertToMalaysiaTime(utcTimestamp: string): Date {
+  return new Date(new Date(utcTimestamp).toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+}
+
+/**
+ * Get start of today in Malaysia timezone (00:00:00)
+ * Use for "today's orders" queries
+ */
+export function getMalaysiaTodayStart(): Date {
+  const now = getMalaysiaTime();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+
+/**
+ * Get end of today in Malaysia timezone (23:59:59)
+ * Use for "today's orders" queries
+ */
+export function getMalaysiaTodayEnd(): Date {
+  const now = getMalaysiaTime();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+}
+
+/**
+ * Check if a UTC timestamp is "today" in Malaysia timezone
+ * @param utcTimestamp - ISO string from database
+ */
+export function isTodayInMalaysia(utcTimestamp: string): boolean {
+  const malaysiaDate = convertToMalaysiaTime(utcTimestamp);
+  const today = getMalaysiaTime();
+  
+  return (
+    malaysiaDate.getDate() === today.getDate() &&
+    malaysiaDate.getMonth() === today.getMonth() &&
+    malaysiaDate.getFullYear() === today.getFullYear()
+  );
+}
+
+// Format date for display (Malaysia timezone)
 export function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString('ms-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
     weekday: 'short',
     year: 'numeric',
     month: 'short',
