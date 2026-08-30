@@ -323,7 +323,7 @@ BEGIN
   FROM public.orders o
   WHERE o.seller_id = seller_uuid
     AND o.status = 'Completed'
-    AND o.id NOT IN (
+    AND o.id::text NOT IN (
       SELECT unnest(order_ids) 
       FROM public.payouts 
       WHERE seller_id = seller_uuid
@@ -353,7 +353,7 @@ BEGIN
   FROM public.orders o
   WHERE o.seller_id = seller_uuid
     AND o.status = 'Completed'
-    AND o.id NOT IN (
+    AND o.id::text NOT IN (
       SELECT unnest(order_ids) 
       FROM public.payouts 
       WHERE seller_id = seller_uuid
@@ -403,7 +403,7 @@ SELECT
 FROM public.sellers s
 LEFT JOIN public.orders o ON s.id = o.seller_id 
   AND o.status = 'Completed'
-  AND o.id NOT IN (
+  AND o.id::text NOT IN (
     SELECT unnest(order_ids) 
     FROM public.payouts 
     WHERE seller_id = s.id
