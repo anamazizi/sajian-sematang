@@ -273,7 +273,7 @@ export default function OrderFormPage() {
         {profile && !isEditingProfile ? (
           <div className="bg-white p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-xl font-semibold mb-4">✅ Maklumat Anda</h2>
-            <div className="space-y-2 mb-4 bg-gray-50 p-4 rounded-lg">
+            <div className="space-y-2 mb-4 bg-gray-50 p-4 rounded-lg text-slate-900">
               <p><strong>Nama:</strong> {profile.name}</p>
               <p><strong>Telefon:</strong> {profile.phone}</p>
               <p><strong>Alamat:</strong> {profile.address}</p>

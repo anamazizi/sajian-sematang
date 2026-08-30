@@ -121,17 +121,17 @@ export default function OrderSuccessPage() {
             <div className="space-y-2 text-left">
               <div className="flex justify-between">
                 <span className="text-gray-600">ID Pesanan:</span>
-                <span className="font-mono text-sm text-gray-800">
+                <span className="font-mono text-sm text-slate-900">
                   {order.id.substring(0, 8)}...
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Nama:</span>
-                <span className="font-medium text-gray-800">{order.customer_name}</span>
+                <span className="font-medium text-slate-900">{order.customer_name}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Telefon:</span>
-                <span className="font-medium text-gray-800">{order.customer_phone}</span>
+                <span className="font-medium text-slate-900">{order.customer_phone}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Jumlah:</span>
@@ -154,14 +154,12 @@ export default function OrderSuccessPage() {
             </p>
             
             {whatsappLink && (
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-block w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition font-semibold text-center"
+              <button
+                onClick={() => window.location.href = whatsappLink}
+                className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600 transition font-semibold text-center"
               >
                 📱 Hantar ke WhatsApp Admin
-              </a>
+              </button>
             )}
             
             <Link
