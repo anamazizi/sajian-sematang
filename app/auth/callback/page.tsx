@@ -69,18 +69,18 @@ export default function AuthCallbackPage() {
         // If no seller record, redirect to onboarding
         if (!sellerRecord) {
           setMessage("Mengalihkan ke pendaftaran kedai...");
-          router.push('/seller/onboarding');
+          router.push('/jualan/onboarding');
           return;
         }
 
         // Seller record exists, go to dashboard
         setMessage("Log masuk berjaya!");
-        router.push('/seller');
+        router.push('/jualan');
         return;
       }
 
       // Jika admin, staf, atau seller, arahkan ke laluan khusus mereka
-      const redirectPath = profile.role === 'admin' ? '/admin' : profile.role === 'staff' ? '/staff' : '/sellers';
+      const redirectPath = profile.role === 'admin' ? '/kawalan' : profile.role === 'staff' ? '/kawalan' : '/sellers';
       router.push(redirectPath);
 
     } catch (error: any) {

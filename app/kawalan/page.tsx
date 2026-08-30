@@ -70,7 +70,7 @@ export default function KawalanDashboard() {
           </Link>
 
           {isAdmin && (
-            <Link href="/admin/payouts" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition border-l-4 border-yellow-500">
+            <Link href="/kawalan/payouts" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition border-l-4 border-yellow-500">
               <div className="text-4xl mb-3">💰</div>
               <h2 className="text-xl font-bold text-gray-800 mb-2">Pembayaran Peniaga</h2>
               <p className="text-gray-600 text-sm">Urus pembayaran tunai kepada seller</p>

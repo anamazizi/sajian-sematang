@@ -81,14 +81,14 @@ export default function JualanDashboard() {
 
       if (error) {
         console.error('Seller not found:', error);
-        router.push('/seller/onboarding');
+        router.push('/jualan/onboarding');
         return;
       }
 
       setSellerId(seller.id);
     } catch (error) {
       console.error('Error fetching seller:', error);
-      router.push('/seller/onboarding');
+      router.push('/jualan/onboarding');
     }
   }
 
@@ -243,19 +243,19 @@ export default function JualanDashboard() {
           {/* Quick Links */}
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href="/seller/products"
+              href="/jualan/products"
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
             >
               📦 Produk Saya
             </Link>
             <Link
-              href="/seller/stock-history"
+              href="/jualan/stock-history"
               className="inline-flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
             >
               📊 Sejarah Stok
             </Link>
             <Link
-              href="/seller/profile"
+              href="/jualan/profile"
               className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
             >
               ⚙️ Tetapan Kedai

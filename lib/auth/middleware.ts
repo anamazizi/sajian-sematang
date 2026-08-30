@@ -110,11 +110,11 @@ export async function updateSession(request: NextRequest) {
         const redirectUrl = request.nextUrl.clone();
         
         if (userRole === 'admin') {
-          redirectUrl.pathname = '/admin';
+          redirectUrl.pathname = '/kawalan';
         } else if (userRole === 'staff') {
-          redirectUrl.pathname = '/staff';
+          redirectUrl.pathname = '/kawalan';
         } else if (userRole === 'seller') {
-          redirectUrl.pathname = '/seller';
+          redirectUrl.pathname = '/jualan';
         } else {
           redirectUrl.pathname = '/sellers';
         }
