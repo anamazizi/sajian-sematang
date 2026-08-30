@@ -23,6 +23,7 @@ ON CONFLICT (id) DO NOTHING;
 DROP POLICY IF EXISTS "Sellers can upload own QR" ON storage.objects;
 DROP POLICY IF EXISTS "Sellers can update own QR" ON storage.objects;
 DROP POLICY IF EXISTS "Sellers can delete own QR" ON storage.objects;
+DROP POLICY IF EXISTS "Admin can view all QR" ON storage.objects;
 DROP POLICY IF EXISTS "Anyone can view QR" ON storage.objects;
 
 -- Policy: Sellers can upload QR to their own folder
