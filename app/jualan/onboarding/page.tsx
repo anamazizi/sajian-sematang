@@ -166,14 +166,25 @@ export default function SellerOnboardingPage() {
         throw new Error('Sesi tamat. Sila log masuk semula.');
       }
 
-      console.log('Uploading QR...');
+      console.log('📤 Starting QR upload...');
+      console.log('👤 User ID:', user.id);
+      console.log('📁 File:', qrFile.name, qrFile.type, (qrFile.size / 1024).toFixed(2) + 'KB');
+      
       const uploadResult = await uploadSellerQR(qrFile, user.id);
 
       if (!uploadResult.success || !uploadResult.url) {
-        throw new Error(uploadResult.error || 'Gagal memuat naik QR.');
+        // Display VERBOSE error from Supabase
+        const detailedError = uploadResult.error || 'Gagal memuat naik QR.';
+        console.error('❌ Upload failed:', detailedError);
+        console.error('❌ Upload error details:', uploadResult.errorDetails);
+        
+        // Show full Supabase error to user for debugging
+        throw new Error(detailedError);
       }
 
-      console.log('Creating seller record...');
+      console.log('✅ QR uploaded successfully:', uploadResult.url);
+      console.log('📝 Creating seller record...');
+      
       const { data: seller, error: sellerError } = await supabase
         .from('sellers')
         .insert({
@@ -187,13 +198,25 @@ export default function SellerOnboardingPage() {
         .single();
 
       if (sellerError) {
-        throw new Error('Gagal mencipta rekod peniaga.');
+        console.error('❌ Seller record creation failed:', sellerError);
+        throw new Error(`Gagal mencipta rekod peniaga: ${sellerError.message}`);
       }
 
+      console.log('✅ Seller registered successfully!');
       alert('🎉 Kedai anda berjaya didaftarkan!');
       router.push('/jualan');
     } catch (err: any) {
-      setError(err.message || 'Ralat tidak dijangka.');
+      console.error('❌ Onboarding error:', err);
+      const errorMessage = err.message || 'Ralat tidak dijangka.';
+      setError(errorMessage);
+      
+      // Also show alert for ALL upload errors (verbose mode)
+      if (errorMessage.includes('Gagal memuat naik') || 
+          errorMessage.includes('Bucket') || 
+          errorMessage.includes('kebenaran') ||
+          errorMessage.includes('RLS')) {
+        alert(`⚠️ ERROR DETAIL:\n\n${errorMessage}\n\nSila semak console (F12) untuk maklumat lanjut.`);
+      }
     } finally {
       setSubmitting(false);
     }

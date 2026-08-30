@@ -99,10 +99,10 @@ export default function SellerProfilePage() {
       return;
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024;
+    // Validate file size (max 10MB after compression)
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
-      setError('Saiz fail terlalu besar. Maksimum 5MB.');
+      setError('Saiz fail terlalu besar. Maksimum 10MB.');
       return;
     }
 
@@ -147,6 +147,10 @@ export default function SellerProfilePage() {
 
       // If new QR file selected, upload and replace
       if (qrFile) {
+        console.log('📤 Uploading new QR...');
+        console.log('🆔 Seller ID:', seller.id);
+        console.log('📁 File:', qrFile.name, qrFile.type);
+        
         const uploadResult = await replaceSellerQR(
           qrFile,
           seller.id,
@@ -154,15 +158,24 @@ export default function SellerProfilePage() {
         );
 
         if (!uploadResult.success) {
-          setError(uploadResult.error || 'Gagal memuat naik QR. Sila cuba lagi.');
+          const detailedError = uploadResult.error || 'Gagal memuat naik QR. Sila cuba lagi.';
+          console.error('❌ Upload failed:', detailedError);
+          console.error('❌ Upload error details:', uploadResult.errorDetails);
+          
+          // Show verbose error with alert
+          alert(`⚠️ UPLOAD ERROR:\n\n${detailedError}\n\nSila semak console (F12) untuk maklumat lanjut.`);
+          
+          setError(detailedError);
           setSubmitting(false);
           return;
         }
 
         newQrUrl = uploadResult.url || null;
+        console.log('✅ QR uploaded successfully:', newQrUrl);
       }
 
       // Update seller record
+      console.log('📝 Updating seller profile...');
       const { error: updateError } = await supabase
         .from('sellers')
         .update({
@@ -176,8 +189,8 @@ export default function SellerProfilePage() {
         .eq('user_id', user.id); // Security: double-check ownership
 
       if (updateError) {
-        console.error('Update error:', updateError);
-        setError('Gagal mengemaskini profil. Sila cuba lagi.');
+        console.error('❌ Profile update error:', updateError);
+        setError(`Gagal mengemaskini profil: ${updateError.message}`);
         setSubmitting(false);
         return;
       }
