@@ -1,0 +1,455 @@
+import { CustomerProfile } from '../types/database';
+
+// ============================================
+// PHASE R6.2: Profile Management
+// ============================================
+// Master Prompt Seksyen 12: Database is source of truth
+// LocalStorage functions are DEPRECATED - use database instead
+// ============================================
+
+// LocalStorage keys (DEPRECATED)
+const CUSTOMER_PROFILE_KEY = 'sajian_customer_profile';
+
+// Default store coordinates (Seri Manjung, Perak)
+const DEFAULT_STORE_COORDS = {
+  lat: 4.2167,
+  lng: 100.6333
+};
+
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
+export function saveCustomerProfile(profile: CustomerProfile): void {
+  console.warn('⚠️ saveCustomerProfile is DEPRECATED. Use database (users table) instead.');
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(CUSTOMER_PROFILE_KEY, JSON.stringify(profile));
+  }
+}
+
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
+export function getCustomerProfile(): CustomerProfile | null {
+  console.warn('⚠️ getCustomerProfile is DEPRECATED. Use database (users table) instead.');
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem(CUSTOMER_PROFILE_KEY);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error('Error parsing customer profile:', e);
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * @deprecated PHASE R6.2: Use database (users table) as source of truth
+ * Profile should be fetched from Supabase, not localStorage
+ * This function is kept for backward compatibility only
+ */
+export function clearCustomerProfile(): void {
+  console.warn('⚠️ clearCustomerProfile is DEPRECATED. Use database (users table) instead.');
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem(CUSTOMER_PROFILE_KEY);
+  }
+}
+
+// Haversine formula to calculate distance between two coordinates
+export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Radius of Earth in kilometers
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distance = R * c;
+  
+  return distance;
+}
+
+function toRad(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
+
+// Extract coordinates from Google Maps URL
+export function extractCoordinatesFromUrl(url: string): { lat: number; lng: number } | null {
+  try {
+    // Try to extract from various Google Maps URL formats
+    // Format 1: https://maps.google.com/?q=4.2167,100.6333
+    const coordMatch1 = url.match(/q=([-\d.]+),([-\d.]+)/);
+    if (coordMatch1) {
+      return { lat: parseFloat(coordMatch1[1]), lng: parseFloat(coordMatch1[2]) };
+    }
+    
+    // Format 2: https://www.google.com/maps/@4.2167,100.6333,15z
+    const coordMatch2 = url.match(/@([-\d.]+),([-\d.]+)/);
+    if (coordMatch2) {
+      return { lat: parseFloat(coordMatch2[1]), lng: parseFloat(coordMatch2[2]) };
+    }
+    
+    // Format 3: https://goo.gl/maps/... or other formats
+    // For now, return null if can't parse
+    return null;
+  } catch (e) {
+    console.error('Error extracting coordinates:', e);
+    return null;
+  }
+}
+
+// Calculate delivery fee based on Google Maps URL
+export function calculateDeliveryFee(googleMapsUrl: string, storeCoords = DEFAULT_STORE_COORDS): { distance: number; fee: number } {
+  // Extract customer coordinates from Google Maps URL
+  const customerCoords = extractCoordinatesFromUrl(googleMapsUrl);
+  
+  let distance = 5; // Default 5km if can't parse
+  
+  if (customerCoords) {
+    // Calculate actual distance using Haversine formula
+    distance = calculateDistance(
+      storeCoords.lat,
+      storeCoords.lng,
+      customerCoords.lat,
+      customerCoords.lng
+    );
+  }
+  
+  // Pricing logic:
+  // < 1km = RM1 (minimum)
+  // >= 1km = Floor (6.9km = RM6, 7.1km = RM7)
+  let fee = 0;
+  if (distance < 1) {
+    fee = 1;
+  } else {
+    fee = Math.floor(distance);
+  }
+  
+  return { distance, fee };
+}
+
+// Format phone number to WhatsApp format (+60XXXXXXXXX)
+// Format phone number to WhatsApp format (+60XXXXXXXXX)
+export function formatPhoneNumberForWhatsApp(phone: string): string {
+  if (!phone) return '601110890100'; // Default admin number
+  
+  // Remove all non-digit characters
+  const digitsOnly = phone.replace(/[^\d]/g, '');
+  
+  if (!digitsOnly) return '601110890100';
+  
+  // If number starts with 0, replace with 60
+  if (digitsOnly.startsWith('0')) {
+    return '60' + digitsOnly.substring(1);
+  }
+  
+  // If number starts with 60, keep as is
+  if (digitsOnly.startsWith('60')) {
+    return digitsOnly;
+  }
+  
+  // If number starts with country code +, keep digits only
+  if (digitsOnly.startsWith('6')) {
+    return digitsOnly;
+  }
+  
+  // Default: prepend 60
+  return '60' + digitsOnly;
+}
+
+// Helper to format delivery mode
+export function formatDeliveryMode(mode: string): string {
+  return mode === 'Delivery' ? '🚗 Penghantaran' : '🏪 Ambil Sendiri';
+}
+
+// Generate WhatsApp message link (HARDCODED TO ADMIN HQ)
+export function generateWhatsAppLink(orderDetails: {
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress?: string;
+  customerPinLocation?: string;
+  items: Array<{ 
+    name: string; 
+    quantity: number;
+    price: number;
+    selectedOptions?: Array<{
+      option_name: string;
+      price_adjustment: number;
+    }>;
+  }>;
+  subtotal: number;
+  deliveryFee: number;
+  totalPrice: number;
+  deliveryMode: string;
+  calculatedDistance?: number;
+  deliveryDateTime?: string;
+  specialNotes?: string;
+}): string {
+  // HARUS KE ADMIN HQ SAHAJA: +601110890100
+  const adminNumber = '601110890100';
+  
+  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\\n\\n`;
+  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\\n\\n`;
+  
+  message += `👤 *Maklumat Pelanggan:*\\n`;
+  message += `Nama: ${orderDetails.customerName}\\n`;
+  message += `Telefon: ${orderDetails.customerPhone}\\n`;
+  if (orderDetails.customerAddress) {
+    message += `Alamat: ${orderDetails.customerAddress}\\n`;
+  }
+  if (orderDetails.customerPinLocation) {
+    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\\n`;
+  }
+  message += `\\n`;
+  
+  message += `🚚 *Mod Pesanan:* ${formatDeliveryMode(orderDetails.deliveryMode)}\\n`;
+  if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
+    message += `📏 Jarak: ~${orderDetails.calculatedDistance.toFixed(1)}km\\n`;
+  }
+  message += `\\n`;
+  
+  if (orderDetails.deliveryDateTime) {
+    message += `📅 *Masa Penghantaran:*\\n`;
+    message += `${new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })}\\n\\n`;
+  }
+  
+  message += `🛒 *Item Pesanan:*\\n`;
+  orderDetails.items.forEach((item, index) => {
+    message += `${index + 1}. ${item.name}\\n`;
+    
+    // Display selected options (Phase R4D)
+    if (item.selectedOptions && item.selectedOptions.length > 0) {
+      item.selectedOptions.forEach((opt) => {
+        message += `   • ${opt.option_name}`;
+        if (opt.price_adjustment > 0) {
+          message += ` (+RM${opt.price_adjustment.toFixed(2)})`;
+        }
+        message += `\\n`;
+      });
+    }
+    
+    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\\n`;
+  });
+  message += `\\n`;
+  
+  message += `💵 *Ringkasan Harga:*\\n`;
+  message += `Subtotal: RM${orderDetails.subtotal.toFixed(2)}\\n`;
+  message += `Caj Penghantaran: RM${orderDetails.deliveryFee.toFixed(2)}\\n`;
+  message += `*JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\\n`;
+  
+  if (orderDetails.specialNotes) {
+    message += `\\n📝 *Catatan Khas:*\\n${orderDetails.specialNotes}\\n`;
+  }
+  
+  message += `\\n---\\n`;
+  message += `Pesanan dibuat melalui Sajian Sematang`;
+  
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
+}
+
+
+// Generate WhatsApp message link (simple version for basic orders)
+// Generate WhatsApp message link (simple version for basic orders)
+export function generateSimpleWhatsAppLink(orderDetails: {
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  customerAddress?: string;
+  customerPinLocation?: string;
+  items: Array<{ name: string; quantity: number; price: number }>;
+  totalPrice: number;
+  deliveryDateTime?: string;
+  specialNotes?: string;
+}): string {
+  const adminNumber = '601110890100'; // +60 11-1089 0100
+  
+  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\n\n`;
+  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\n\n`;
+  
+  message += `👤 *Maklumat Pelanggan:*\n`;
+  message += `Nama: ${orderDetails.customerName}\n`;
+  message += `Telefon: ${orderDetails.customerPhone}\n`;
+  if (orderDetails.customerAddress) {
+    message += `Alamat: ${orderDetails.customerAddress}\n`;
+  }
+  if (orderDetails.customerPinLocation) {
+    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\n`;
+  }
+  message += `\n`;
+  
+  if (orderDetails.deliveryDateTime) {
+    message += `📅 *Pre-Order - Masa Penghantaran:*\n`;
+    message += `${new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })}\n\n`;
+  }
+  
+  message += `🛒 *Item Pesanan:*\n`;
+  orderDetails.items.forEach((item, index) => {
+    message += `${index + 1}. ${item.name}\n`;
+    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\n`;
+  });
+  message += `\n`;
+  
+  message += `💰 *JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\n`;
+  
+  if (orderDetails.specialNotes) {
+    message += `\n📝 *Catatan Khas:*\n${orderDetails.specialNotes}\n`;
+  }
+  
+  message += `\n---\n`;
+  message += `Pesanan dibuat melalui Sajian Sematang`;
+  
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
+}
+
+// ============================================
+// PHASE R6.3: Timezone Handling
+// ============================================
+// Master Prompt Seksyen 107: All operations in Asia/Kuala_Lumpur (UTC+8)
+// ============================================
+
+/**
+ * Get current date/time in Malaysia timezone (Asia/Kuala_Lumpur)
+ * Use this for ALL business logic requiring "today" or "now"
+ */
+export function getMalaysiaTime(): Date {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+}
+
+/**
+ * Convert UTC timestamp to Malaysia date (for "today" comparisons)
+ * @param utcTimestamp - ISO string from database (timestamptz stored as UTC)
+ * @returns Date object in Malaysia timezone
+ */
+export function convertToMalaysiaTime(utcTimestamp: string): Date {
+  return new Date(new Date(utcTimestamp).toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+}
+
+/**
+ * Get start of today in Malaysia timezone (00:00:00)
+ * Use for "today's orders" queries
+ */
+export function getMalaysiaTodayStart(): Date {
+  const now = getMalaysiaTime();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+}
+
+/**
+ * Get end of today in Malaysia timezone (23:59:59)
+ * Use for "today's orders" queries
+ */
+export function getMalaysiaTodayEnd(): Date {
+  const now = getMalaysiaTime();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+}
+
+/**
+ * Check if a UTC timestamp is "today" in Malaysia timezone
+ * @param utcTimestamp - ISO string from database
+ */
+export function isTodayInMalaysia(utcTimestamp: string): boolean {
+  const malaysiaDate = convertToMalaysiaTime(utcTimestamp);
+  const today = getMalaysiaTime();
+  
+  return (
+    malaysiaDate.getDate() === today.getDate() &&
+    malaysiaDate.getMonth() === today.getMonth() &&
+    malaysiaDate.getFullYear() === today.getFullYear()
+  );
+}
+
+// Format date for display (Malaysia timezone)
+export function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleString('ms-MY', {
+    timeZone: 'Asia/Kuala_Lumpur',
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+// Format currency
+export function formatCurrency(amount: number): string {
+  return `RM ${amount.toFixed(2)}`;
+}
+
+// Generate WhatsApp payout receipt message
+export function generatePayoutWhatsAppLink(payoutDetails: {
+  sellerName: string;
+  sellerPhone: string;
+  amount: number;
+  paymentMethod: string;
+  referenceNumber?: string;
+  orderIds: string[];
+  paidDate: string;
+  notes?: string;
+}): string {
+  // Format phone number (remove +, spaces, dashes)
+  const phoneNumber = payoutDetails.sellerPhone.replace(/[\s\-+]/g, '');
+  
+  let message = `🏦 *RESIT PEMBAYARAN - SAJIAN SEMATANG*\n\n`;
+  
+  message += `📋 *Maklumat Pembayaran:*\n`;
+  message += `Penerima: ${payoutDetails.sellerName}\n`;
+  message += `Jumlah: RM ${payoutDetails.amount.toFixed(2)}\n`;
+  message += `Kaedah: ${payoutDetails.paymentMethod}\n`;
+  
+  if (payoutDetails.referenceNumber) {
+    message += `Rujukan: ${payoutDetails.referenceNumber}\n`;
+  }
+  
+  message += `Tarikh: ${new Date(payoutDetails.paidDate).toLocaleString('ms-MY', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })}\n\n`;
+  
+  message += `📦 *Pesanan Dibayar:*\n`;
+  payoutDetails.orderIds.forEach((id, index) => {
+    message += `${index + 1}. #${id.substring(0, 8)}\n`;
+  });
+  
+  message += `\nJumlah Pesanan: ${payoutDetails.orderIds.length}\n`;
+  
+  if (payoutDetails.notes) {
+    message += `\n📝 *Catatan:*\n${payoutDetails.notes}\n`;
+  }
+  
+  message += `\n---\n`;
+  message += `Terima kasih atas perkhidmatan anda!\n`;
+  message += `Sajian Sematang`;
+  
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+}

@@ -165,11 +165,8 @@ export default function OrderFormPage() {
 
       // Check if WhatsApp link is available for automatic redirect
       if (result.whatsapp_link) {
-        // Open WhatsApp automatically in new tab
-        window.open(result.whatsapp_link, '_blank');
-        
-        // Also navigate to success page as fallback
-        router.push(`/order/success/${result.order_id}`);
+        // Direct redirect to WhatsApp (no popup blocker issues)
+        window.location.href = result.whatsapp_link;
       } else {
         // Fallback: redirect to success page only
         router.push(`/order/success/${result.order_id}`);
