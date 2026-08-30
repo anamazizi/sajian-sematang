@@ -276,7 +276,7 @@ export default function SellerProfilePage() {
                 setFormData({ ...formData, shop_name: e.target.value })
               }
               placeholder="Contoh: Kedai Makan Anam"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
             />
           </div>
@@ -293,7 +293,7 @@ export default function SellerProfilePage() {
               }
               placeholder="Contoh: Hidangan tradisional tempatan dengan cita rasa istimewa..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
 
@@ -309,7 +309,7 @@ export default function SellerProfilePage() {
                 setFormData({ ...formData, phone_number: e.target.value })
               }
               placeholder="Contoh: 0123456789"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
 
@@ -362,7 +362,7 @@ export default function SellerProfilePage() {
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   onChange={handleQrChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
                 />
                 <p className="text-sm text-gray-500 mt-2">
                   Format: JPEG, PNG, WebP • Maksimum: 5MB
@@ -376,7 +376,7 @@ export default function SellerProfilePage() {
             <button
               type="button"
               onClick={() => router.push('/jualan')}
-              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 font-medium text-gray-700 hover:bg-gray-50"
               disabled={submitting}
             >
               Batal

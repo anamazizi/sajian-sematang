@@ -7,7 +7,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '../../../../../lib/auth/hooks';
 import { supabase } from '../../../../../lib/supabase/client';
 import ProductForm, { ProductFormData } from '../../../../../components/seller/ProductForm';
-import { uploadProductImage, replaceProductImage } from '../../../../../lib/storage/product-images';
 import { Product } from '../../../../../types/database';
 import Link from 'next/link';
 
@@ -99,28 +98,9 @@ export default function EditProductPage() {
       throw new Error('Seller ID atau produk tidak dijumpai');
     }
 
-    let imageUrl = product.image_url;
+    // Image functionality removed - products don't have images
 
     try {
-      // Handle image update
-      if (formData.image) {
-        console.log('Uploading new product image...');
-        
-        // Replace old image with new one
-        const uploadResult = await replaceProductImage(
-          formData.image,
-          sellerId,
-          productId,
-          product.image_url || undefined
-        );
-        
-        if (!uploadResult.success || !uploadResult.url) {
-          throw new Error(uploadResult.error || 'Gagal memuat naik gambar');
-        }
-        
-        imageUrl = uploadResult.url;
-      }
-
       // Update product
       console.log('Updating product...');
       const { data: updatedProduct, error: updateError } = await supabase
@@ -136,7 +116,7 @@ export default function EditProductPage() {
           is_preorder: formData.is_preorder,
           available_from: formData.is_preorder ? formData.available_from : null,
           available_until: formData.is_preorder ? formData.available_until : null,
-          image_url: imageUrl,
+          // image_url removed - products don't have images
           updated_at: new Date().toISOString(),
         })
         .eq('id', productId)

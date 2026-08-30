@@ -24,7 +24,7 @@ export interface ProductFormData {
   is_preorder: boolean;
   available_from: string;
   available_until: string;
-  image?: File;
+  // Image removed - products don't have images
 }
 
 const CATEGORIES = ['Makanan', 'Minuman', 'Combo', 'Lain-lain'];
@@ -49,37 +49,10 @@ export default function ProductForm({
     available_until: product?.available_until || '',
   });
 
-  const [imagePreview, setImagePreview] = useState<string | null>(
-    product?.image_url || null
-  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      setError('Format gambar tidak sah. Gunakan JPEG, PNG, atau WebP.');
-      return;
-    }
-
-    const maxSize = 5 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError('Saiz gambar terlalu besar. Maksimum 5MB.');
-      return;
-    }
-
-    setFormData({ ...formData, image: file });
-    setError(null);
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  }
+  // Image functionality removed - products don't have images
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -120,55 +93,7 @@ export default function ProductForm({
         </div>
       )}
 
-      {/* Product Image */}
-      <div>
-        <label className="block text-gray-700 font-medium mb-2">
-          Gambar Produk
-        </label>
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-          {imagePreview ? (
-            <div className="text-center">
-              <img
-                src={imagePreview}
-                alt="Preview"
-                className="max-w-xs max-h-48 mx-auto rounded-lg shadow-md mb-3"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  setImagePreview(null);
-                  setFormData({ ...formData, image: undefined });
-                }}
-                className="text-red-600 hover:text-red-700 text-sm"
-                disabled={submitting}
-              >
-                🗑️ Buang Gambar
-              </button>
-            </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-gray-600 mb-2">📷 Muat naik gambar produk</p>
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleImageChange}
-                className="hidden"
-                id="product-image"
-                disabled={submitting}
-              />
-              <label
-                htmlFor="product-image"
-                className="inline-block px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 cursor-pointer"
-              >
-                Pilih Gambar
-              </label>
-              <p className="text-sm text-gray-500 mt-2">
-                JPEG, PNG, WebP | Max 5MB
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Product Image section removed - products don't have images */}
 
       {/* Product Name */}
       <div>
@@ -180,7 +105,7 @@ export default function ProductForm({
           value={formData.name}
           onChange={(e) => setFormData({ ...formData, name: e.target.value })}
           placeholder="Contoh: Nasi Lemak Special"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
           required
           disabled={submitting}
         />
@@ -198,7 +123,7 @@ export default function ProductForm({
           }
           placeholder="Terangkan tentang produk ini..."
           rows={3}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
           disabled={submitting}
         />
       </div>
@@ -213,7 +138,7 @@ export default function ProductForm({
           onChange={(e) =>
             setFormData({ ...formData, category: e.target.value })
           }
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
           required
           disabled={submitting}
         >
@@ -239,7 +164,7 @@ export default function ProductForm({
             onChange={(e) =>
               setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })
             }
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
             required
             disabled={submitting}
           />
@@ -263,7 +188,7 @@ export default function ProductForm({
                 cost_price: parseFloat(e.target.value) || 0,
               })
             }
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
             required
             disabled={submitting}
           />
@@ -289,7 +214,7 @@ export default function ProductForm({
                 stock_quantity: parseInt(e.target.value) || 0,
               })
             }
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
             disabled={submitting || formData.is_preorder}
           />
           <p className="text-sm text-gray-500 mt-1">

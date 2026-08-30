@@ -14,7 +14,7 @@ interface GroupedProducts {
 
 export default function HomePage() {
   const router = useRouter();
-  const { cart, addToCart, getCartTotal, getCartCount } = useCart();
+  const { cart, addToCart, removeFromCart, getCartTotal, getCartCount } = useCart();
   
   const [products, setProducts] = useState<CustomerProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,6 @@ export default function HomePage() {
           description,
           price,
           category,
-          image_url,
           is_available,
           stock_quantity,
           is_preorder,
@@ -119,7 +118,6 @@ export default function HomePage() {
         seller_id: product.seller_id,
         name: product.name,
         price: product.price,
-        image_url: product.image_url,
       });
     }
   }
@@ -132,7 +130,6 @@ export default function HomePage() {
       seller_id: selectedProduct.seller_id,
       name: selectedProduct.name,
       price: selectedProduct.price, // Base price
-      image_url: selectedProduct.image_url,
       selectedOptions,
     });
 
@@ -230,15 +227,6 @@ export default function HomePage() {
                         className="bg-white rounded-lg shadow-md border border-gray-200 overflow-hidden hover:shadow-lg transition"
                       >
                         {/* Product Image */}
-                        {product.image_url && (
-                          <div className="h-48 bg-gray-100 overflow-hidden">
-                            <img
-                              src={product.image_url}
-                              alt={product.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
 
                         {/* Product Info */}
                         <div className="p-4">
@@ -279,23 +267,25 @@ export default function HomePage() {
                             </button>
                           ) : (
                             <div className="flex items-center justify-between bg-yellow-50 p-2 rounded-lg border-2 border-yellow-200">
-                              <button
-                                onClick={() => {
-                                  // Decrement logic handled by CartContext
-                                  const cartItem = cart.find((item) => item.id === product.id);
-                                  if (cartItem) {
-                                    const newQty = cartItem.quantity - 1;
-                                    if (newQty > 0) {
-                                      // Note: CartContext removeFromCart decrements
-                                      // For direct quantity update, we'd need updateQuantity
-                                      // For now, using removeFromCart which decrements or removes
+                              {quantity === 1 ? (
+                                <button
+                                  onClick={() => {
+                                    if (confirm('🗑️ Buang item ini?')) {
+                                      removeFromCart(product.id);
                                     }
-                                  }
-                                }}
-                                className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
-                              >
-                                −
-                              </button>
+                                  }}
+                                  className="bg-red-500 text-white w-8 h-8 rounded-lg hover:bg-red-600 transition font-bold"
+                                >
+                                  🗑️
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => removeFromCart(product.id)}
+                                  className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
+                                >
+                                  −
+                                </button>
+                              )}
                               <span className="font-bold text-gray-800 text-lg">
                                 {quantity}
                               </span>

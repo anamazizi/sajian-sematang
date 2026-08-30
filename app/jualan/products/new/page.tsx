@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../../lib/auth/hooks';
 import { supabase } from '../../../../lib/supabase/client';
 import ProductForm, { ProductFormData } from '../../../../components/seller/ProductForm';
-import { uploadProductImage } from '../../../../lib/storage/product-images';
 import Link from 'next/link';
+// Product image upload removed - products don't have images
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -59,21 +59,9 @@ export default function AddProductPage() {
       throw new Error('Seller ID tidak dijumpai');
     }
 
-    let imageUrl: string | null = null;
+    // Image upload removed - products don't have images
 
     try {
-      // Upload image if provided
-      if (formData.image) {
-        console.log('Uploading product image...');
-        const uploadResult = await uploadProductImage(formData.image, sellerId);
-        
-        if (!uploadResult.success || !uploadResult.url) {
-          throw new Error(uploadResult.error || 'Gagal memuat naik gambar');
-        }
-        
-        imageUrl = uploadResult.url;
-      }
-
       // Insert product
       console.log('Creating product...');
       const { data: product, error: insertError } = await supabase
@@ -90,7 +78,7 @@ export default function AddProductPage() {
           is_preorder: formData.is_preorder,
           available_from: formData.is_preorder ? formData.available_from : null,
           available_until: formData.is_preorder ? formData.available_until : null,
-          image_url: imageUrl,
+          // image_url removed - products don't have images
         })
         .select()
         .single();
