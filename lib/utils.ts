@@ -198,151 +198,105 @@ export function generateWhatsAppLink(orderDetails: {
   // HARUS KE ADMIN HQ SAHAJA: +601110890100
   const adminNumber = '601110890100';
   
-  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\\n\\n`;
-  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\\n\\n`;
-  
-  message += `👤 *Maklumat Pelanggan:*\\n`;
-  message += `Nama: ${orderDetails.customerName}\\n`;
-  message += `Telefon: ${orderDetails.customerPhone}\\n`;
-  if (orderDetails.customerAddress) {
-    message += `Alamat: ${orderDetails.customerAddress}\\n`;
-  }
-  if (orderDetails.customerPinLocation) {
-    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\\n`;
-  }
-  message += `\\n`;
-  
-  message += `🚚 *Mod Pesanan:* ${formatDeliveryMode(orderDetails.deliveryMode)}\\n`;
-  if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
-    message += `📏 Jarak: ~${orderDetails.calculatedDistance.toFixed(1)}km\\n`;
-  }
-  message += `\\n`;
-  
-  if (orderDetails.deliveryDateTime) {
-    message += `📅 *Masa Penghantaran:*\\n`;
-    message += `${new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })}\\n\\n`;
-  }
-  
-  message += `🛒 *Item Pesanan:*\\n`;
-  orderDetails.items.forEach((item, index) => {
-    message += `${index + 1}. ${item.name}\\n`;
+  // Format items untuk pesanan
+  const itemsFormatted = orderDetails.items.map(item => {
+    const itemTotal = item.price * item.quantity;
+    let itemText = `${item.quantity}x ${item.name}`;
     
-    // Display selected options (Phase R4D)
+    // Tambah options jika ada
     if (item.selectedOptions && item.selectedOptions.length > 0) {
-      item.selectedOptions.forEach((opt) => {
-        message += `   • ${opt.option_name}`;
-        if (opt.price_adjustment > 0) {
-          message += ` (+RM${opt.price_adjustment.toFixed(2)})`;
-        }
-        message += `\\n`;
-      });
+      const optionsText = item.selectedOptions.map(opt => {
+        const priceText = opt.price_adjustment > 0 ? ` (+RM${opt.price_adjustment.toFixed(2)})` : '';
+        return `${opt.option_name}${priceText}`;
+      }).join(', ');
+      
+      itemText += ` (${optionsText})`;
     }
     
-    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\\n`;
+    itemText += ` - RM${itemTotal.toFixed(2)}`;
+    return itemText;
   });
-  message += `\\n`;
   
-  message += `💵 *Ringkasan Harga:*\\n`;
-  message += `Subtotal: RM${orderDetails.subtotal.toFixed(2)}\\n`;
-  message += `Caj Penghantaran: RM${orderDetails.deliveryFee.toFixed(2)}\\n`;
-  message += `*JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\\n`;
+  // Format delivery method
+  const deliveryMethod = orderDetails.deliveryMode === 'Delivery' ? 'Penghantaran' : 'Ambil Sendiri';
   
+  // Bina mesej menggunakan array join
+  const lines = [
+    '🍽️ *ORDER SAJIAN SEMATANG*',
+    '',
+    '🧾 *Order ID:*',
+    orderDetails.orderId.substring(0, 8),
+    '',
+    '👤 *Nama:*',
+    orderDetails.customerName,
+    '',
+    '📞 *Telefon:*',
+    orderDetails.customerPhone,
+    '',
+    '📍 *Alamat:*',
+    orderDetails.customerAddress || '-',
+    '',
+    '🗺️ *Google Maps:*',
+    orderDetails.customerPinLocation || '-',
+    '',
+    '--------------------',
+    '',
+    '🛒 *PESANAN*',
+    '',
+    ...itemsFormatted,
+    '',
+    '--------------------',
+    '',
+    `Subtotal: RM${orderDetails.subtotal.toFixed(2)}`,
+    `Delivery: RM${orderDetails.deliveryFee.toFixed(2)}`,
+    '',
+    `💰 *JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*`,
+    '',
+    '🚚 *Kaedah:*',
+    deliveryMethod,
+    '',
+    'Terima kasih.'
+  ];
+  
+  // Jika ada catatan khas, tambah selepas kaedah
   if (orderDetails.specialNotes) {
-    message += `\\n📝 *Catatan Khas:*\\n${orderDetails.specialNotes}\\n`;
+    lines.splice(lines.length - 2, 0, '', '📝 *Catatan:*', orderDetails.specialNotes);
   }
   
-  message += `\\n---\\n`;
-  message += `Pesanan dibuat melalui Sajian Sematang`;
-  
-  const encodedMessage = encodeURIComponent(message);
-  return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
-}
-
-
-// Generate WhatsApp message link (simple version for basic orders)
-// Generate WhatsApp message link (simple version for basic orders)
-export function generateSimpleWhatsAppLink(orderDetails: {
-  orderId: string;
-  customerName: string;
-  customerPhone: string;
-  customerAddress?: string;
-  customerPinLocation?: string;
-  items: Array<{ name: string; quantity: number; price: number }>;
-  totalPrice: number;
-  deliveryDateTime?: string;
-  specialNotes?: string;
-}): string {
-  const adminNumber = '601110890100'; // +60 11-1089 0100
-  
-  let message = `🍽️ *PESANAN BARU - SAJIAN SEMATANG*\n\n`;
-  message += `📋 *ID Pesanan:* ${orderDetails.orderId.substring(0, 8)}\n\n`;
-  
-  message += `👤 *Maklumat Pelanggan:*\n`;
-  message += `Nama: ${orderDetails.customerName}\n`;
-  message += `Telefon: ${orderDetails.customerPhone}\n`;
-  if (orderDetails.customerAddress) {
-    message += `Alamat: ${orderDetails.customerAddress}\n`;
+  // Jika ada jarak untuk delivery, tambah dalam kaedah
+  if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
+    const distanceIndex = lines.indexOf('🚚 *Kaedah:*') + 1;
+    lines[distanceIndex] = `${deliveryMethod} (~${orderDetails.calculatedDistance.toFixed(1)}km)`;
   }
-  if (orderDetails.customerPinLocation) {
-    message += `📍 Lokasi Maps: ${orderDetails.customerPinLocation}\n`;
-  }
-  message += `\n`;
   
+  // Jika ada masa penghantaran, tambah selepas kaedah
   if (orderDetails.deliveryDateTime) {
-    message += `📅 *Pre-Order - Masa Penghantaran:*\n`;
-    message += `${new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })}\n\n`;
+    const dateIndex = lines.indexOf('🚚 *Kaedah:*') + 2;
+    lines.splice(dateIndex, 0, '', '📅 *Masa Penghantaran:*', 
+      new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    );
   }
   
-  message += `🛒 *Item Pesanan:*\n`;
-  orderDetails.items.forEach((item, index) => {
-    message += `${index + 1}. ${item.name}\n`;
-    message += `   ${item.quantity}x RM${item.price.toFixed(2)} = RM${(item.quantity * item.price).toFixed(2)}\n`;
-  });
-  message += `\n`;
-  
-  message += `💰 *JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*\n`;
-  
-  if (orderDetails.specialNotes) {
-    message += `\n📝 *Catatan Khas:*\n${orderDetails.specialNotes}\n`;
-  }
-  
-  message += `\n---\n`;
-  message += `Pesanan dibuat melalui Sajian Sematang`;
-  
-  const encodedMessage = encodeURIComponent(message);
-  return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
+  const fullMessage = lines.join('\n');
+  return `https://wa.me/${adminNumber}?text=${encodeURIComponent(fullMessage)}`;
 }
-
-// ============================================
-// PHASE R6.3: Timezone Handling
-// ============================================
-// Master Prompt Seksyen 107: All operations in Asia/Kuala_Lumpur (UTC+8)
-// ============================================
-
 /**
- * Get current date/time in Malaysia timezone (Asia/Kuala_Lumpur)
- * Use this for ALL business logic requiring "today" or "now"
+ * Get current time in Malaysia timezone (Asia/Kuala_Lumpur)
+ * Use for "today" calculations in reports
  */
 export function getMalaysiaTime(): Date {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
 }
 
 /**
- * Convert UTC timestamp to Malaysia date (for "today" comparisons)
+ * Convert UTC timestamp from database to Malaysia timezone
  * @param utcTimestamp - ISO string from database (timestamptz stored as UTC)
  * @returns Date object in Malaysia timezone
  */
@@ -415,15 +369,15 @@ export function generatePayoutWhatsAppLink(payoutDetails: {
   // Format phone number (remove +, spaces, dashes)
   const phoneNumber = payoutDetails.sellerPhone.replace(/[\s\-+]/g, '');
   
-  let message = `🏦 *RESIT PEMBAYARAN - SAJIAN SEMATANG*\n\n`;
+  let message = `🏦 *RESIT PEMBAYARAN - SAJIAN SEMATANG*\\n\\n`;
   
-  message += `📋 *Maklumat Pembayaran:*\n`;
-  message += `Penerima: ${payoutDetails.sellerName}\n`;
-  message += `Jumlah: RM ${payoutDetails.amount.toFixed(2)}\n`;
-  message += `Kaedah: ${payoutDetails.paymentMethod}\n`;
+  message += `📋 *Maklumat Pembayaran:*\\n`;
+  message += `Penerima: ${payoutDetails.sellerName}\\n`;
+  message += `Jumlah: RM ${payoutDetails.amount.toFixed(2)}\\n`;
+  message += `Kaedah: ${payoutDetails.paymentMethod}\\n`;
   
   if (payoutDetails.referenceNumber) {
-    message += `Rujukan: ${payoutDetails.referenceNumber}\n`;
+    message += `Rujukan: ${payoutDetails.referenceNumber}\\n`;
   }
   
   message += `Tarikh: ${new Date(payoutDetails.paidDate).toLocaleString('ms-MY', {
@@ -433,21 +387,21 @@ export function generatePayoutWhatsAppLink(payoutDetails: {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  })}\n\n`;
+  })}\\n\\n`;
   
-  message += `📦 *Pesanan Dibayar:*\n`;
+  message += `📦 *Pesanan Dibayar:*\\n`;
   payoutDetails.orderIds.forEach((id, index) => {
-    message += `${index + 1}. #${id.substring(0, 8)}\n`;
+    message += `${index + 1}. #${id.substring(0, 8)}\\n`;
   });
   
-  message += `\nJumlah Pesanan: ${payoutDetails.orderIds.length}\n`;
+  message += `\\nJumlah Pesanan: ${payoutDetails.orderIds.length}\\n`;
   
   if (payoutDetails.notes) {
-    message += `\n📝 *Catatan:*\n${payoutDetails.notes}\n`;
+    message += `\\n📝 *Catatan:*\\n${payoutDetails.notes}\\n`;
   }
   
-  message += `\n---\n`;
-  message += `Terima kasih atas perkhidmatan anda!\n`;
+  message += `\\n---\\n`;
+  message += `Terima kasih atas perkhidmatan anda!\\n`;
   message += `Sajian Sematang`;
   
   const encodedMessage = encodeURIComponent(message);
