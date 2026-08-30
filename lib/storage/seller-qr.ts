@@ -9,11 +9,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // BUCKET CONFIGURATION
-// IMPORTANT: Change this to match your actual Supabase bucket name
-// Check Supabase Dashboard → Storage → Buckets
-// SQL schema uses: 'seller-qr' (lowercase)
-// If your dashboard shows: 'SELLER-QR' (uppercase), change below:
-const BUCKET_NAME = 'SELLER-QR'; // Updated to uppercase per request
+// Bucket name: 'seller-qr' (lowercase - sesuai dengan SQL schema)
+const BUCKET_NAME = 'seller-qr'; // Lowercase as per original setup
 
 export interface UploadResult {
   success: boolean;

@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
-import { uploadSellerQR } from '../../../lib/storage/seller-qr';
 
 export default function SellerOnboardingPage() {
   const router = useRouter();
@@ -21,8 +20,6 @@ export default function SellerOnboardingPage() {
     account_holder_name: '',
   });
 
-  const [qrFile, setQrFile] = useState<File | null>(null);
-  const [qrPreview, setQrPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,102 +51,7 @@ export default function SellerOnboardingPage() {
     }
   }
 
-  async function handleQRFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-    if (!validTypes.includes(file.type)) {
-      setError('Format fail tidak sah. Sila gunakan JPEG, PNG, atau WebP.');
-      return;
-    }
-
-    const maxSize = 10 * 1024 * 1024; // Increased to 10MB
-    if (file.size > maxSize) {
-      setError('Saiz fail terlalu besar. Maksimum 10MB.');
-      return;
-    }
-
-    setError(null);
-
-    // Client-side compression/resize
-    try {
-      const compressedFile = await compressImage(file);
-      setQrFile(compressedFile);
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setQrPreview(reader.result as string);
-      };
-      reader.readAsDataURL(compressedFile);
-    } catch (err) {
-      console.error('Compression error:', err);
-      // If compression fails, use original
-      setQrFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setQrPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  }
-
-  // Image compression helper
-  async function compressImage(file: File): Promise<File> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // Max dimensions
-          const MAX_WIDTH = 1200;
-          const MAX_HEIGHT = 1200;
-          
-          let width = img.width;
-          let height = img.height;
-
-          if (width > height) {
-            if (width > MAX_WIDTH) {
-              height *= MAX_WIDTH / width;
-              width = MAX_WIDTH;
-            }
-          } else {
-            if (height > MAX_HEIGHT) {
-              width *= MAX_HEIGHT / height;
-              height = MAX_HEIGHT;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const compressedFile = new File([blob], file.name, {
-                  type: 'image/jpeg',
-                  lastModified: Date.now(),
-                });
-                resolve(compressedFile);
-              } else {
-                reject(new Error('Compression failed'));
-              }
-            },
-            'image/jpeg',
-            0.85 // Quality 85%
-          );
-        };
-        img.onerror = reject;
-      };
-      reader.onerror = reject;
-    });
-  }
+  // QR upload functions removed - moved to profile page
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -178,45 +80,22 @@ export default function SellerOnboardingPage() {
         throw new Error('Sesi tamat. Sila log masuk semula.');
       }
 
-      // QR upload is now OPTIONAL
-      let qrUrl: string | null = null;
-      
-      if (qrFile) {
-        console.log('📤 Starting QR upload...');
-        console.log('👤 User ID:', user.id);
-        console.log('📁 File:', qrFile.name, qrFile.type, (qrFile.size / 1024).toFixed(2) + 'KB');
-        
-        const uploadResult = await uploadSellerQR(qrFile, user.id);
-
-        if (!uploadResult.success || !uploadResult.url) {
-          // Display VERBOSE error from Supabase
-          const detailedError = uploadResult.error || 'Gagal memuat naik QR.';
-          console.error('❌ Upload failed:', detailedError);
-          console.error('❌ Upload error details:', uploadResult.errorDetails);
-          
-          // Show full Supabase error to user for debugging
-          throw new Error(detailedError);
-        }
-
-        qrUrl = uploadResult.url;
-        console.log('✅ QR uploaded successfully:', qrUrl);
-      } else {
-        console.log('ℹ️ No QR file uploaded - seller can upload later in profile');
-      }
-
       console.log('📝 Creating seller record...');
+      console.log('👤 User ID:', user.id);
+      console.log('🏪 Shop name:', formData.shop_name.trim());
       
-      const { data: seller, error: sellerError } = await supabase
+      const { data: seller, error: sellerError} = await supabase
         .from('sellers')
         .insert({
           user_id: user.id,
-          shop_name: formData.shop_name.trim(),
+          name: formData.shop_name.trim(), // FIXED: use 'name' column
+          shop_name: formData.shop_name.trim(), // Keep for compatibility
           description: formData.description.trim() || null,
           phone_number: formData.phone_number.trim() || null,
           bank_name: formData.bank_name.trim(),
           bank_account_number: formData.bank_account_number.trim(),
           account_holder_name: formData.account_holder_name.trim(),
-          duitnow_qr_url: qrUrl, // Can be NULL
+          duitnow_qr_url: null, // QR can be uploaded later in profile
         })
         .select()
         .single();
@@ -387,60 +266,11 @@ export default function SellerOnboardingPage() {
             </div>
           </div>
 
+          {/* QR Upload removed - moved to profile page */}
           <div className="mb-6 border-t pt-6">
-            <label className="block text-gray-700 font-medium mb-2">
-              QR DuitNow <span className="text-gray-500 text-sm">(Pilihan)</span>
-            </label>
-            <p className="text-sm text-gray-600 mb-3">
-              ℹ️ Anda boleh muat naik QR DuitNow sekarang atau kemudian di halaman Profil Kedai.
+            <p className="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              ℹ️ <strong>Muat naik QR DuitNow</strong> boleh dilakukan kemudian di halaman <strong>Profil Kedai</strong> selepas pendaftaran selesai.
             </p>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              {qrPreview ? (
-                <div>
-                  <img
-                    src={qrPreview}
-                    alt="QR Preview"
-                    className="max-w-xs mx-auto mb-4 rounded-lg shadow-md"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setQrFile(null);
-                      setQrPreview(null);
-                    }}
-                    className="text-red-600 hover:text-red-700 text-sm"
-                    disabled={submitting}
-                  >
-                    🗑️ Buang & Pilih Semula
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  <p className="text-gray-600 mb-3">
-                    📷 Muat naik kod QR DuitNow anda
-                  </p>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
-                    onChange={handleQRFileChange}
-                    className="hidden"
-                    id="qr-upload"
-                    disabled={submitting}
-                  />
-                  <label
-                    htmlFor="qr-upload"
-                    className="inline-block px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 cursor-pointer"
-                  >
-                    Pilih Fail QR
-                  </label>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Format: JPEG, PNG, WebP | Max: 10MB
-                    <br />
-                    <span className="text-xs">Imej akan dimampatkan secara automatik</span>
-                  </p>
-                </div>
-              )}
-            </div>
           </div>
 
           <button
