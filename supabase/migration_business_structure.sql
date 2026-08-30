@@ -391,7 +391,10 @@ CREATE TRIGGER calculate_order_cost
 -- ============================================
 
 -- 6.1 View untuk seller outstanding summary
-CREATE OR REPLACE VIEW public.seller_outstanding_summary AS
+-- Drop existing view first to allow column rename
+DROP VIEW IF EXISTS public.seller_outstanding_summary CASCADE;
+
+CREATE VIEW public.seller_outstanding_summary AS
 SELECT 
   s.id as seller_id,
   s.shop_name,
@@ -412,7 +415,10 @@ GROUP BY s.id, s.shop_name, s.phone_number
 ORDER BY total_outstanding DESC;
 
 -- 6.2 View untuk daily sales summary
-CREATE OR REPLACE VIEW public.daily_sales_summary AS
+-- Drop existing view first to allow schema changes
+DROP VIEW IF EXISTS public.daily_sales_summary CASCADE;
+
+CREATE VIEW public.daily_sales_summary AS
 SELECT 
   DATE(o.created_at) as sale_date,
   COUNT(DISTINCT o.id) as total_orders,
