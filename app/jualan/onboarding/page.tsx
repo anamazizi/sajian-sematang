@@ -16,6 +16,9 @@ export default function SellerOnboardingPage() {
     shop_name: '',
     description: '',
     phone_number: '',
+    bank_name: '',
+    bank_account_number: '',
+    account_holder_name: '',
   });
 
   const [qrFile, setQrFile] = useState<File | null>(null);
@@ -154,35 +157,53 @@ export default function SellerOnboardingPage() {
     setSubmitting(true);
 
     try {
+      // Validate required fields
       if (!formData.shop_name.trim()) {
         throw new Error('Nama kedai diperlukan.');
       }
 
-      if (!qrFile) {
-        throw new Error('Sila muat naik QR DuitNow.');
+      if (!formData.bank_name.trim()) {
+        throw new Error('Nama bank diperlukan.');
+      }
+
+      if (!formData.bank_account_number.trim()) {
+        throw new Error('Nombor akaun bank diperlukan.');
+      }
+
+      if (!formData.account_holder_name.trim()) {
+        throw new Error('Nama pemegang akaun diperlukan.');
       }
 
       if (!user) {
         throw new Error('Sesi tamat. Sila log masuk semula.');
       }
 
-      console.log('📤 Starting QR upload...');
-      console.log('👤 User ID:', user.id);
-      console.log('📁 File:', qrFile.name, qrFile.type, (qrFile.size / 1024).toFixed(2) + 'KB');
+      // QR upload is now OPTIONAL
+      let qrUrl: string | null = null;
       
-      const uploadResult = await uploadSellerQR(qrFile, user.id);
-
-      if (!uploadResult.success || !uploadResult.url) {
-        // Display VERBOSE error from Supabase
-        const detailedError = uploadResult.error || 'Gagal memuat naik QR.';
-        console.error('❌ Upload failed:', detailedError);
-        console.error('❌ Upload error details:', uploadResult.errorDetails);
+      if (qrFile) {
+        console.log('📤 Starting QR upload...');
+        console.log('👤 User ID:', user.id);
+        console.log('📁 File:', qrFile.name, qrFile.type, (qrFile.size / 1024).toFixed(2) + 'KB');
         
-        // Show full Supabase error to user for debugging
-        throw new Error(detailedError);
+        const uploadResult = await uploadSellerQR(qrFile, user.id);
+
+        if (!uploadResult.success || !uploadResult.url) {
+          // Display VERBOSE error from Supabase
+          const detailedError = uploadResult.error || 'Gagal memuat naik QR.';
+          console.error('❌ Upload failed:', detailedError);
+          console.error('❌ Upload error details:', uploadResult.errorDetails);
+          
+          // Show full Supabase error to user for debugging
+          throw new Error(detailedError);
+        }
+
+        qrUrl = uploadResult.url;
+        console.log('✅ QR uploaded successfully:', qrUrl);
+      } else {
+        console.log('ℹ️ No QR file uploaded - seller can upload later in profile');
       }
 
-      console.log('✅ QR uploaded successfully:', uploadResult.url);
       console.log('📝 Creating seller record...');
       
       const { data: seller, error: sellerError } = await supabase
@@ -192,7 +213,10 @@ export default function SellerOnboardingPage() {
           shop_name: formData.shop_name.trim(),
           description: formData.description.trim() || null,
           phone_number: formData.phone_number.trim() || null,
-          duitnow_qr_url: uploadResult.url,
+          bank_name: formData.bank_name.trim(),
+          bank_account_number: formData.bank_account_number.trim(),
+          account_holder_name: formData.account_holder_name.trim(),
+          duitnow_qr_url: qrUrl, // Can be NULL
         })
         .select()
         .single();
@@ -267,7 +291,7 @@ export default function SellerOnboardingPage() {
                 setFormData({ ...formData, shop_name: e.target.value })
               }
               placeholder="Contoh: Kedai Makan Sedap"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
               required
               disabled={submitting}
             />
@@ -284,7 +308,7 @@ export default function SellerOnboardingPage() {
               }
               placeholder="Ceritakan tentang kedai anda..."
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
               disabled={submitting}
             />
           </div>
@@ -300,15 +324,76 @@ export default function SellerOnboardingPage() {
                 setFormData({ ...formData, phone_number: e.target.value })
               }
               placeholder="Contoh: 0123456789"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
               disabled={submitting}
             />
           </div>
 
-          <div className="mb-6">
+          {/* BANK INFORMATION - REQUIRED */}
+          <div className="mb-6 border-t pt-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+              💳 Maklumat Bank (untuk Pembayaran)
+            </h3>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Nama Bank <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.bank_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, bank_name: e.target.value })
+                }
+                placeholder="Contoh: Maybank, CIMB, Bank Islam, RHB"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
+                required
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Nombor Akaun Bank <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.bank_account_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, bank_account_number: e.target.value })
+                }
+                placeholder="Contoh: 1234567890"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
+                required
+                disabled={submitting}
+              />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-gray-700 font-medium mb-2">
+                Nama Penuh Pemegang Akaun <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.account_holder_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, account_holder_name: e.target.value })
+                }
+                placeholder="Nama seperti dalam akaun bank"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
+                required
+                disabled={submitting}
+              />
+            </div>
+          </div>
+
+          <div className="mb-6 border-t pt-6">
             <label className="block text-gray-700 font-medium mb-2">
-              QR DuitNow <span className="text-red-500">*</span>
+              QR DuitNow <span className="text-gray-500 text-sm">(Pilihan)</span>
             </label>
+            <p className="text-sm text-gray-600 mb-3">
+              ℹ️ Anda boleh muat naik QR DuitNow sekarang atau kemudian di halaman Profil Kedai.
+            </p>
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               {qrPreview ? (
                 <div>
@@ -360,9 +445,19 @@ export default function SellerOnboardingPage() {
 
           <button
             type="submit"
-            disabled={submitting || !qrFile || !formData.shop_name.trim()}
+            disabled={
+              submitting ||
+              !formData.shop_name.trim() ||
+              !formData.bank_name.trim() ||
+              !formData.bank_account_number.trim() ||
+              !formData.account_holder_name.trim()
+            }
             className={`w-full py-3 rounded-lg font-semibold ${
-              submitting || !qrFile || !formData.shop_name.trim()
+              submitting ||
+              !formData.shop_name.trim() ||
+              !formData.bank_name.trim() ||
+              !formData.bank_account_number.trim() ||
+              !formData.account_holder_name.trim()
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-green-500 text-white hover:bg-green-600'
             }`}
