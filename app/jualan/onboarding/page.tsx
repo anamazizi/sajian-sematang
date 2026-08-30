@@ -51,30 +51,101 @@ export default function SellerOnboardingPage() {
     }
   }
 
-  function handleQRFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleQRFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
       setError('Format fail tidak sah. Sila gunakan JPEG, PNG, atau WebP.');
       return;
     }
 
-    const maxSize = 5 * 1024 * 1024;
+    const maxSize = 10 * 1024 * 1024; // Increased to 10MB
     if (file.size > maxSize) {
-      setError('Saiz fail terlalu besar. Maksimum 5MB.');
+      setError('Saiz fail terlalu besar. Maksimum 10MB.');
       return;
     }
 
-    setQrFile(file);
     setError(null);
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setQrPreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    // Client-side compression/resize
+    try {
+      const compressedFile = await compressImage(file);
+      setQrFile(compressedFile);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQrPreview(reader.result as string);
+      };
+      reader.readAsDataURL(compressedFile);
+    } catch (err) {
+      console.error('Compression error:', err);
+      // If compression fails, use original
+      setQrFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setQrPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  // Image compression helper
+  async function compressImage(file: File): Promise<File> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          // Max dimensions
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                reject(new Error('Compression failed'));
+              }
+            },
+            'image/jpeg',
+            0.85 // Quality 85%
+          );
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -242,7 +313,7 @@ export default function SellerOnboardingPage() {
                   </p>
                   <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
                     onChange={handleQRFileChange}
                     className="hidden"
                     id="qr-upload"
@@ -255,7 +326,9 @@ export default function SellerOnboardingPage() {
                     Pilih Fail QR
                   </label>
                   <p className="text-sm text-gray-500 mt-2">
-                    Format: JPEG, PNG, WebP | Max: 5MB
+                    Format: JPEG, PNG, WebP | Max: 10MB
+                    <br />
+                    <span className="text-xs">Imej akan dimampatkan secara automatik</span>
                   </p>
                 </div>
               )}

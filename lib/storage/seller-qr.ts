@@ -26,7 +26,7 @@ export async function uploadSellerQR(
 ): Promise<UploadResult> {
   try {
     // Validate file type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
       return {
         success: false,
@@ -34,12 +34,12 @@ export async function uploadSellerQR(
       };
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Validate file size (max 10MB after compression)
+    const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
       return {
         success: false,
-        error: 'Saiz fail terlalu besar. Maksimum 5MB.',
+        error: 'Saiz fail terlalu besar. Maksimum 10MB.',
       };
     }
 

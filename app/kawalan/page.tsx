@@ -63,12 +63,24 @@ export default function KawalanDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Orders Management - Admin & Staff */}
           <Link href="/kawalan/orders" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition border-l-4 border-blue-500">
             <div className="text-4xl mb-3">📦</div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Urus Pesanan</h2>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Pengurusan Pesanan</h2>
             <p className="text-gray-600 text-sm">Lihat dan kemaskini status pesanan</p>
           </Link>
 
+          {/* Products Management - Admin Only */}
+          {isAdmin && (
+            <Link href="/kawalan/products" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition border-l-4 border-green-500">
+              <div className="text-4xl mb-3">🍽️</div>
+              <h2 className="text-xl font-bold text-gray-800 mb-2">Pengurusan Produk</h2>
+              <p className="text-gray-600 text-sm">Urus semua produk dari semua peniaga</p>
+              <span className="inline-block mt-2 bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">🔒 Admin Sahaja</span>
+            </Link>
+          )}
+
+          {/* Payout Management - Admin Only */}
           {isAdmin && (
             <Link href="/kawalan/payouts" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition border-l-4 border-yellow-500">
               <div className="text-4xl mb-3">💰</div>
