@@ -129,6 +129,42 @@ export default function EditProductPage() {
       }
 
       console.log('Product updated:', updatedProduct);
+
+      // Handle product options
+      // First, delete all existing options for this product
+      const { error: deleteError } = await supabase
+        .from('product_options')
+        .delete()
+        .eq('product_id', productId);
+
+      if (deleteError) {
+        console.error('Error deleting old options:', deleteError);
+        // Continue anyway - we'll try to insert new ones
+      }
+
+      // Insert new options if any
+      if (formData.options && formData.options.length > 0) {
+        const optionsToInsert = formData.options.map(option => ({
+          product_id: productId,
+          option_group: option.option_group,
+          option_name: option.option_name.trim(),
+          price_adjustment: option.price_adjustment,
+          is_available: option.is_available,
+          display_order: option.display_order,
+        }));
+
+        const { error: optionsError } = await supabase
+          .from('product_options')
+          .insert(optionsToInsert);
+
+        if (optionsError) {
+          console.error('Error saving product options:', optionsError);
+          // Don't throw error, just log it - product is already updated
+        } else {
+          console.log('Product options updated successfully');
+        }
+      }
+
       alert('✅ Produk berjaya dikemaskini!');
       router.push('/jualan/products');
     } catch (error: any) {

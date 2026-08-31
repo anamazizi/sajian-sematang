@@ -8,7 +8,6 @@ import { useAuth } from '../../../../lib/auth/hooks';
 import { supabase } from '../../../../lib/supabase/client';
 import ProductForm, { ProductFormData } from '../../../../components/seller/ProductForm';
 import Link from 'next/link';
-// Product image upload removed - products don't have images
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -89,6 +88,30 @@ export default function AddProductPage() {
       }
 
       console.log('Product created:', product);
+
+      // Save product options if any
+      if (formData.options && formData.options.length > 0) {
+        const optionsToInsert = formData.options.map(option => ({
+          product_id: product.id,
+          option_group: option.option_group,
+          option_name: option.option_name.trim(),
+          price_adjustment: option.price_adjustment,
+          is_available: option.is_available,
+          display_order: option.display_order,
+        }));
+
+        const { error: optionsError } = await supabase
+          .from('product_options')
+          .insert(optionsToInsert);
+
+        if (optionsError) {
+          console.error('Error saving product options:', optionsError);
+          // Don't throw error, just log it - product is already created
+        } else {
+          console.log('Product options saved successfully');
+        }
+      }
+
       alert('🎉 Produk berjaya ditambah!');
       router.push('/jualan/products');
     } catch (error: any) {
