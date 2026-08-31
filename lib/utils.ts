@@ -202,8 +202,8 @@ export function generateWhatsAppLink(orderDetails: {
     mapsDisplay = 'Ambil Sendiri';
   }
   
-  // Build WhatsApp message template - PASTIKAN menggunakan newlines literal
-  const whatsappTemplate = `🍽️ *ORDER SAJIAN SEMATANG*
+  // Build WhatsApp message template - SEDIAKAN string mesej berasingan dahulu dengan emoji Unicode standard
+  const rawMessage = `🍽️ *ORDER SAJIAN SEMATANG*
 
 🧾 *Order ID:*
 ${orderDetails.orderId}
@@ -237,15 +237,17 @@ Delivery: RM${orderDetails.deliveryFee.toFixed(2)}
 ${deliveryMethod}
 
 Terima kasih.`;
+
+  // Mulakan dengan rawMessage
+  let finalMessage = rawMessage;
   
   // Tambah special notes jika ada
-  let finalTemplate = whatsappTemplate;
   if (orderDetails.specialNotes) {
     // Insert notes sebelum "Terima kasih."
-    const insertIndex = finalTemplate.lastIndexOf('Terima kasih.');
-    const beforeThanks = finalTemplate.substring(0, insertIndex);
-    const afterThanks = finalTemplate.substring(insertIndex);
-    finalTemplate = `${beforeThanks}
+    const insertIndex = finalMessage.lastIndexOf('Terima kasih.');
+    const beforeThanks = finalMessage.substring(0, insertIndex);
+    const afterThanks = finalMessage.substring(insertIndex);
+    finalMessage = `${beforeThanks}
 
 📝 *Catatan:*
 ${orderDetails.specialNotes}
@@ -256,7 +258,7 @@ ${afterThanks}`;
   // Tambah jarak untuk delivery jika ada
   if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
     // Gantikan delivery method dengan jarak menggunakan pendekatan yang lebih selamat
-    const lines = finalTemplate.split('\n');
+    const lines = finalMessage.split('\n');
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes('🚚 *Kaedah:*')) {
         // Ini baris header, baris seterusnya adalah delivery method
@@ -266,7 +268,7 @@ ${afterThanks}`;
         break;
       }
     }
-    finalTemplate = lines.join('\n');
+    finalMessage = lines.join('\n');
   }
   
   // Tambah masa penghantaran jika ada
@@ -281,10 +283,10 @@ ${afterThanks}`;
     });
     
     // Insert delivery time sebelum "Terima kasih."
-    const insertIndex = finalTemplate.lastIndexOf('Terima kasih.');
-    const beforeThanks = finalTemplate.substring(0, insertIndex);
-    const afterThanks = finalTemplate.substring(insertIndex);
-    finalTemplate = `${beforeThanks}
+    const insertIndex = finalMessage.lastIndexOf('Terima kasih.');
+    const beforeThanks = finalMessage.substring(0, insertIndex);
+    const afterThanks = finalMessage.substring(insertIndex);
+    finalMessage = `${beforeThanks}
 
 📅 *Masa Penghantaran:*
 ${deliveryTimeFormatted}
@@ -293,8 +295,8 @@ ${afterThanks}`;
   }
   
   // PASTIKAN template di-encode dengan betul untuk WhatsApp
-  // encodeURIComponent akan handle semua special characters termasuk emoji
-  const encodedMessage = encodeURIComponent(finalTemplate);
+  // Bungkus SELURUH kandungan string rawMessage dengan encodeURIComponent secara terus
+  const encodedMessage = encodeURIComponent(finalMessage);
   return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
 }// ============================================
 // Master Prompt Seksyen 107: All operations in Asia/Kuala_Lumpur (UTC+8)
