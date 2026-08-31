@@ -1,11 +1,11 @@
 # 📊 PROJECT_PROGRESS.md - SAJIAN SEMATANG
 ## Status Terkini & Development Progress
 
-**Tarikh Kemaskini:** 31 Ogos 2026 (Sesi Malam)  
-**Versi:** 2.4 (Post-Audit Rebuild + WhatsApp Encoding & UI Fixes)  
-**Build Status:** ✅ Success (0 TypeScript Errors)  
-**Security Status:** ✅ All Security Layers Implemented  
-**Project Completion:** 91% COMPLETE  
+**Tarikh Kemaskini:** 31 Ogos 2026 (Sesi Malam - Updated)  
+**Versi:** 2.5 (Seller Dashboard Refactoring & UI Improvements Complete)  
+**Build Status:** ✅ Success (Latest build: 31 Ogos 2026 - Seller Refactoring Complete)  
+**Security Status:** ✅ All Security Layers Implemented (RLS + Rate Limiting + Audit)  
+**Project Completion:** 92% COMPLETE (Updated 31 Ogos 2026 - SELLER REFACTORING & UI IMPROVEMENTS COMPLETE)  
 
 ---
 
@@ -451,7 +451,56 @@ Order ID : SS-[order_id]
 
 ---
 
-## 4. PENAMBAHBAIKAN & LOGIK BARU (CLINE IMPROVEMENTS)
+## 4. SELLER DASHBOARD REFACTORING & UI IMPROVEMENTS (31 OGOS 2026)
+
+### 📊 Seller Dashboard Architecture Refactor ✅
+
+#### A. Seller Dashboard Modul Diselaraskan ke `/jualan` ✅
+- **Pemadaman folder `/app/seller`**: Struktur lama dibuang 100%
+- **Dashboard Peniaga**: `/jualan` sebagai route utama seller dashboard
+- **Pengurusan Produk**: `/jualan/products` untuk CRUD produk
+- **Profil Peniaga**: `/jualan/profile` dengan tambahan medan bank account
+- **Sejarah Stok**: `/jualan/stok` untuk stock movement history
+- **Pengurusan Order**: `/jualan/orders` untuk seller order view
+- **Component Architecture**: Semua seller components di `/components/seller/`
+
+#### B. Penambahbaikan Profil Peniaga (`/jualan/profile`) ✅
+- **Medan Akaun Bank**: Nama Bank, No Akaun, Nama Pemegang Akaun
+- **QR DuitNow Support**: Upload/update QR code untuk pembayaran
+- **Profile Validation**: Semua medan wajib dengan proper validation
+- **Responsive Design**: Layout mobile-friendly
+
+#### C. Pembaikan Numeric Input dalam ProductForm ✅
+- **Default Value Handling**: Input price/cost_price/stock_quantity kini menggunakan empty string "" bukan default "0"
+- **Dual Interface Approach**: `LocalFormData` (string) untuk input state vs `ProductFormData` (number) untuk submission
+- **User Experience**: User boleh clear input secara manual dan tidak dipaksa default "0"
+- **Input Consistency**: Semua numeric fields (price, cost_price, stock_quantity, option price_adjustment) mempunyai placeholder dan onChange handlers
+
+#### D. Pengurusan Product Options/Add-ons ✅
+- **Options Management**: Seller boleh tambah/edit/delete product options
+- **Price Adjustment**: Setiap option boleh mempunyai price adjustment (RM+/-)
+- **UI Integration**: Options dipaparkan dalam product creation/edit form
+- **Order Snapshot**: Option name dan price snapshot disimpan bersama order
+
+#### E. SellerProductCard Component ✅
+- **Clean Design**: Tanpa default image/emoji placeholders
+- **Focus Content**: Penekanan pada maklumat produk (nama, harga, stok)
+- **Label Update**: "Harga Kos" ditukar kepada "Harga Sajian Sematang (RM)" / "Harga SS"
+- **Reusable Component**: Digunakan secara konsisten di semua seller product pages
+
+#### F. Pre-Order Form Styling ✅
+- **Contrast Improvement**: Input fields menggunakan `text-slate-900 bg-white` untuk readability
+- **Date/Time Inputs**: Proper styling dengan high-contrast untuk accessibility
+- **Mobile Responsive**: Pre-order form yang mudah digunakan di mobile devices
+
+#### G. Build Validation & Testing ✅
+- **Build Success**: `npm run build` lulus dengan 0 ralat TypeScript
+- **UI Consistency**: Semua seller pages mempunyai visual design yang konsisten
+- **Navigation Flow**: Seller dashboard navigation yang intuitif dan mudah
+
+---
+
+## 5. PENAMBAHBAIKAN & LOGIK BARU (CLINE IMPROVEMENTS)
 
 ### Security & RLS Improvements (Phase R5)
 1. **🔒 cost_price Protection** - Two-layer protection:
@@ -483,3 +532,20 @@ Order ID : SS-[order_id]
    - Snapshot fields verified dalam migration 05 & 11
    - Historical data IMMUTABLE selepas order complete
    - Product changes tidak affect historical orders
+
+### Seller Dashboard Improvements (Phase R4)
+1. **📊 Seller Dashboard Refactoring** - `/jualan` sebagai route utama:
+   - Pemadaman folder `/app/seller` legacy structure
+   - Penyelarasan 100% seller components ke `/components/seller/`
+   - Penambahbaikan profil peniaga dengan bank account details
+
+2. **🛒 Product Management Enhancements**:
+   - Numeric input handling tanpa default "0" values
+   - Product options/add-ons management dengan price adjustments
+   - SellerProductCard tanpa image/emoji placeholders
+   - Pre-order form styling dengan high-contrast design
+
+3. **💰 Pricing Label Standardization**:
+   - "Harga Kos" ditukar kepada "Harga Sajian Sematang (RM)" / "Harga SS"
+   - Label konsisten merentasi semua seller interfaces
+   - Clear distinction antara selling price dan Sajian Sematang cost
