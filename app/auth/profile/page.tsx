@@ -184,58 +184,55 @@ export default function ProfileCompletionPage() {
             </div>
           )}
 
-          {/* Name */}
           <div className="mb-4">
-            <label htmlFor="name" className="block text-gray-700 font-medium mb-2">
-              Nama Penuh <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Contoh: Ahmad bin Ali"
-              required
-              disabled={submitting}
-            />
-          </div>
+              <label htmlFor="name" className="block text-gray-700 font-medium mb-2">
+                Nama Penuh <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-2 text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Contoh: Ahmad bin Ali"
+                required
+                disabled={submitting}
+              />
+            </div>
 
-          {/* Phone Number */}
           <div className="mb-4">
-            <label htmlFor="phone_number" className="block text-gray-700 font-medium mb-2">
-              Nombor Telefon <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="tel"
-              id="phone_number"
-              name="phone_number"
-              value={formData.phone_number}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="Contoh: 0123456789"
-              required
-              disabled={submitting}
-            />
-          </div>
+              <label htmlFor="phone_number" className="block text-gray-700 font-medium mb-2">
+                Nombor Telefon <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="tel"
+                id="phone_number"
+                name="phone_number"
+                value={formData.phone_number}
+                onChange={handleChange}
+                className="w-full px-4 py-2 text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Contoh: 0123456789"
+                required
+                disabled={submitting}
+              />
+            </div>
 
-          {/* Address */}
           <div className="mb-4">
-            <label htmlFor="address" className="block text-gray-700 font-medium mb-2">
-              Alamat Penghantaran
-            </label>
-            <textarea
-              id="address"
-              name="address"
-              value={formData.address}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="No 123, Jalan ABC..."
-              rows={3}
-              disabled={submitting}
-            />
-          </div>
+              <label htmlFor="address" className="block text-gray-700 font-medium mb-2">
+                Alamat Penghantaran
+              </label>
+              <textarea
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                className="w-full px-4 py-2 text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="No 123, Jalan ABC..."
+                rows={3}
+                disabled={submitting}
+              />
+            </div>
 
           {/* Map Picker */}
           <div className="mb-6">

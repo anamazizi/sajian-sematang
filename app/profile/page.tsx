@@ -183,7 +183,7 @@ export default function ProfilePage() {
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="w-full px-4 py-3 text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Contoh: Ahmad bin Abdullah"
                 required
                 disabled={saving}
@@ -200,7 +200,7 @@ export default function ProfilePage() {
                 id="phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="w-full px-4 py-3 text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Contoh: 0123456789"
                 required
                 disabled={saving}
@@ -216,7 +216,7 @@ export default function ProfilePage() {
                 id="address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="w-full px-4 py-3 text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="Contoh: No 123, Jalan ABC, 12345 Kuala Lumpur"
                 rows={3}
                 required
@@ -234,7 +234,7 @@ export default function ProfilePage() {
                 id="googleMapsUrl"
                 value={googleMapsUrl}
                 onChange={(e) => setGoogleMapsUrl(e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                className="w-full px-4 py-3 text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 placeholder="https://maps.google.com/..."
                 disabled={saving}
               />

@@ -174,8 +174,8 @@ export default function HomePage() {
     <main className="min-h-screen bg-gradient-to-b from-gray-50 to-white pb-24">
       <div className="container mx-auto px-4 py-6">
         {/* Header */}
-        <header className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-yellow-100">
-          <div className="flex justify-between items-center">
+        <header className="bg-white rounded-lg shadow-sm p-4 mb-8 border border-yellow-100">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold text-slate-600">
                 🍽️ Sajian Sematang
@@ -183,7 +183,7 @@ export default function HomePage() {
               <p className="text-gray-600 text-sm">Platform Tempahan Makanan</p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap gap-2 items-center justify-end">
               {user ? (
                 <>
                   <Link href="/orders">
