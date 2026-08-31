@@ -1,11 +1,11 @@
 📊 PROJECT_PROGRESS.txt - SAJIAN SEMATANG
 Status Terkini & Development Progress
 
-Tarikh Kemaskini: 31 Ogos 2026 (02:45 PM)
-Versi: 2.3 (Phase 0 Architecture Finalized)
-Build Status: ✅ Success (Latest build: 31 Ogos 2026 - Phase 0 Architecture Complete)
+Tarikh Kemaskini: 31 Ogos 2026 (Sesi Malam)
+Versi: 2.4 (Post-Audit Rebuild + WhatsApp Encoding & UI Fixes)
+Build Status: ✅ Success (Latest build: 31 Ogos 2026 - WhatsApp Encoding & UI Fixes Complete)
 Security Status: ✅ All Security Layers Implemented (RLS + Rate Limiting + Audit)
-Project Completion: 90% COMPLETE (Updated 31 Ogos 2026 - PHASE 0 ARCHITECTURE FINALIZED)
+Project Completion: 91% COMPLETE (Updated 31 Ogos 2026 - POST-AUDIT REBUILD + WHATSAPP ENCODING & UI FIXES)
 
 ================================================================================
 
@@ -13,8 +13,8 @@ Project Completion: 90% COMPLETE (Updated 31 Ogos 2026 - PHASE 0 ARCHITECTURE FI
 
 Identiti Projek
 - Nama Projek: SAJIAN SEMATANG (Sistem Tempahan Makanan & Minuman)
-- Jenis: Production-Ready Food Ordering Platform
-- Fasa: Architecture Complete - Ready for Production Setup
+- Jenis: Production-Ready Food Ordering Platform  
+- Fasa: WhatsApp Encoding & UI Fixes Complete - Ready for Production Setup
 
 Stack Teknologi (100% Betul)
 - Frontend: Next.js 16.3.1 (App Router) + React 19.2.8 + TypeScript 7.0.2
@@ -25,8 +25,12 @@ Stack Teknologi (100% Betul)
 - Deployment: Vercel dengan GitHub integration
 - Development: VS Code dengan Roo Code AI Assistant
 
-Latest Build Verification (31 Ogos 2026):
+Latest Build Verification (31 Ogos 2026 - Sesi Malam):
 - ✅ Next.js build completed successfully (0 TypeScript errors)
+- ✅ WhatsApp Unicode Encoding: Strict `encodeURIComponent()` dengan raw template
+- ✅ WhatsApp Direct Redirect: `window.location.href` untuk elak pop-up blocker
+- ✅ Profile Form Contrast: `text-slate-900 bg-white` untuk borang auth/profile
+- ✅ Homepage Header Layout: Responsive flex `flex-col sm:flex-row` dengan spacing `mb-8`
 - ✅ Rate Limiting Middleware: Configurable limits per endpoint
 - ✅ Audit Logging: PII sanitization implemented
 - ✅ Production Monitoring: Error tracking ready
@@ -38,6 +42,7 @@ Architecture Compliance
 - ✅ Seksyen 19: Stock concurrency dengan atomic RPC
 - ✅ Seksyen 28/64: Order & item snapshot complete
 - ✅ Seksyen 29: Server-side price validation
+- ✅ Seksyen 31: WhatsApp Order dengan strict encoding `encodeURIComponent()`
 - ✅ Seksyen 66: RLS policies untuk semua role
 - ✅ Seksyen 107: Timezone Asia/Kuala_Lumpur
 - ✅ Seksyen 108: Order ID generation (SS-XXXX)
@@ -48,7 +53,44 @@ Architecture Compliance
 
 ================================================================================
 
-2. ARCHITECTURE STATUS & FASA PEMBANGUNAN
+2. WHATSAPP ENCODING & UI FIXES (31 OGOS 2026 - SESI MALAM)
+
+A. WhatsApp Unicode Encoding Fixed ✅
+- Raw Message Template: Mesej WhatsApp dibina dengan raw string template
+- Strict `encodeURIComponent()`: Semua emoji di-encode dengan betul
+- Emoji Support: 🍽️ 🧾 👤 📞 📍 🗺️ 🛒 💰 🚚 📝 📅
+- Direct Redirect: `window.location.href = whatsappUrl` (bukan window.open)
+- wa.me Link Format: `https://wa.me/601110890100?text=${encodedMessage}`
+- ⚠️ STRICT CONSTRAINT: Fungsi 'generateWhatsAppLink' di 'lib/utils.ts' menggunakan strict URL encoding 'encodeURIComponent()'. JANGAN sesekali memadam atau mengubah mekanisme encoding ini!
+
+B. Profile Form Contrast Fixed ✅
+- `/auth/profile/page.tsx`: Input fields dengan `text-slate-900 bg-white placeholder:text-gray-400`
+- `/profile/page.tsx`: Semua input dengan explicit contrast classes
+- Mobile/Dark Mode Ready: Teks kekal gelap pada semua peranti
+- Consistent Styling: Border colors dan focus rings konsisten
+
+C. Homepage Header Layout Fixed ✅
+- Responsive Flex: `flex-col sm:flex-row` untuk mobile/desktop
+- Spacing: Margin bawah `mb-8` untuk clear separation
+- Button Alignment: `flex-wrap gap-2` untuk mobile navigation
+- No Text Overlap: Butang tidak bertindih dengan tajuk
+
+D. Order Location Pin Enhancement ✅
+- Delivery Mode Validation: Delivery mewajibkan pin Maps location
+- MapPicker Integration: Interactive map untuk lokasi tepat
+- Google Maps URL: Auto-generate dari coordinates
+- Validation: Warning jika Delivery dipilih tanpa pin location
+
+================================================================================
+
+3. BUILD VERIFICATION STATUS
+
+Latest Build Results (31 Ogos 2026 - Sesi Malam):
+✅ Compilation: Successful in 827ms
+✅ TypeScript: 0 errors in 739ms  
+✅ Page Data: Collected in 4.5s using 7 workers
+✅ Static Pages: 29/29 generated in 875ms
+✅ Optimization: Finalized in 49ms
 
 Development Timeline (Phase -1 hingga Phase 0 - COMPLETE)
 

@@ -140,6 +140,8 @@ export function calculateDeliveryFee(
 export function formatDeliveryMode(mode: string): string {
   return mode === 'Delivery' ? '🚗 Penghantaran' : '🏪 Ambil Sendiri';
 }// Generate WhatsApp message link (HARDCODED TO ADMIN HQ)
+// ⚠️ STRICT CONSTRAINT: Fungsi ini menggunakan strict URL encoding 'encodeURIComponent()'. 
+// JANGAN sesekali memadam atau mengubah mekanisme encoding ini semasa membaiki modul-modul lain pada masa akan datang!
 export function generateWhatsAppLink(orderDetails: {
   orderId: string;
   customerName: string;
@@ -203,6 +205,8 @@ export function generateWhatsAppLink(orderDetails: {
   }
   
   // Build WhatsApp message template - SEDIAKAN string mesej berasingan dahulu dengan emoji Unicode standard
+  // ⚠️ STRICT CONSTRAINT: Fungsi 'generateWhatsAppLink' menggunakan strict URL encoding 'encodeURIComponent()'. 
+  // JANGAN sesekali memadam atau mengubah mekanisme encoding ini semasa membaiki modul-modul lain pada masa akan datang!
   const rawMessage = `🍽️ *ORDER SAJIAN SEMATANG*
 
 🧾 *Order ID:*
