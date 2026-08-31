@@ -220,6 +220,20 @@ export function generateWhatsAppLink(orderDetails: {
   // Format delivery method
   const deliveryMethod = orderDetails.deliveryMode === 'Delivery' ? 'Penghantaran' : 'Ambil Sendiri';
   
+  // Format alamat dan Google Maps - jangan fallback jika mod Self-Pickup
+  let addressDisplay = '-';
+  let mapsDisplay = '-';
+  
+  if (orderDetails.deliveryMode === 'Delivery') {
+    // Untuk Delivery, tunjukkan alamat dan Google Maps
+    addressDisplay = orderDetails.customerAddress || '-';
+    mapsDisplay = orderDetails.customerPinLocation || '-';
+  } else {
+    // Untuk Self-Pickup, jangan tunjukkan alamat atau maps
+    addressDisplay = 'Ambil Sendiri';
+    mapsDisplay = 'Ambil Sendiri';
+  }
+  
   // Bina mesej menggunakan array join
   const lines = [
     '🍽️ *ORDER SAJIAN SEMATANG*',
@@ -234,10 +248,10 @@ export function generateWhatsAppLink(orderDetails: {
     orderDetails.customerPhone,
     '',
     '📍 *Alamat:*',
-    orderDetails.customerAddress || '-',
+    addressDisplay,
     '',
     '🗺️ *Google Maps:*',
-    orderDetails.customerPinLocation || '-',
+    mapsDisplay,
     '',
     '--------------------',
     '',
