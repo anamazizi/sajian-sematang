@@ -128,7 +128,7 @@ export function getRolePermissions(role: UserRole): Permission[] {
  */
 export function canAccessRoute(role: UserRole, route: string): boolean {
   // Public routes
-  const publicRoutes = ['/', '/sellers', '/preorder'];
+  const publicRoutes = ['/', '/preorder'];
   if (publicRoutes.some(r => route.startsWith(r))) {
     return true;
   }

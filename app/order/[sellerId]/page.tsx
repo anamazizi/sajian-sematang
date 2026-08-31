@@ -43,7 +43,7 @@ export default function OrderFormPage() {
   useEffect(() => {
     // Check if cart is empty
     if (cart.length === 0) {
-      router.push('/sellers');
+      router.push('/');
       return;
     }
     
@@ -234,7 +234,7 @@ export default function OrderFormPage() {
       <div className="container mx-auto px-4 py-8 max-w-2xl">
         <header className="mb-8">
           <Link
-            href={`/sellers/${sellerId}`}
+            href="/"
             className="text-slate-600 hover:text-slate-700 mb-4 inline-block"
           >
             ← Kembali ke Menu

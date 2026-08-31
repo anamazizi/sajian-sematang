@@ -116,7 +116,7 @@ export async function updateSession(request: NextRequest) {
         } else if (userRole === 'seller') {
           redirectUrl.pathname = '/jualan';
         } else {
-          redirectUrl.pathname = '/sellers';
+          redirectUrl.pathname = '/';
         }
         
         return NextResponse.redirect(redirectUrl);

@@ -80,7 +80,7 @@ export default function AuthCallbackPage() {
       }
 
       // Jika admin, staf, atau seller, arahkan ke laluan khusus mereka
-      const redirectPath = profile.role === 'admin' ? '/kawalan' : profile.role === 'staff' ? '/kawalan' : '/sellers';
+      const redirectPath = profile.role === 'admin' ? '/kawalan' : profile.role === 'staff' ? '/kawalan' : profile.role === 'seller' ? '/jualan' : '/';
       router.push(redirectPath);
 
     } catch (error: any) {

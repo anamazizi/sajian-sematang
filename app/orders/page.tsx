@@ -184,7 +184,7 @@ export default function CustomerOrdersPage() {
               Anda belum membuat sebarang tempahan.
             </p>
             <Link
-              href="/sellers"
+              href="/"
               className="inline-block bg-yellow-400 text-slate-900 px-6 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold"
             >
               Buat Tempahan Pertama

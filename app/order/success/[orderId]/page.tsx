@@ -85,8 +85,8 @@ export default function OrderSuccessPage() {
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Pesanan tidak dijumpai</p>
-          <Link href="/sellers" className="text-slate-600 hover:text-slate-700">
-            Kembali ke Senarai Peniaga
+          <Link href="/" className="text-slate-600 hover:text-slate-700">
+            Kembali ke Halaman Utama
           </Link>
         </div>
       </div>
@@ -170,10 +170,10 @@ export default function OrderSuccessPage() {
               )}
               
               <Link
-                href="/sellers"
+                href="/"
                 className="inline-block w-full bg-yellow-500 text-white py-3 rounded-lg hover:bg-yellow-600 transition font-semibold text-center"
               >
-                Kembali ke Senarai Peniaga
+                Kembali ke Halaman Utama
               </Link>
               <Link
                 href="/"

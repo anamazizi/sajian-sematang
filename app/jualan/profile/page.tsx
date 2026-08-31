@@ -21,6 +21,9 @@ export default function SellerProfilePage() {
     shop_name: '',
     description: '',
     phone_number: '',
+    bank_name: '',
+    bank_account_number: '',
+    account_holder_name: '',
   });
 
   const [qrFile, setQrFile] = useState<File | null>(null);
@@ -77,6 +80,9 @@ export default function SellerProfilePage() {
         shop_name: sellerData.shop_name || '',
         description: sellerData.description || '',
         phone_number: sellerData.phone_number || '',
+        bank_name: sellerData.bank_name || '',
+        bank_account_number: sellerData.bank_account_number || '',
+        account_holder_name: sellerData.account_holder_name || '',
       });
       setCurrentQrUrl(sellerData.duitnow_qr_url || null);
       setFetchingProfile(false);
@@ -140,6 +146,22 @@ export default function SellerProfilePage() {
       return;
     }
 
+    // Bank validation
+    if (!formData.bank_name.trim()) {
+      setError('Nama bank diperlukan.');
+      return;
+    }
+
+    if (!formData.bank_account_number.trim()) {
+      setError('Nombor akaun bank diperlukan.');
+      return;
+    }
+
+    if (!formData.account_holder_name.trim()) {
+      setError('Nama pemegang akaun diperlukan.');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -182,6 +204,9 @@ export default function SellerProfilePage() {
           shop_name: formData.shop_name.trim(),
           description: formData.description.trim() || null,
           phone_number: formData.phone_number.trim() || null,
+          bank_name: formData.bank_name.trim(),
+          bank_account_number: formData.bank_account_number.trim(),
+          account_holder_name: formData.account_holder_name.trim(),
           duitnow_qr_url: newQrUrl,
           updated_at: new Date().toISOString(),
         })
@@ -276,7 +301,7 @@ export default function SellerProfilePage() {
                 setFormData({ ...formData, shop_name: e.target.value })
               }
               placeholder="Contoh: Kedai Makan Anam"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
               required
             />
           </div>
@@ -293,7 +318,7 @@ export default function SellerProfilePage() {
               }
               placeholder="Contoh: Hidangan tradisional tempatan dengan cita rasa istimewa..."
               rows={4}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
           </div>
 
@@ -309,8 +334,64 @@ export default function SellerProfilePage() {
                 setFormData({ ...formData, phone_number: e.target.value })
               }
               placeholder="Contoh: 0123456789"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
+          </div>
+
+          {/* Bank Account Information */}
+          <div className="space-y-6 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Maklumat Akaun Bank</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Digunakan untuk pembayaran settlement dari Sajian Sematang kepada peniaga.
+            </p>
+
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Nama Bank <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.bank_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, bank_name: e.target.value })
+                }
+                placeholder="Contoh: Maybank, CIMB, Bank Islam, RHB"
+                className="text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Nombor Akaun Bank <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.bank_account_number}
+                onChange={(e) =>
+                  setFormData({ ...formData, bank_account_number: e.target.value })
+                }
+                placeholder="Contoh: 1234567890"
+                className="text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 font-medium mb-2">
+                Nama Pemegang Akaun <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.account_holder_name}
+                onChange={(e) =>
+                  setFormData({ ...formData, account_holder_name: e.target.value })
+                }
+                placeholder="Nama seperti dalam akaun bank"
+                className="text-slate-900 bg-white placeholder:text-gray-400 border-gray-300 border rounded-lg px-4 py-2 w-full focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                required
+              />
+            </div>
           </div>
 
           {/* Current QR Code */}
