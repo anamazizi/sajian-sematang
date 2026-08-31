@@ -344,7 +344,7 @@ export default function OrderFormPage() {
                   }`}
                 >
                   <div className="text-2xl mb-1">🏪</div>
-                  <div className="font-semibold">Ambil Sendiri</div>
+                  <div className="font-semibold text-slate-900">Ambil Sendiri</div>
                   <div className="text-xs text-gray-600">Tiada caj</div>
                 </button>
                 <button
@@ -357,7 +357,7 @@ export default function OrderFormPage() {
                   }`}
                 >
                   <div className="text-2xl mb-1">🚗</div>
-                  <div className="font-semibold">Penghantaran</div>
+                  <div className="font-semibold text-slate-900">Penghantaran</div>
                   <div className="text-xs text-gray-600">
                     {deliveryFee > 0 ? `RM${deliveryFee.toFixed(2)}` : 'Auto-calculate'}
                   </div>
@@ -450,7 +450,7 @@ export default function OrderFormPage() {
                   }`}
                 >
                   <div className="text-2xl mb-1">🏪</div>
-                  <div className="font-semibold">Ambil Sendiri</div>
+                  <div className="font-semibold text-slate-900">Ambil Sendiri</div>
                   <div className="text-xs text-gray-600">Tiada caj</div>
                 </button>
                 <button
@@ -463,7 +463,7 @@ export default function OrderFormPage() {
                   }`}
                 >
                   <div className="text-2xl mb-1">🚗</div>
-                  <div className="font-semibold">Penghantaran</div>
+                  <div className="font-semibold text-slate-900">Penghantaran</div>
                   <div className="text-xs text-gray-600">Caj disahkan kemudian</div>
                 </button>
               </div>

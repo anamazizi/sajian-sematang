@@ -234,72 +234,81 @@ export function generateWhatsAppLink(orderDetails: {
     mapsDisplay = 'Ambil Sendiri';
   }
   
-  // Bina mesej menggunakan array join
-  const lines = [
-    '🍽️ *ORDER SAJIAN SEMATANG*',
-    '',
-    '🧾 *Order ID:*',
-    orderDetails.orderId.substring(0, 8),
-    '',
-    '👤 *Nama:*',
-    orderDetails.customerName,
-    '',
-    '📞 *Telefon:*',
-    orderDetails.customerPhone,
-    '',
-    '📍 *Alamat:*',
-    addressDisplay,
-    '',
-    '🗺️ *Google Maps:*',
-    mapsDisplay,
-    '',
-    '--------------------',
-    '',
-    '🛒 *PESANAN*',
-    '',
-    ...itemsFormatted,
-    '',
-    '--------------------',
-    '',
-    `Subtotal: RM${orderDetails.subtotal.toFixed(2)}`,
-    `Delivery: RM${orderDetails.deliveryFee.toFixed(2)}`,
-    '',
-    `💰 *JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*`,
-    '',
-    '🚚 *Kaedah:*',
-    deliveryMethod,
-    '',
-    'Terima kasih.'
-  ];
+  // Build WhatsApp message template mengikut format yang ditetapkan
+  const whatsappTemplate = `🍽️ *ORDER SAJIAN SEMATANG*
+
+🧾 *Order ID:*
+${orderDetails.orderId}
+
+👤 *Nama:*
+${orderDetails.customerName}
+
+📞 *Telefon:*
+${orderDetails.customerPhone}
+
+📍 *Alamat:*
+${addressDisplay}
+
+🗺️ *Google Maps:*
+${mapsDisplay}
+
+--------------------
+
+🛒 *PESANAN*
+
+${itemsFormatted.join('\n')}
+
+--------------------
+
+Subtotal: RM${orderDetails.subtotal.toFixed(2)}
+Delivery: RM${orderDetails.deliveryFee.toFixed(2)}
+
+💰 *JUMLAH: RM${orderDetails.totalPrice.toFixed(2)}*
+
+🚚 *Kaedah:*
+${deliveryMethod}
+
+Terima kasih.`;
   
-  // Jika ada catatan khas, tambah selepas kaedah
+  // Tambah special notes jika ada
+  let finalTemplate = whatsappTemplate;
   if (orderDetails.specialNotes) {
-    lines.splice(lines.length - 2, 0, '', '📝 *Catatan:*', orderDetails.specialNotes);
+    // Insert notes sebelum "Terima kasih."
+    const insertIndex = finalTemplate.lastIndexOf('Terima kasih.');
+    const beforeThanks = finalTemplate.substring(0, insertIndex);
+    const afterThanks = finalTemplate.substring(insertIndex);
+    finalTemplate = `${beforeThanks}\n\n📝 *Catatan:*\n${orderDetails.specialNotes}\n\n${afterThanks}`;
   }
   
-  // Jika ada jarak untuk delivery, tambah dalam kaedah
+  // Tambah jarak untuk delivery jika ada
   if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
-    const distanceIndex = lines.indexOf('🚚 *Kaedah:*') + 1;
-    lines[distanceIndex] = `${deliveryMethod} (~${orderDetails.calculatedDistance.toFixed(1)}km)`;
+    // Update delivery method dengan jarak
+    const searchStr = `🚚 *Kaedah:*\n${deliveryMethod}`;
+    const replaceStr = `🚚 *Kaedah:*\n${deliveryMethod} (~${orderDetails.calculatedDistance.toFixed(1)}km)`;
+    finalTemplate = finalTemplate.replace(searchStr, replaceStr);
   }
   
-  // Jika ada masa penghantaran, tambah selepas kaedah
+  // Tambah masa penghantaran jika ada
   if (orderDetails.deliveryDateTime) {
-    const dateIndex = lines.indexOf('🚚 *Kaedah:*') + 2;
-    lines.splice(dateIndex, 0, '', '📅 *Masa Penghantaran:*', 
-      new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    );
+    const deliveryTimeFormatted = new Date(orderDetails.deliveryDateTime).toLocaleString('ms-MY', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    
+    // Insert delivery time sebelum "Terima kasih."
+    const insertIndex = finalTemplate.lastIndexOf('Terima kasih.');
+    const beforeThanks = finalTemplate.substring(0, insertIndex);
+    const afterThanks = finalTemplate.substring(insertIndex);
+    finalTemplate = `${beforeThanks}\n\n📅 *Masa Penghantaran:*\n${deliveryTimeFormatted}\n\n${afterThanks}`;
   }
   
-  const fullMessage = lines.join('\n');
-  return `https://wa.me/${adminNumber}?text=${encodeURIComponent(fullMessage)}`;
+  // Pastikan template di-encode dengan betul untuk WhatsApp
+  const encodedMessage = encodeURIComponent(finalTemplate);
+  return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
 }
 /**
  * Get current time in Malaysia timezone (Asia/Kuala_Lumpur)
@@ -383,41 +392,32 @@ export function generatePayoutWhatsAppLink(payoutDetails: {
   // Format phone number (remove +, spaces, dashes)
   const phoneNumber = payoutDetails.sellerPhone.replace(/[\s\-+]/g, '');
   
-  let message = `🏦 *RESIT PEMBAYARAN - SAJIAN SEMATANG*\\n\\n`;
-  
-  message += `📋 *Maklumat Pembayaran:*\\n`;
-  message += `Penerima: ${payoutDetails.sellerName}\\n`;
-  message += `Jumlah: RM ${payoutDetails.amount.toFixed(2)}\\n`;
-  message += `Kaedah: ${payoutDetails.paymentMethod}\\n`;
-  
-  if (payoutDetails.referenceNumber) {
-    message += `Rujukan: ${payoutDetails.referenceNumber}\\n`;
-  }
-  
-  message += `Tarikh: ${new Date(payoutDetails.paidDate).toLocaleString('ms-MY', {
+  // Build WhatsApp message template dengan format yang betul
+  const whatsappTemplate = `🏦 *RESIT PEMBAYARAN - SAJIAN SEMATANG*
+
+📋 *Maklumat Pembayaran:*
+Penerima: ${payoutDetails.sellerName}
+Jumlah: RM ${payoutDetails.amount.toFixed(2)}
+Kaedah: ${payoutDetails.paymentMethod}
+${payoutDetails.referenceNumber ? `Rujukan: ${payoutDetails.referenceNumber}\n` : ''}Tarikh: ${new Date(payoutDetails.paidDate).toLocaleString('ms-MY', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  })}\\n\\n`;
+  })}
+
+📦 *Pesanan Dibayar:*
+${payoutDetails.orderIds.map((id, index) => `${index + 1}. #${id.substring(0, 8)}`).join('\n')}
+
+Jumlah Pesanan: ${payoutDetails.orderIds.length}
+${payoutDetails.notes ? `\n📝 *Catatan:*\n${payoutDetails.notes}\n` : ''}
+---
+Terima kasih atas perkhidmatan anda!
+Sajian Sematang`;
   
-  message += `📦 *Pesanan Dibayar:*\\n`;
-  payoutDetails.orderIds.forEach((id, index) => {
-    message += `${index + 1}. #${id.substring(0, 8)}\\n`;
-  });
-  
-  message += `\\nJumlah Pesanan: ${payoutDetails.orderIds.length}\\n`;
-  
-  if (payoutDetails.notes) {
-    message += `\\n📝 *Catatan:*\\n${payoutDetails.notes}\\n`;
-  }
-  
-  message += `\\n---\\n`;
-  message += `Terima kasih atas perkhidmatan anda!\\n`;
-  message += `Sajian Sematang`;
-  
-  const encodedMessage = encodeURIComponent(message);
+  // Encode template untuk WhatsApp
+  const encodedMessage = encodeURIComponent(whatsappTemplate);
   return `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
 }
