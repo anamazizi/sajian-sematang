@@ -417,7 +417,7 @@ export default function ProductForm({
                 onChange={(e) =>
                   setFormData({ ...formData, available_from: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white"
                 required={formData.is_preorder}
                 disabled={submitting}
               />
@@ -433,7 +433,7 @@ export default function ProductForm({
                 onChange={(e) =>
                   setFormData({ ...formData, available_until: e.target.value })
                 }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white"
                 required={formData.is_preorder}
                 disabled={submitting}
               />
