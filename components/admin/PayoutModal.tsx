@@ -133,8 +133,8 @@ export default function PayoutModal({
         notes: notes.trim(),
       });
 
-      // Open WhatsApp in new tab
-      window.open(whatsappLink, '_blank');
+      // Redirect to WhatsApp (no popup blocker issues)
+      window.location.href = whatsappLink;
 
       // Success callback
       onSuccess();

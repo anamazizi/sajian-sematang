@@ -98,80 +98,48 @@ export function extractCoordinatesFromUrl(url: string): { lat: number; lng: numb
       return { lat: parseFloat(coordMatch2[1]), lng: parseFloat(coordMatch2[2]) };
     }
     
-    // Format 3: https://goo.gl/maps/... or other formats
-    // For now, return null if can't parse
+    // Format 3: https://www.google.com/maps/place/4.2167,100.6333
+    const coordMatch3 = url.match(/place\/([-\d.]+),([-\d.]+)/);
+    if (coordMatch3) {
+      return { lat: parseFloat(coordMatch3[1]), lng: parseFloat(coordMatch3[2]) };
+    }
+    
+    // Format 4: https://maps.app.goo.gl/xxxx?q=4.2167,100.6333
+    const coordMatch4 = url.match(/q=([-\d.]+)%2C([-\d.]+)/);
+    if (coordMatch4) {
+      return { lat: parseFloat(coordMatch4[1]), lng: parseFloat(coordMatch4[2]) };
+    }
+    
     return null;
-  } catch (e) {
-    console.error('Error extracting coordinates:', e);
+  } catch (error) {
+    console.error('Error extracting coordinates from URL:', error);
     return null;
   }
 }
 
-// Calculate delivery fee based on Google Maps URL
-export function calculateDeliveryFee(googleMapsUrl: string, storeCoords = DEFAULT_STORE_COORDS): { distance: number; fee: number } {
-  // Extract customer coordinates from Google Maps URL
-  const customerCoords = extractCoordinatesFromUrl(googleMapsUrl);
+// Calculate delivery fee based on distance (Master Prompt Seksyen 24)
+export function calculateDeliveryFee(
+  distanceKm: number,
+  minFee: number = 3,
+  perKmRate: number = 1
+): number {
+  if (distanceKm < 0) return minFee;
   
-  let distance = 5; // Default 5km if can't parse
-  
-  if (customerCoords) {
-    // Calculate actual distance using Haversine formula
-    distance = calculateDistance(
-      storeCoords.lat,
-      storeCoords.lng,
-      customerCoords.lat,
-      customerCoords.lng
-    );
+  // Master Prompt Seksyen 24: fee_ringgit = floor(distance_km)
+  // With minimum fee of RM3 for distance < 1km
+  if (distanceKm < 1) {
+    return minFee;
   }
   
-  // Pricing logic:
-  // < 1km = RM1 (minimum)
-  // >= 1km = Floor (6.9km = RM6, 7.1km = RM7)
-  let fee = 0;
-  if (distance < 1) {
-    fee = 1;
-  } else {
-    fee = Math.floor(distance);
-  }
+  // Calculate fee = floor(distance_km)
+  const fee = Math.floor(distanceKm);
   
-  return { distance, fee };
+  return Math.max(minFee, fee);
 }
 
-// Format phone number to WhatsApp format (+60XXXXXXXXX)
-// Format phone number to WhatsApp format (+60XXXXXXXXX)
-export function formatPhoneNumberForWhatsApp(phone: string): string {
-  if (!phone) return '601110890100'; // Default admin number
-  
-  // Remove all non-digit characters
-  const digitsOnly = phone.replace(/[^\d]/g, '');
-  
-  if (!digitsOnly) return '601110890100';
-  
-  // If number starts with 0, replace with 60
-  if (digitsOnly.startsWith('0')) {
-    return '60' + digitsOnly.substring(1);
-  }
-  
-  // If number starts with 60, keep as is
-  if (digitsOnly.startsWith('60')) {
-    return digitsOnly;
-  }
-  
-  // If number starts with country code +, keep digits only
-  if (digitsOnly.startsWith('6')) {
-    return digitsOnly;
-  }
-  
-  // Default: prepend 60
-  return '60' + digitsOnly;
-}
-
-// Helper to format delivery mode
 export function formatDeliveryMode(mode: string): string {
   return mode === 'Delivery' ? '🚗 Penghantaran' : '🏪 Ambil Sendiri';
-}
-
-// Generate WhatsApp message link (HARDCODED TO ADMIN HQ)
+}// Generate WhatsApp message link (HARDCODED TO ADMIN HQ)
 export function generateWhatsAppLink(orderDetails: {
   orderId: string;
   customerName: string;
@@ -234,7 +202,7 @@ export function generateWhatsAppLink(orderDetails: {
     mapsDisplay = 'Ambil Sendiri';
   }
   
-  // Build WhatsApp message template mengikut format yang ditetapkan
+  // Build WhatsApp message template - PASTIKAN menggunakan newlines literal
   const whatsappTemplate = `🍽️ *ORDER SAJIAN SEMATANG*
 
 🧾 *Order ID:*
@@ -277,15 +245,28 @@ Terima kasih.`;
     const insertIndex = finalTemplate.lastIndexOf('Terima kasih.');
     const beforeThanks = finalTemplate.substring(0, insertIndex);
     const afterThanks = finalTemplate.substring(insertIndex);
-    finalTemplate = `${beforeThanks}\n\n📝 *Catatan:*\n${orderDetails.specialNotes}\n\n${afterThanks}`;
+    finalTemplate = `${beforeThanks}
+
+📝 *Catatan:*
+${orderDetails.specialNotes}
+
+${afterThanks}`;
   }
   
   // Tambah jarak untuk delivery jika ada
   if (orderDetails.deliveryMode === 'Delivery' && orderDetails.calculatedDistance) {
-    // Update delivery method dengan jarak
-    const searchStr = `🚚 *Kaedah:*\n${deliveryMethod}`;
-    const replaceStr = `🚚 *Kaedah:*\n${deliveryMethod} (~${orderDetails.calculatedDistance.toFixed(1)}km)`;
-    finalTemplate = finalTemplate.replace(searchStr, replaceStr);
+    // Gantikan delivery method dengan jarak menggunakan pendekatan yang lebih selamat
+    const lines = finalTemplate.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes('🚚 *Kaedah:*')) {
+        // Ini baris header, baris seterusnya adalah delivery method
+        if (i + 1 < lines.length) {
+          lines[i + 1] = `${deliveryMethod} (~${orderDetails.calculatedDistance.toFixed(1)}km)`;
+        }
+        break;
+      }
+    }
+    finalTemplate = lines.join('\n');
   }
   
   // Tambah masa penghantaran jika ada
@@ -303,23 +284,32 @@ Terima kasih.`;
     const insertIndex = finalTemplate.lastIndexOf('Terima kasih.');
     const beforeThanks = finalTemplate.substring(0, insertIndex);
     const afterThanks = finalTemplate.substring(insertIndex);
-    finalTemplate = `${beforeThanks}\n\n📅 *Masa Penghantaran:*\n${deliveryTimeFormatted}\n\n${afterThanks}`;
+    finalTemplate = `${beforeThanks}
+
+📅 *Masa Penghantaran:*
+${deliveryTimeFormatted}
+
+${afterThanks}`;
   }
   
-  // Pastikan template di-encode dengan betul untuk WhatsApp
+  // PASTIKAN template di-encode dengan betul untuk WhatsApp
+  // encodeURIComponent akan handle semua special characters termasuk emoji
   const encodedMessage = encodeURIComponent(finalTemplate);
   return `https://wa.me/${adminNumber}?text=${encodedMessage}`;
-}
+}// ============================================
+// Master Prompt Seksyen 107: All operations in Asia/Kuala_Lumpur (UTC+8)
+// ============================================
+
 /**
- * Get current time in Malaysia timezone (Asia/Kuala_Lumpur)
- * Use for "today" calculations in reports
+ * Get current date/time in Malaysia timezone (Asia/Kuala_Lumpur)
+ * Use this for ALL business logic requiring "today" or "now"
  */
 export function getMalaysiaTime(): Date {
   return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
 }
 
 /**
- * Convert UTC timestamp from database to Malaysia timezone
+ * Convert UTC timestamp to Malaysia date (for "today" comparisons)
  * @param utcTimestamp - ISO string from database (timestamptz stored as UTC)
  * @returns Date object in Malaysia timezone
  */
