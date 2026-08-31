@@ -72,8 +72,24 @@ export default function HomePage() {
         .order('category', { ascending: true })
         .order('name', { ascending: true });
 
+      // Get product stats (likes & total sold) from view
+      const { data: statsData } = await supabase
+        .from('product_stats')
+        .select('id, total_likes, total_sold')
+        .in('id', data?.map(p => p.id) || []);
+
+      // Combine products with stats
+      const productsWithStats = (data || []).map(product => {
+        const stats = statsData?.find(s => s.id === product.id);
+        return {
+          ...product,
+          total_likes: stats?.total_likes || 0,
+          total_sold: stats?.total_sold || 0
+        };
+      });
+
       if (error) throw error;
-      setProducts(data || []);
+      setProducts(productsWithStats);
     } catch (err) {
       console.error('Error fetching products:', err);
     } finally {
@@ -170,6 +186,11 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               {user ? (
                 <>
+                  <Link href="/orders">
+                    <button className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-xs font-medium rounded-md text-blue-700 transition border border-blue-200">
+                      📋 Pesanan
+                    </button>
+                  </Link>
                   <Link href="/profile">
                     <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-medium rounded-md text-gray-700 transition">
                       👤 Profil

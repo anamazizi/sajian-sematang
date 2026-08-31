@@ -355,16 +355,45 @@ npm run dev
 
 ---
 
-**📅 Tarikh Kemaskini Terakhir:** 31 Ogos 2026 (Updated with WhatsApp Address Fix)  
+**📅 Tarikh Kemaskini Terakhir:** 31 Ogos 2026 (Updated with UI Fixes, Order History, Likes System)  
 **👨‍💻 Dikemaskini oleh:** Cline AI Assistant  
-**📊 Status Projek:** ✅ 86% Complete (Post-Audit Rebuild + WhatsApp Fix)  
+**📊 Status Projek:** ✅ 88% Complete (Post-Audit Rebuild + Feature Updates)  
+
+## 5. PENAMBAHBAIKAN TERBARU (31 Ogos 2026)
+
+### UI Fixes & Feature Enhancements
+
+#### ✅ **1. Baiki UI Mod Pesanan**
+- **Warna Teks Diperbaiki:** Tajuk "Ringkasan Pesanan" kini menggunakan `text-slate-900` untuk kontras tinggi
+- **Validasi Pin Location:** Mod 'Delivery' memerlukan pin location, menunjukkan mesej amaran jika tidak diisi
+- **Button State:** Butang "Teruskan Order" di-disable jika syarat tidak dipenuhi
+
+#### ✅ **2. Halaman Sejarah Tempahan Pelanggan (/orders)**
+- **Route Baru:** `/orders` untuk pelanggan melihat sejarah tempahan sendiri
+- **Filter Status:** Tab untuk filter pesanan mengikut status (Semua, Menunggu, Diterima, Selesai)
+- **Susunan Tarikh:** Pesanan dipaparkan mengikut tarikh terkini
+- **Detail Lengkap:** Paparkan item pesanan, jumlah, caj penghantaran, dan status
+- **RLS Compliant:** Hanya pelanggan sendiri boleh akses data mereka
+
+#### ✅ **3. Sistem Like & Total Sales Produk**
+- **ProductCard Enhanced:** Komponen ProductCard dinaik taraf dengan features like & sales count
+- **Like Button Interaktif:** Pelanggan boleh like/unlike produk (satu like per user per product)
+- **Real-time Updates:** Count likes dan total sales dipaparkan secara real-time
+- **Total Sales Calculation:** Mengira jumlah unit produk berjaya dijual (status COMPLETED)
+- **Authentication Required:** Hanya pelanggan berdaftar boleh like produk
+
+#### ✅ **4. Build Success & TypeScript Validation**
+- **Build Status:** ✅ 0 ralat TypeScript
+- **Routes Validated:** Halaman `/orders` berfungsi dengan baik
+- **Performance:** Optimized build dengan Turbopack
+
+### Migration Ready untuk Database
+- **SQL Script:** `supabase/migration_product_likes.sql` sedia untuk dijalankan
+- **Table Schema:** `product_likes` dengan RLS policies yang ketat
+- **Functions:** `get_product_total_likes()` dan `get_product_total_sold()`
+- **View:** `product_stats` untuk query mudah stats produk
 
 *Fail ini akan dikemaskini secara berkala untuk menjejaki perkembangan projek SAJIAN SEMATANG.*
-   - Stock Transaction Strategy
-   - Delivery Fee Calculation Formula
-   - Order ID Generation Strategy
-   - Seller Settlement Strategy
-   - Audit & Reporting Strategy
 
 #### B. Tugas Prioriti Tinggi Selepas PHASE 0:
 1. **🧪 End-to-End Testing Suite**

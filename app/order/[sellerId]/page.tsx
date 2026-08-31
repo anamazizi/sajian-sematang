@@ -124,6 +124,22 @@ export default function OrderFormPage() {
     return getCartSubtotal() + deliveryFee;
   }
 
+  // Check if submit button should be disabled
+  const isSubmitDisabled = () => {
+    if (submitting) return true;
+    
+    // Basic validation
+    if (!customerName.trim() || !customerPhone.trim()) return true;
+    
+    if (deliveryMode === 'Delivery') {
+      if (!customerAddress.trim()) return true;
+      // Pin location wajib untuk delivery
+      if (!customerPinLocation.trim()) return true;
+    }
+    
+    return false;
+  };
+
   async function handleSubmit(e?: React.FormEvent) {
     if (e) e.preventDefault();
     setError('');
@@ -137,6 +153,11 @@ export default function OrderFormPage() {
 
       if (deliveryMode === 'Delivery' && !customerAddress.trim()) {
         throw new Error('Sila isi alamat untuk penghantaran');
+      }
+
+      // Validation: Wajibkan Pin Location untuk mod Delivery
+      if (deliveryMode === 'Delivery' && !customerPinLocation.trim()) {
+        throw new Error('Sila tetapkan Pin Location peta anda untuk penghantaran.');
       }
 
       if (cart.length === 0) {
@@ -232,7 +253,7 @@ export default function OrderFormPage() {
 
         {/* Order Summary */}
         <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-          <h2 className="text-xl font-semibold mb-4">Ringkasan Pesanan</h2>
+          <h2 className="text-xl font-semibold mb-4 text-slate-900">Ringkasan Pesanan</h2>
           <div className="space-y-3">
             {cart.map((item) => {
               // Calculate item total including options (Phase R4D)
@@ -355,10 +376,17 @@ export default function OrderFormPage() {
             )}
             
             <div className="flex flex-col gap-2">
+              {deliveryMode === 'Delivery' && !customerPinLocation.trim() && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg mb-2">
+                  <p className="text-yellow-800 text-sm">
+                    ⚠️ <strong>Sila tetapkan Pin Location peta anda untuk penghantaran.</strong>
+                  </p>
+                </div>
+              )}
               <button
                 onClick={() => handleSubmit()}
-                disabled={submitting}
-                className="w-full bg-yellow-400 text-slate-900 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold disabled:bg-gray-400"
+                disabled={isSubmitDisabled()}
+                className="w-full bg-yellow-400 text-slate-900 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Menghantar...' : 'Teruskan Order'}
               </button>
@@ -525,9 +553,16 @@ export default function OrderFormPage() {
               </>
             )}
 
+            {deliveryMode === 'Delivery' && !customerPinLocation.trim() && (
+                <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg mb-2">
+                  <p className="text-yellow-800 text-sm">
+                    ⚠️ <strong>Sila tetapkan Pin Location peta anda untuk penghantaran.</strong>
+                  </p>
+                </div>
+              )}
             <button
               type="submit"
-              disabled={submitting}
+              disabled={isSubmitDisabled()}
               className="w-full bg-yellow-400 text-slate-900 py-3 rounded-lg hover:bg-yellow-500 transition font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               {submitting ? 'Menghantar Pesanan...' : 'Hantar Pesanan'}
