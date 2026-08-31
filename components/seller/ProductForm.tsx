@@ -36,6 +36,27 @@ export interface ProductFormData {
   // Image removed - products don't have images
 }
 
+interface LocalFormData {
+  name: string;
+  description: string;
+  category: string;
+  price: string;
+  cost_price: string;
+  stock_quantity: string;
+  is_available: boolean;
+  is_preorder: boolean;
+  available_from: string;
+  available_until: string;
+  options: Array<{
+    id?: string;
+    option_group: string;
+    option_name: string;
+    price_adjustment: string;
+    is_available: boolean;
+    display_order: number;
+  }>;
+}
+
 const CATEGORIES = ['Makanan', 'Minuman', 'Combo', 'Lain-lain'];
 
 export default function ProductForm({
@@ -45,13 +66,13 @@ export default function ProductForm({
   onCancel,
   submitLabel = 'Simpan Produk',
 }: ProductFormProps) {
-  const [formData, setFormData] = useState<ProductFormData>({
+  const [formData, setFormData] = useState<LocalFormData>({
     name: product?.name || '',
     description: product?.description || '',
     category: product?.category || 'Makanan',
-    price: product?.price || 0,
-    cost_price: product?.cost_price || 0,
-    stock_quantity: product?.stock_quantity || 0,
+    price: product?.price ? product.price.toString() : '',
+    cost_price: product?.cost_price ? product.cost_price.toString() : '',
+    stock_quantity: product?.stock_quantity ? product.stock_quantity.toString() : '',
     is_available: product?.is_available ?? true,
     is_preorder: product?.is_preorder || false,
     available_from: product?.available_from || '',
@@ -83,16 +104,16 @@ export default function ProductForm({
 
         if (options && options.length > 0) {
           setFormData(prev => ({
-            ...prev,
-            options: options.map(opt => ({
-              id: opt.id,
-              option_group: opt.option_group,
-              option_name: opt.option_name,
-              price_adjustment: opt.price_adjustment,
-              is_available: opt.is_available,
-              display_order: opt.display_order,
-            }))
-          }));
+              ...prev,
+              options: options.map(opt => ({
+                id: opt.id,
+                option_group: opt.option_group,
+                option_name: opt.option_name,
+                price_adjustment: opt.price_adjustment.toString(),
+                is_available: opt.is_available,
+                display_order: opt.display_order,
+              }))
+            }));
         }
       } catch (err) {
         console.error('Error in loadProductOptions:', err);
@@ -113,7 +134,7 @@ export default function ProductForm({
         {
           option_group: 'Add-ons',
           option_name: '',
-          price_adjustment: 0,
+          price_adjustment: '',
           is_available: true,
           display_order: formData.options.length,
         },
@@ -142,31 +163,62 @@ export default function ProductForm({
 
   // Image functionality removed - products don't have images
 
+  // Helper function to convert LocalFormData to ProductFormData
+  const convertToProductFormData = (data: LocalFormData): ProductFormData => {
+    const price = parseFloat(data.price) || 0;
+    const cost_price = parseFloat(data.cost_price) || 0;
+    const stock_quantity = parseInt(data.stock_quantity) || 0;
+
+    return {
+      name: data.name.trim(),
+      description: data.description.trim(),
+      category: data.category,
+      price,
+      cost_price,
+      stock_quantity,
+      is_available: data.is_available,
+      is_preorder: data.is_preorder,
+      available_from: data.available_from,
+      available_until: data.available_until,
+      options: data.options.map(option => ({
+        id: option.id,
+        option_group: option.option_group,
+        option_name: option.option_name.trim(),
+        price_adjustment: parseFloat(option.price_adjustment) || 0,
+        is_available: option.is_available,
+        display_order: option.display_order,
+      })),
+    };
+  };
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
 
     try {
-      if (!formData.name.trim()) {
+      // Convert to proper types for validation
+      const productData = convertToProductFormData(formData);
+
+      if (!productData.name.trim()) {
         throw new Error('Nama produk diperlukan.');
       }
 
-      if (formData.price <= 0) {
+      if (productData.price <= 0) {
         throw new Error('Harga jualan mesti lebih besar daripada RM0.');
       }
 
-      if (formData.cost_price < 0) {
+      if (productData.cost_price < 0) {
         throw new Error('Harga kos tidak boleh negatif.');
       }
 
-      if (formData.is_preorder) {
-        if (!formData.available_from || !formData.available_until) {
+      if (productData.is_preorder) {
+        if (!productData.available_from || !productData.available_until) {
           throw new Error('Tarikh mula dan tamat pre-order diperlukan.');
         }
       }
 
-      await onSubmit(formData);
+      await onSubmit(productData);
     } catch (err: any) {
       setError(err.message || 'Ralat tidak dijangka.');
       setSubmitting(false);
@@ -250,8 +302,9 @@ export default function ProductForm({
             min="0"
             value={formData.price}
             onChange={(e) =>
-              setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })
+              setFormData({ ...formData, price: e.target.value })
             }
+            placeholder="0.00"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
             required
             disabled={submitting}
@@ -273,9 +326,10 @@ export default function ProductForm({
             onChange={(e) =>
               setFormData({
                 ...formData,
-                cost_price: parseFloat(e.target.value) || 0,
+                cost_price: e.target.value,
               })
             }
+            placeholder="0.00"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
             required
             disabled={submitting}
@@ -299,9 +353,10 @@ export default function ProductForm({
             onChange={(e) =>
               setFormData({
                 ...formData,
-                stock_quantity: parseInt(e.target.value) || 0,
+                stock_quantity: e.target.value,
               })
             }
+            placeholder="0"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
             disabled={submitting || formData.is_preorder}
           />
@@ -445,7 +500,7 @@ export default function ProductForm({
                         updateOption(index, 'option_name', e.target.value)
                       }
                       placeholder="Contoh: Extra Cheese, Saiz Besar, Kurang Manis"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-slate-900 bg-white placeholder:text-gray-400"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
                       disabled={submitting}
                     />
                   </div>
@@ -463,10 +518,11 @@ export default function ProductForm({
                         updateOption(
                           index,
                           'price_adjustment',
-                          parseFloat(e.target.value) || 0
+                          e.target.value
                         )
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg text-slate-900 bg-white placeholder:text-gray-400"
+                      placeholder="0.00"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-900 dark:text-slate-900 bg-white placeholder:text-gray-400"
                       disabled={submitting}
                     />
                   </div>
