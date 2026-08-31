@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import MapPicker from '../../../components/MapPicker';
 import { supabase } from '../../../lib/supabase/client';
 import { CustomerProfile } from '../../../types/database';
 import { getCustomerProfile, saveCustomerProfile, clearCustomerProfile, calculateDeliveryFee } from '../../../lib/utils';
@@ -30,6 +31,14 @@ export default function OrderFormPage() {
   
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [calculatedDistance, setCalculatedDistance] = useState(0);
+// State untuk MapPicker
+  const [mapLocation, setMapLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+    googleMapsLink: string;
+  } | null>(null);
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   useEffect(() => {
     // Check if cart is empty
@@ -51,10 +60,10 @@ export default function OrderFormPage() {
         return;
       }
 
-      // Fetch profile from database
+      // Fetch profile from database (include latitude/longitude for MapPicker)
       const { data: userProfile, error } = await supabase
         .from('users')
-        .select('name, phone_number, address, google_maps_url')
+        .select('name, phone_number, address, google_maps_url, latitude, longitude')
         .eq('id', session.user.id)
         .single();
 
@@ -70,6 +79,16 @@ export default function OrderFormPage() {
         setCustomerPhone(userProfile.phone_number);
         setCustomerAddress(userProfile.address);
         setCustomerPinLocation(userProfile.google_maps_url || '');
+        
+        // Set map location if coordinates exist
+        if (userProfile.latitude && userProfile.longitude) {
+          setMapLocation({
+            latitude: userProfile.latitude,
+            longitude: userProfile.longitude,
+            address: userProfile.address,
+            googleMapsLink: userProfile.google_maps_url || `https://www.google.com/maps?q=${userProfile.latitude},${userProfile.longitude}`,
+          });
+        }
         
         // Also save to CustomerProfile format (for backward compatibility)
         const profileData: CustomerProfile = {
@@ -447,19 +466,58 @@ export default function OrderFormPage() {
                   />
                 </div>
 
+                {/* Map Picker Toggle */}
                 <div className="mb-4">
-                  <label htmlFor="pinLocation" className="block text-gray-700 font-medium mb-2">
-                    Pin Location (Google Maps Link)
-                  </label>
-                  <input
-                    type="url"
-                    id="pinLocation"
-                    value={customerPinLocation}
-                    onChange={(e) => setCustomerPinLocation(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
-                    placeholder="https://maps.google.com/..."
-                    disabled={submitting}
-                  />
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-gray-700 font-medium">
+                      📍 Pin Lokasi Penghantaran
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowMapPicker(!showMapPicker)}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {showMapPicker ? '↥ Sembunyikan Peta' : '🗺️ Tunjuk Peta Interaktif'}
+                    </button>
+                  </div>
+                  
+                  {showMapPicker ? (
+                    <div className="mb-4 border border-gray-300 rounded-lg overflow-hidden">
+                      <MapPicker
+                        initialLat={mapLocation?.latitude || null}
+                        initialLng={mapLocation?.longitude || null}
+                        initialAddress={customerAddress}
+                        onLocationChange={(location) => {
+                          setMapLocation(location);
+                          setCustomerPinLocation(location.googleMapsLink);
+                          // Update address if empty
+                          if (!customerAddress.trim()) {
+                            setCustomerAddress(location.address);
+                          }
+                        }}
+                        className="h-[300px] w-full"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <input
+                        type="url"
+                        id="pinLocation"
+                        value={customerPinLocation}
+                        onChange={(e) => setCustomerPinLocation(e.target.value)}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
+                        placeholder="https://maps.google.com/..."
+                        disabled={submitting}
+                      />
+                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                          💡 <strong>Tips:</strong> Klik "Tunjuk Peta Interaktif" untuk pilih lokasi dengan mudah menggunakan peta.
+                          Atau tampal pautan Google Maps sahaja.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
                   <p className="text-xs text-gray-500 mt-1">
                     📍 Untuk admin/runner semak lokasi anda dengan mudah
                   </p>

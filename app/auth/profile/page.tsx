@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import MapPicker from '../../../components/MapPicker';
 import { useAuth, updateUserProfile, getRedirectAfterLogin } from '../../../lib/auth/hooks';
 import { UserRole } from '../../../types/database';
 
@@ -20,6 +21,13 @@ export default function ProfileCompletionPage() {
   
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+// Add state for map location
+  const [mapLocation, setMapLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+    googleMapsLink: string;
+  } | null>(null);
   useEffect(() => {
     // Redirect if not authenticated
     if (!loading && !user) {
@@ -38,6 +46,18 @@ export default function ProfileCompletionPage() {
         latitude: (profile as any).latitude?.toString() || '',
         longitude: (profile as any).longitude?.toString() || '',
       });
+
+      // Set map location if coordinates exist
+      if ((profile as any).latitude && (profile as any).longitude) {
+        const lat = (profile as any).latitude;
+        const lng = (profile as any).longitude;
+        setMapLocation({
+          latitude: lat,
+          longitude: lng,
+          address: profile.address || 'Lokasi profil anda',
+          googleMapsLink: `https://www.google.com/maps?q=${lat},${lng}`,
+        });
+      }
     }
   }, [user, profile, loading, router]);
 
@@ -67,16 +87,33 @@ export default function ProfileCompletionPage() {
         throw new Error('Seller mesti masukkan alamat');
       }
 
-      // Parse coordinates if provided
-      const lat = formData.latitude.trim() ? parseFloat(formData.latitude.trim()) : null;
-      const lng = formData.longitude.trim() ? parseFloat(formData.longitude.trim()) : null;
+      // Parse coordinates from mapLocation or form
+      let lat: number | null = null;
+      let lng: number | null = null;
+      let googleMapsUrl = formData.google_maps_url.trim();
+
+      if (mapLocation) {
+        // Use coordinates from map picker
+        lat = mapLocation.latitude;
+        lng = mapLocation.longitude;
+        googleMapsUrl = mapLocation.googleMapsLink;
+        
+        // Update address if map location has different address
+        if (!formData.address.trim() && mapLocation.address !== 'Lokasi profil anda') {
+          setFormData(prev => ({ ...prev, address: mapLocation.address }));
+        }
+      } else {
+        // Fallback to form input
+        lat = formData.latitude.trim() ? parseFloat(formData.latitude.trim()) : null;
+        lng = formData.longitude.trim() ? parseFloat(formData.longitude.trim()) : null;
+      }
 
       // Update profile
       await updateUserProfile(user!.id, {
         name: formData.name.trim(),
         phone_number: formData.phone_number.trim(),
         address: formData.address.trim() || undefined,
-        google_maps_url: formData.google_maps_url.trim() || undefined,
+        google_maps_url: googleMapsUrl || undefined,
         latitude: lat,
         longitude: lng,
       } as any);
@@ -200,66 +237,28 @@ export default function ProfileCompletionPage() {
             />
           </div>
 
-          {/* Google Maps URL */}
-          <div className="mb-4">
-            <label htmlFor="google_maps_url" className="block text-gray-700 font-medium mb-2">
-              Pautan Lokasi (Google Maps URL)
+          {/* Map Picker */}
+          <div className="mb-6">
+            <label className="block text-gray-700 font-medium mb-2">
+              📍 Pilih Lokasi Anda
             </label>
-            <input
-              type="url"
-              id="google_maps_url"
-              name="google_maps_url"
-              value={formData.google_maps_url}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              placeholder="https://maps.app.goo.gl/..."
-              disabled={submitting}
+            <MapPicker
+              initialLat={mapLocation?.latitude || (formData.latitude ? parseFloat(formData.latitude) : null)}
+              initialLng={mapLocation?.longitude || (formData.longitude ? parseFloat(formData.longitude) : null)}
+              initialAddress={formData.address}
+              onLocationChange={(location) => {
+                setMapLocation(location);
+                // Auto-update form fields
+                setFormData(prev => ({
+                  ...prev,
+                  latitude: location.latitude.toString(),
+                  longitude: location.longitude.toString(),
+                  google_maps_url: location.googleMapsLink,
+                  address: prev.address || location.address,
+                }));
+              }}
+              className="h-[350px] w-full rounded-lg border border-gray-300"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Kongsi lokasi anda dari Google Maps untuk pengiraan caj penghantaran
-            </p>
-          </div>
-
-          {/* Latitude & Longitude */}
-          <div className="mb-6 grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="latitude" className="block text-gray-700 font-medium mb-2">
-                Latitude
-              </label>
-              <input
-                type="number"
-                step="0.000001"
-                id="latitude"
-                name="latitude"
-                value={formData.latitude}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="3.123456"
-                disabled={submitting}
-              />
-            </div>
-            <div>
-              <label htmlFor="longitude" className="block text-gray-700 font-medium mb-2">
-                Longitude
-              </label>
-              <input
-                type="number"
-                step="0.000001"
-                id="longitude"
-                name="longitude"
-                value={formData.longitude}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                placeholder="101.654321"
-                disabled={submitting}
-              />
-            </div>
-          </div>
-          <div className="mb-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-xs text-blue-800">
-              💡 <strong>Tip:</strong> Buka Google Maps, klik pada lokasi anda, salin koordinat (latitude, longitude) dan tampal di atas. 
-              Atau kongsi link Google Maps sahaja.
-            </p>
           </div>
 
           {/* Submit Button */}
