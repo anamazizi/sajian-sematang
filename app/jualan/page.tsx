@@ -23,7 +23,6 @@ export default function JualanDashboard() {
   
   const [orders, setOrders] = useState<OrderWithItems[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [sellerId, setSellerId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -118,11 +117,12 @@ export default function JualanDashboard() {
         return;
       }
 
-      // Fetch full order details
+      // Fetch full order details - ONLY COMPLETED ORDERS
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .in('id', orderIds)
+        .eq('status', 'Completed') // Only fetch completed orders
         .order('created_at', { ascending: false });
 
       if (ordersError) throw ordersError;
@@ -154,60 +154,16 @@ export default function JualanDashboard() {
     }
   }
 
-  async function updateOrderStatus(orderId: string, newStatus: Order['status']) {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      // Update local state
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId ? { ...order, status: newStatus } : order
-        )
-      );
-    } catch (error) {
-      console.error('Error updating order status:', error);
-      alert('Ralat semasa mengemas kini status pesanan');
-    }
-  }
-
   function getStatusColor(status: Order['status']) {
-    switch (status) {
-      case 'New':
-        return 'bg-blue-100 text-blue-700';
-      case 'Preparing':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'Ready':
-        return 'bg-green-100 text-green-700';
-      case 'Completed':
-        return 'bg-gray-100 text-gray-700';
-      case 'Cancelled':
-        return 'bg-red-100 text-red-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
+    // Only return green for completed orders
+    if (status === 'Completed') {
+      return 'bg-green-100 text-green-700';
     }
+    return 'bg-gray-100 text-gray-700';
   }
 
-  function getNextStatus(currentStatus: Order['status']): Order['status'] | null {
-    switch (currentStatus) {
-      case 'New':
-        return 'Preparing';
-      case 'Preparing':
-        return 'Ready';
-      case 'Ready':
-        return 'Completed';
-      default:
-        return null;
-    }
-  }
-
-  const filteredOrders = selectedStatus === 'all' 
-    ? orders 
-    : orders.filter(order => order.status === selectedStatus);
+  // All orders are already filtered to 'Completed' status
+  const filteredOrders = orders;
 
   if (loading) {
     return (
@@ -263,49 +219,19 @@ export default function JualanDashboard() {
           </div>
         </header>
 
-        {/* Status Filter */}
-        <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedStatus('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedStatus === 'all'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Semua ({orders.length})
-            </button>
-            <button
-              onClick={() => setSelectedStatus('New')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedStatus === 'New'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-              }`}
-            >
-              Baru ({orders.filter(o => o.status === 'New').length})
-            </button>
-            <button
-              onClick={() => setSelectedStatus('Preparing')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedStatus === 'Preparing'
-                  ? 'bg-yellow-500 text-white'
-                  : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-              }`}
-            >
-              Sedang Disediakan ({orders.filter(o => o.status === 'Preparing').length})
-            </button>
-            <button
-              onClick={() => setSelectedStatus('Ready')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedStatus === 'Ready'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-green-100 text-green-700 hover:bg-green-200'
-              }`}
-            >
-              Siap ({orders.filter(o => o.status === 'Ready').length})
-            </button>
+        {/* Completed Orders Display */}
+        <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-800">Pesanan Selesai</h2>
+              <p className="text-gray-600 mt-1">
+                Menunjukkan semua pesanan berstatus <span className="font-semibold text-green-600">"Selesai"</span> sahaja
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-3xl font-bold text-green-600">{orders.length}</div>
+              <div className="text-gray-600 text-sm">Pesanan Selesai</div>
+            </div>
           </div>
         </div>
 
@@ -313,16 +239,12 @@ export default function JualanDashboard() {
         {filteredOrders.length === 0 ? (
           <div className="bg-white p-8 rounded-lg shadow-md text-center">
             <p className="text-gray-600">
-              {selectedStatus === 'all' 
-                ? 'Tiada pesanan buat masa ini.' 
-                : `Tiada pesanan dengan status "${selectedStatus}".`}
+              Tiada pesanan selesai buat masa ini.
             </p>
           </div>
         ) : (
           <div className="space-y-4">
             {filteredOrders.map((order) => {
-              const nextStatus = getNextStatus(order.status);
-              
               return (
                 <div
                   key={order.id}
@@ -350,7 +272,7 @@ export default function JualanDashboard() {
                         order.status
                       )}`}
                     >
-                      {order.status}
+                      Selesai
                     </span>
                   </div>
 
@@ -384,25 +306,7 @@ export default function JualanDashboard() {
                     )}
                   </div>
 
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    {nextStatus && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, nextStatus)}
-                        className="flex-1 bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition font-semibold"
-                      >
-                        Tukar ke "{nextStatus}"
-                      </button>
-                    )}
-                    {order.status !== 'Cancelled' && order.status !== 'Completed' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'Cancelled')}
-                        className="px-4 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition font-semibold"
-                      >
-                        Batal
-                      </button>
-                    )}
-                  </div>
+                  {/* Completed orders have no action buttons */}
                 </div>
               );
             })}
