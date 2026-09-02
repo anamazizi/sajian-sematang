@@ -50,6 +50,7 @@ export default function HomePage() {
       const supabase = createClient();
       // Phase R5.4: Explicit column selection - NEVER include cost_price for customers
       // Master Prompt Seksyen 66: Customer tidak boleh lihat cost_price
+      // Added is_archived filter for soft delete
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -60,6 +61,7 @@ export default function HomePage() {
           price,
           category,
           is_available,
+          is_archived,
           stock_quantity,
           is_preorder,
           available_from,
@@ -68,6 +70,7 @@ export default function HomePage() {
           updated_at
         `)
         .eq('is_available', true)
+        .eq('is_archived', false) // Don't show archived products to customers
         .gt('stock_quantity', 0)
         .order('category', { ascending: true })
         .order('name', { ascending: true });

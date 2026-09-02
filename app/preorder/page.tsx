@@ -45,6 +45,7 @@ export default function CustomPreOrderPage() {
     try {
       // Fetch all pre-order products with seller info
       // Phase R5.4: Explicit column selection - exclude cost_price for customers
+      // Added is_archived filter for soft delete
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -56,6 +57,7 @@ export default function CustomPreOrderPage() {
           category,
           image_url,
           is_available,
+          is_archived,
           stock_quantity,
           is_preorder,
           available_from,
@@ -71,6 +73,7 @@ export default function CustomPreOrderPage() {
         `)
         .eq('is_preorder', true)
         .eq('is_available', true)
+        .eq('is_archived', false) // Don't show archived products
         .order('seller_id', { ascending: true });
 
       if (productsError) throw productsError;

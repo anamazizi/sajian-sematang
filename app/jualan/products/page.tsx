@@ -8,6 +8,7 @@ import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
 import { Product } from '../../../types/database';
 import Link from 'next/link';
+import SellerProductCard from '../../../components/seller/SellerProductCard';
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -56,6 +57,7 @@ export default function ProductsPage() {
       setSellerId(seller.id);
 
       // Phase R5.4: Explicit column selection (seller CAN see cost_price for own products)
+      // Added is_archived column for soft delete filtering
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -68,6 +70,7 @@ export default function ProductsPage() {
           category,
           image_url,
           is_available,
+          is_archived,
           stock_quantity,
           is_preorder,
           available_from,
@@ -76,6 +79,7 @@ export default function ProductsPage() {
           updated_at
         `)
         .eq('seller_id', seller.id)
+        .eq('is_archived', false) // Only fetch non-archived products
         .order('created_at', { ascending: false });
 
       if (productsError) throw productsError;
@@ -137,27 +141,33 @@ export default function ProductsPage() {
 
   async function handleDelete(productId: string) {
     const confirmed = confirm(
-      'Adakah anda pasti mahu menyahaktifkan produk ini? Produk tidak akan dipadam sepenuhnya.'
+      'Adakah anda pasti mahu meng-archive produk ini?\n\n' +
+      '✅ Produk akan disimpan dalam sistem untuk rekod jualan lama\n' +
+      '✅ Produk TIDAK akan muncul di senarai produk atau di homepage pelanggan\n' +
+      '✅ Produk boleh dipulihkan (unarchive) oleh admin jika diperlukan\n\n' +
+      'Tindakan ini ialah SOFT DELETE sahaja - rekod jualan lalu tidak akan terjejas.'
     );
     if (!confirmed) return;
 
     try {
       const { error } = await supabase
         .from('products')
-        .update({ is_available: false })
+        .update({ 
+          is_available: false,
+          is_archived: true 
+        })
         .eq('id', productId)
         .eq('seller_id', sellerId);
 
       if (error) throw error;
 
-      setProducts(products.map(p => 
-        p.id === productId ? { ...p, is_available: false } : p
-      ));
+      // Remove product from state since we filter is_archived = false in fetch
+      setProducts(products.filter(p => p.id !== productId));
 
-      alert('Produk berjaya dinyahaktifkan');
+      alert('✅ Produk berjaya di-archive\n\nProduk tidak lagi kelihatan di mana-mana senarai, tetapi rekod jualan lalu dikekalkan.');
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Gagal menyahaktifkan produk');
+      console.error('Error archiving product:', error);
+      alert('❌ Gagal meng-archive produk');
     }
   }
 
@@ -278,125 +288,19 @@ export default function ProductsPage() {
               </Link>
             )}
           </div>
-        ) : (
+) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => (
-              <div
+              <SellerProductCard
                 key={product.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition"
-              >
-                {/* Product Image */}
-                <div className="relative h-48 bg-gray-200">
-                  {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">
-                      🍛
-                    </div>
-                  )}
-                  
-                  {/* Status Badge */}
-                  <div className="absolute top-2 right-2">
-                    {product.is_preorder ? (
-                      <span className="px-2 py-1 bg-purple-500 text-white text-xs rounded-full">
-                        Pre-Order
-                      </span>
-                    ) : product.is_available ? (
-                      <span className="px-2 py-1 bg-green-500 text-white text-xs rounded-full">
-                        Aktif
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 bg-red-500 text-white text-xs rounded-full">
-                        Tidak Aktif
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Product Info */}
-                <div className="p-4">
-                  <div className="mb-2">
-                    <span className="text-xs text-gray-500 uppercase">
-                      {product.category || 'Tanpa Kategori'}
-                    </span>
-                  </div>
-                  
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    {product.name}
-                  </h3>
-                  
-                  {product.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {product.description}
-                    </p>
-                  )}
-
-                  {/* Pricing */}
-                  <div className="flex justify-between items-center mb-3">
-                    <div>
-                      <p className="text-xs text-gray-500">Harga Jualan</p>
-                      <p className="text-lg font-bold text-green-600">
-                        RM {product.price.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Harga Kos</p>
-                      <p className="text-sm font-semibold text-gray-700">
-                        RM {product.cost_price.toFixed(2)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Stock */}
-                  {!product.is_preorder && (
-                    <div className="mb-3 pb-3 border-b">
-                      <p className="text-xs text-gray-500">Stok</p>
-                      <p className={`text-sm font-semibold ${
-                        product.stock_quantity > 10
-                          ? 'text-green-600'
-                          : product.stock_quantity > 0
-                          ? 'text-yellow-600'
-                          : 'text-red-600'
-                      }`}>
-                        {product.stock_quantity} unit
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/jualan/products/${product.id}/edit`}
-                      className="flex-1 px-4 py-2 bg-blue-500 text-white text-center rounded-lg hover:bg-blue-600 transition text-sm font-semibold"
-                    >
-                      ✏️ Edit
-                    </Link>
-                    <button
-                      onClick={() => handleToggleAvailability(product.id, product.is_available)}
-                      className={`px-4 py-2 rounded-lg transition text-sm font-semibold ${
-                        product.is_available
-                          ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                          : 'bg-green-500 text-white hover:bg-green-600'
-                      }`}
-                    >
-                      {product.is_available ? '⏸️' : '▶️'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product.id)}
-                      className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition text-sm font-semibold"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              </div>
+                product={product}
+                onToggleAvailability={handleToggleAvailability}
+                onDelete={handleDelete}
+              />
             ))}
           </div>
         )}
+        
       </div>
     </div>
   );

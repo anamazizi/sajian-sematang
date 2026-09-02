@@ -57,6 +57,7 @@ export default function AdminProductsManagementPage() {
       setSellerId(seller.id);
 
       // Phase R5.4: Explicit column selection (seller CAN see cost_price for own products)
+      // Added is_archived column for soft delete filtering
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -69,6 +70,7 @@ export default function AdminProductsManagementPage() {
           category,
           image_url,
           is_available,
+          is_archived,
           stock_quantity,
           is_preorder,
           available_from,
@@ -77,6 +79,7 @@ export default function AdminProductsManagementPage() {
           updated_at
         `)
         .eq('seller_id', seller.id)
+        .eq('is_archived', false) // Only fetch non-archived products
         .order('created_at', { ascending: false });
 
       if (productsError) throw productsError;
@@ -138,27 +141,33 @@ export default function AdminProductsManagementPage() {
 
   async function handleDelete(productId: string) {
     const confirmed = confirm(
-      'Adakah anda pasti mahu menyahaktifkan produk ini? Produk tidak akan dipadam sepenuhnya.'
+      'Adakah anda pasti mahu meng-archive produk ini?\n\n' +
+      '✅ Produk akan disimpan dalam sistem untuk rekod jualan lama\n' +
+      '✅ Produk TIDAK akan muncul di senarai produk atau di homepage pelanggan\n' +
+      '✅ Produk boleh dipulihkan (unarchive) oleh admin jika diperlukan\n\n' +
+      'Tindakan ini ialah SOFT DELETE sahaja - rekod jualan lalu tidak akan terjejas.'
     );
     if (!confirmed) return;
 
     try {
       const { error } = await supabase
         .from('products')
-        .update({ is_available: false })
+        .update({ 
+          is_available: false,
+          is_archived: true 
+        })
         .eq('id', productId)
         .eq('seller_id', sellerId);
 
       if (error) throw error;
 
-      setProducts(products.map(p => 
-        p.id === productId ? { ...p, is_available: false } : p
-      ));
+      // Remove product from state since we filter is_archived = false in fetch
+      setProducts(products.filter(p => p.id !== productId));
 
-      alert('Produk berjaya dinyahaktifkan');
+      alert('✅ Produk berjaya di-archive\n\nProduk tidak lagi kelihatan di mana-mana senarai, tetapi rekod jualan lalu dikekalkan.');
     } catch (error) {
-      console.error('Error deleting product:', error);
-      alert('Gagal menyahaktifkan produk');
+      console.error('Error archiving product:', error);
+      alert('❌ Gagal meng-archive produk');
     }
   }
 
