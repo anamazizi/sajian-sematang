@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Product } from '../../types/database';
 
@@ -8,8 +8,8 @@ interface SellerProductCardProps {
   product: Product;
   onToggleAvailability: (productId: string, currentStatus: boolean) => void;
   onDelete: (productId: string) => void;
-  onMoveUp: (productId: string) => void;
-  onMoveDown: (productId: string) => void;
+  onMoveUp: (productId: string) => Promise<void>;
+  onMoveDown: (productId: string) => Promise<void>;
   isFirstProduct?: boolean;
   isLastProduct?: boolean;
 }
@@ -23,7 +23,29 @@ const SellerProductCard: React.FC<SellerProductCardProps> = ({
   isFirstProduct = false,
   isLastProduct = false,
 }) => {
-  return (
+  const [isMovingUp, setIsMovingUp] = useState(false);
+  const [isMovingDown, setIsMovingDown] = useState(false);
+
+  const handleMoveUp = async () => {
+    if (isFirstProduct || isMovingUp) return;
+    setIsMovingUp(true);
+    try {
+      await onMoveUp(product.id);
+    } finally {
+      setIsMovingUp(false);
+    }
+  };
+
+  const handleMoveDown = async () => {
+    if (isLastProduct || isMovingDown) return;
+    setIsMovingDown(true);
+    try {
+      await onMoveDown(product.id);
+    } finally {
+      setIsMovingDown(false);
+    }
+  };
+    return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
       {/* Status Badge */}
       <div className="absolute top-2 right-2">
@@ -102,28 +124,36 @@ const SellerProductCard: React.FC<SellerProductCardProps> = ({
         {/* Reorder Buttons */}
         <div className="flex gap-2 mb-3">
           <button
-            onClick={() => onMoveUp(product.id)}
-            disabled={isFirstProduct}
-            className={`flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold ${
-              isFirstProduct
+            onClick={handleMoveUp}
+            disabled={isFirstProduct || isMovingUp}
+            className={`flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold flex items-center justify-center min-h-[40px] ${
+              isFirstProduct || isMovingUp
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-500 text-white hover:bg-blue-600'
             }`}
             title={isFirstProduct ? 'Sudah di kedudukan paling atas' : 'Ke Atas'}
           >
-            {isFirstProduct ? '⏫' : '▲'}
+            {isMovingUp ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <span>{isFirstProduct ? '⏫' : '▲'}</span>
+            )}
           </button>
           <button
-            onClick={() => onMoveDown(product.id)}
-            disabled={isLastProduct}
-            className={`flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold ${
-              isLastProduct
+            onClick={handleMoveDown}
+            disabled={isLastProduct || isMovingDown}
+            className={`flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold flex items-center justify-center min-h-[40px] ${
+              isLastProduct || isMovingDown
                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-500 text-white hover:bg-blue-600'
             }`}
             title={isLastProduct ? 'Sudah di kedudukan paling bawah' : 'Ke Bawah'}
           >
-            {isLastProduct ? '⏬' : '▼'}
+            {isMovingDown ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <span>{isLastProduct ? '⏬' : '▼'}</span>
+            )}
           </button>
         </div>
 

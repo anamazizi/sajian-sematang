@@ -109,11 +109,11 @@ export default function ProductsPage() {
 
     // Apply search
     if (searchQuery.trim()) {
-      filtered = filtered.filter(
-        p =>
-          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (p.description?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-          (p.category?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(query) ||
+        p.description?.toLowerCase().includes(query) ||
+        p.category?.toLowerCase().includes(query)
       );
     }
 
@@ -125,86 +125,54 @@ export default function ProductsPage() {
       const { error } = await supabase
         .from('products')
         .update({ is_available: !currentStatus })
-        .eq('id', productId);
+        .eq('id', productId)
+        .eq('seller_id', sellerId);
 
       if (error) throw error;
 
-      fetchSellerAndProducts();
+      // Update local state
+      setProducts(products.map(p => 
+        p.id === productId ? { ...p, is_available: !currentStatus } : p
+      ));
+
+      alert(currentStatus ? 'Produk dinyahaktifkan' : 'Produk diaktifkan');
     } catch (error) {
-      console.error('Error toggling product availability:', error);
-      alert('❌ Gagal mengubah status produk');
+      console.error('Error toggling availability:', error);
+      alert('Gagal mengemas kini status produk');
     }
   }
 
   async function handleDelete(productId: string) {
     const confirmed = confirm(
       'Adakah anda pasti mahu meng-archive produk ini?\n\n' +
-      '✅ Produk akan dikeluarkan daripada senarai aktif\n' +
-      '✅ Data akan dikekalkan untuk rujukan\n' +
-      '✅ Tindakan ini boleh dibatalkan dengan meng-edit produk'
+      '✅ Produk akan disimpan dalam sistem untuk rekod jualan lama\n' +
+      '✅ Produk TIDAK akan muncul di senarai produk atau di homepage pelanggan\n' +
+      '✅ Produk boleh dipulihkan (unarchive) oleh admin jika diperlukan\n\n' +
+      'Tindakan ini ialah SOFT DELETE sahaja - rekod jualan lalu tidak akan terjejas.'
     );
-
     if (!confirmed) return;
 
     try {
       const { error } = await supabase
         .from('products')
-        .update({ is_archived: true })
-        .eq('id', productId);
+        .update({ 
+          is_available: false,
+          is_archived: true 
+        })
+        .eq('id', productId)
+        .eq('seller_id', sellerId);
 
       if (error) throw error;
 
-      fetchSellerAndProducts();
-      alert('✅ Produk berjaya di-archive');
+      // Remove product from state since we filter is_archived = false in fetch
+      setProducts(products.filter(p => p.id !== productId));
+
+      alert('✅ Produk berjaya di-archive\n\nProduk tidak lagi kelihatan di mana-mana senarai, tetapi rekod jualan lalu dikekalkan.');
     } catch (error) {
       console.error('Error archiving product:', error);
       alert('❌ Gagal meng-archive produk');
     }
-  }
-
-  async function handleMoveUp(productId: string) {
-    try {
-      // Import server action
-      const { moveProductUp } = await import('../../actions/reorder-products');
-      
-      const result = await moveProductUp(productId);
-      
-      if (result.success) {
-        // Refresh products after successful move
-        fetchSellerAndProducts();
-        // BAIKI: panggil router.refresh() untuk refresh UI
-        router.refresh();
-      } else {
-        alert(`Gagal menggerakkan produk ke atas: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error moving product up:', error);
-      alert('Ralat berlaku ketika menggerakkan produk ke atas');
-    }
-  }
-
-  async function handleMoveDown(productId: string) {
-    try {
-      // Import server action
-      const { moveProductDown } = await import('../../actions/reorder-products');
-      
-      const result = await moveProductDown(productId);
-      
-      if (result.success) {
-        // Refresh products after successful move
-        fetchSellerAndProducts();
-        // BAIKI: panggil router.refresh() untuk refresh UI
-        router.refresh();
-      } else {
-        alert(`Gagal menggerakkan produk ke bawah: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Error moving product down:', error);
-      alert('Ralat berlaku ketika menggerakkan produk ke bawah');
-    }
-  }
-
-  async function handleResetOrder() {
+async function handleResetOrder() {
     if (!sellerId) return;
     
     const confirmed = confirm(
@@ -225,8 +193,6 @@ export default function ProductsPage() {
       if (result.success) {
         // Refresh products after successful reset
         fetchSellerAndProducts();
-        // BAIKI: panggil router.refresh() untuk refresh UI
-        router.refresh();
         alert('✅ Susunan produk berjaya direset');
       } else {
         alert(`Gagal reset susunan produk: ${result.error}`);
@@ -236,6 +202,46 @@ export default function ProductsPage() {
       alert('Ralat berlaku ketika reset susunan produk');
     }
   }
+  }
+async function handleMoveUp(productId: string) {
+    try {
+      // Import server action
+      const { moveProductUp } = await import('../../actions/reorder-products');
+      
+      const result = await moveProductUp(productId);
+      
+      if (result.success) {
+        // Refresh products after successful move
+        fetchSellerAndProducts();
+      } else {
+        alert(`Gagal menggerakkan produk ke atas: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error moving product up:', error);
+      alert('Ralat berlaku ketika menggerakkan produk ke atas');
+    }
+  }
+
+  async function handleMoveDown(productId: string) {
+    try {
+      // Import server action
+      const { moveProductDown } = await import('../../actions/reorder-products');
+      
+      const result = await moveProductDown(productId);
+      
+      if (result.success) {
+        // Refresh products after successful move
+        fetchSellerAndProducts();
+      } else {
+        alert(`Gagal menggerakkan produk ke bawah: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error moving product down:', error);
+      alert('Ralat berlaku ketika menggerakkan produk ke bawah');
+    }
+  }
+
+  
 
   if (authLoading || loading) {
     return (
@@ -261,25 +267,26 @@ export default function ProductsPage() {
               >
                 ← Kembali ke Dashboard
               </Link>
-              <h1 className="text-3xl font-bold text-gray-800">Senarai Produk</h1>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                📦 Produk Saya
+              </h1>
               <p className="text-gray-600">
-                Urus produk jualan anda ({products.length} produk)
+                Urus produk dan stok kedai anda
               </p>
             </div>
-
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleResetOrder}
-                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition font-semibold"
-                title="Reset susunan semua produk mengikut tarikh dicipta"
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-semibold text-sm"
+                title="Reset susunan produk"
               >
                 🔄 Reset Susunan
               </button>
               <Link
                 href="/jualan/products/new"
-                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold"
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold text-center"
               >
-                + Tambah Produk
+                + Tambah Produk Baharu
               </Link>
             </div>
           </div>
@@ -287,9 +294,9 @@ export default function ProductsPage() {
 
         {/* Filters & Search */}
         <div className="bg-white p-4 rounded-lg shadow-md mb-6">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-            {/* Status Filters */}
-            <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Status Filter */}
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setFilter('all')}
                 className={`px-4 py-2 rounded-lg transition ${

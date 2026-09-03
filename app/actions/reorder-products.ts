@@ -23,8 +23,9 @@ export async function moveProductUp(productId: string) {
       };
     }
 
-    // Revalidate path untuk refresh UI
+    // Revalidate path untuk refresh UI - BAIKI: tambah revalidatePath('/')
     revalidatePath('/jualan/products');
+    revalidatePath('/');
     
     return {
       success: true,
@@ -59,8 +60,9 @@ export async function moveProductDown(productId: string) {
       };
     }
 
-    // Revalidate path untuk refresh UI
+    // Revalidate path untuk refresh UI - BAIKI: tambah revalidatePath('/')
     revalidatePath('/jualan/products');
+    revalidatePath('/');
     
     return {
       success: true,
@@ -96,8 +98,9 @@ export async function swapProductOrder(productId1: string, productId2: string) {
       };
     }
 
-    // Revalidate path untuk refresh UI
+    // Revalidate path untuk refresh UI - BAIKI: tambah revalidatePath('/')
     revalidatePath('/jualan/products');
+    revalidatePath('/');
     
     return {
       success: true,
@@ -132,8 +135,9 @@ export async function reorderProducts(sellerId: string) {
       };
     }
 
-    // Revalidate path untuk refresh UI
+    // Revalidate path untuk refresh UI - BAIKI: tambah revalidatePath('/')
     revalidatePath('/jualan/products');
+    revalidatePath('/');
     
     return {
       success: true,
