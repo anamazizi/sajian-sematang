@@ -12,7 +12,7 @@ export async function moveProductUp(productId: string) {
     
     // Panggil RPC function move_product_up
     const { error } = await supabase.rpc('move_product_up', {
-      p_product_id: productId
+      product_id: productId
     });
 
     if (error) {
@@ -48,7 +48,7 @@ export async function moveProductDown(productId: string) {
     
     // Panggil RPC function move_product_down
     const { error } = await supabase.rpc('move_product_down', {
-      p_product_id: productId
+      product_id: productId
     });
 
     if (error) {
@@ -84,8 +84,8 @@ export async function swapProductOrder(productId1: string, productId2: string) {
     
     // Panggil RPC function swap_product_order
     const { error } = await supabase.rpc('swap_product_order', {
-      p_product_id_1: productId1,
-      p_product_id_2: productId2
+      product1_id: productId1,
+      product2_id: productId2
     });
 
     if (error) {
@@ -121,7 +121,7 @@ export async function reorderProducts(sellerId: string) {
     
     // Panggil RPC function reorder_products
     const { error } = await supabase.rpc('reorder_products', {
-      p_seller_id: sellerId
+      seller_id_param: sellerId
     });
 
     if (error) {
