@@ -17,7 +17,7 @@ const normalizeStatus = (status: string): string => {
     'NEW': 'PENDING', 'BARU': 'PENDING', 'PENDING': 'PENDING',
     'ACCEPTED': 'ACCEPTED', 'DITERIMA': 'ACCEPTED',
     'READY': 'READY', 'SEDIA': 'READY',
-    'DELIVERING': 'DELIVERING', 'DELIVERY': 'DELIVERING', 'PREPARING': 'DELIVERING',
+    'DELIVERING': 'DELIVERING', 'DELIVERY': 'DELIVERING',
     'COMPLETED': 'COMPLETED', 'SELESAI': 'COMPLETED',
     'CANCELLED': 'CANCELLED', 'BATAL': 'CANCELLED',
   };
@@ -25,19 +25,19 @@ const normalizeStatus = (status: string): string => {
 };
 
 const STATUS_OPTIONS = [
-  { value: 'PENDING', display: '⏳ Menunggu (Pending)', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'ACCEPTED', display: '✅ Diterima (Accepted)', color: 'bg-blue-100 text-blue-800' },
-  { value: 'READY', display: '🍲 Sedia di Kedai (Ready)', color: 'bg-purple-100 text-purple-800' },
-  { value: 'DELIVERING', display: '🚚 Sedang Dihantar (Delivering)', color: 'bg-indigo-100 text-indigo-800' },
-  { value: 'COMPLETED', display: '🎉 Selesai (Completed)', color: 'bg-green-100 text-green-800' },
-  { value: 'CANCELLED', display: '❌ Batal (Cancelled)', color: 'bg-red-100 text-red-800' },
+  { value: 'Pending', label: 'Menunggu', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'Accepted', label: 'Diterima', color: 'bg-blue-100 text-blue-800' },
+  { value: 'Ready', label: 'Sedia', color: 'bg-purple-100 text-purple-800' },
+  { value: 'Delivering', label: 'Hantar', color: 'bg-indigo-100 text-indigo-800' },
+  { value: 'Completed', label: 'Selesai', color: 'bg-green-100 text-green-800' },
+  { value: 'Cancelled', label: 'Batalkan', color: 'bg-red-100 text-red-800' },
 ];
 
 const STATUS_FLOW: Record<string, string[]> = {
-  'PENDING': ['ACCEPTED', 'CANCELLED'],
-  'ACCEPTED': ['PENDING', 'READY', 'CANCELLED'],
-  'READY': ['ACCEPTED', 'DELIVERING', 'CANCELLED'],
-  'DELIVERING': ['READY', 'COMPLETED', 'CANCELLED'],
+  'PENDING': ['Accepted', 'Cancelled'],
+  'ACCEPTED': ['Pending', 'Ready', 'Cancelled'],
+  'READY': ['Accepted', 'Delivering', 'Cancelled'],
+  'DELIVERING': ['Ready', 'Completed', 'Cancelled'],
   'COMPLETED': [],
   'CANCELLED': [],
 };
@@ -52,33 +52,31 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   const normalizedStatus = normalizeStatus(currentStatus);
-  const currentOption = STATUS_OPTIONS.find(opt => opt.value === normalizedStatus);
+  const displayStatus = STATUS_OPTIONS.find(opt => opt.value.toUpperCase() === normalizedStatus)?.value || currentStatus;
   
   const availableStatuses = STATUS_FLOW[normalizedStatus] || [];
   const filteredOptions = STATUS_OPTIONS.filter(opt => 
-    availableStatuses.includes(opt.value) || opt.value === normalizedStatus
+    availableStatuses.includes(opt.value) || opt.value === displayStatus
   );
 
   const handleStatusChange = async (newStatus: string) => {
-    const upperStatus = newStatus.toUpperCase();
-    if (upperStatus === 'COMPLETED' || upperStatus === 'CANCELLED') {
-      setTargetStatus(upperStatus);
+    if (newStatus === 'Completed' || newStatus === 'Cancelled') {
+      setTargetStatus(newStatus);
       setShowNotesModal(true);
       return;
     }
-    await updateStatus(upperStatus, '');
+    await updateStatus(newStatus, '');
   };
 
   const updateStatus = async (status: string, notes: string) => {
     setIsUpdating(true);
     try {
-      const upperStatus = status.toUpperCase();
-      const result = await updateOrderStatusWithAudit(orderId, upperStatus, notes);
+      const result = await updateOrderStatusWithAudit(orderId, status, notes);
       if (result.success) {
-        if (onStatusUpdate) onStatusUpdate(orderId, upperStatus);
-        alert('✅ Status berjaya ditukar');
+        if (onStatusUpdate) onStatusUpdate(orderId, status);
+        alert(`✅ Status berjaya ditukar kepada: ${status}`);
       } else {
-        alert('❌ Gagal menukar status');
+        alert(`❌ Gagal menukar status: ${result.error}`);
       }
     } catch (error) {
       alert('Ralat berlaku ketika menukar status');
@@ -109,58 +107,44 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
 
   const getDisplayLabel = (status: string) => {
     const option = STATUS_OPTIONS.find(opt => opt.value === status);
-    return option?.display || status;
+    return option?.label || status;
   };
 
-  const isStatusLocked = normalizedStatus === 'COMPLETED' || normalizedStatus === 'CANCELLED';
-
   return (
-    <div className="space-y-4">
-      {/* Current Status Display */}
+    <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(normalizedStatus)}`}>
-          {currentOption?.display || normalizedStatus}
+        <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(displayStatus)}`}>
+          {getDisplayLabel(displayStatus)}
         </span>
-        {!isStatusLocked && (
-          <button 
-            onClick={loadStatusHistory}
-            disabled={loadingHistory}
-            className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50"
-          >
+        {normalizedStatus !== 'COMPLETED' && normalizedStatus !== 'CANCELLED' && (
+          <button onClick={loadStatusHistory} disabled={loadingHistory} className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50">
             {loadingHistory ? 'Memuatkan...' : 'Lihat Sejarah'}
           </button>
         )}
       </div>
 
-      {/* Status Dropdown */}
-      {!isStatusLocked && (
+      {normalizedStatus !== 'COMPLETED' && normalizedStatus !== 'CANCELLED' && (
         <div className="space-y-2">
-          <label className="block text-slate-900 font-semibold text-sm">Tukar Status:</label>
-          
+          <label className="block text-sm font-medium text-gray-700">Tukar Status:</label>
           {process.env.NODE_ENV === 'development' && (
             <div className="text-xs text-gray-500 mb-1 p-1 bg-gray-50 rounded">
-              Debug: Raw="{currentStatus}" → Normalized="{normalizedStatus}"
+              Debug: {currentStatus} → {normalizedStatus}, options: {filteredOptions.length}
             </div>
           )}
-          
-          <select
-            value={normalizedStatus}
-            onChange={(e) => handleStatusChange(e.target.value)}
-            disabled={isUpdating}
-            className="text-slate-900 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-green-500 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <div className="flex flex-wrap gap-2">
             {filteredOptions.map((option) => (
-              <option 
-                key={option.value} 
-                value={option.value}
+              <button
+                key={option.value}
+                onClick={() => handleStatusChange(option.value)}
+                disabled={isUpdating || option.value === displayStatus}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${option.value === displayStatus
+                    ? option.color + ' opacity-50 cursor-not-allowed'
+                    : option.color.replace('100', '200').replace('800', '900') + ' hover:opacity-90 disabled:opacity-50'
+                }`}
               >
-                {option.display}
-              </option>
+                {option.value === displayStatus ? '✓ ' : ''}{option.label}
+              </button>
             ))}
-          </select>
-          
-          <div className="text-xs text-gray-500 mt-1">
-            Status "Selesai" dan "Batal" memerlukan catatan dan adalah muktamad.
           </div>
         </div>
       )}
@@ -169,28 +153,25 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              {targetStatus === 'COMPLETED' ? 'Selesaikan Pesanan' : 'Batalkan Pesanan'}
+              {targetStatus === 'Completed' ? 'Selesaikan Pesanan' : 'Batalkan Pesanan'}
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              {targetStatus === 'COMPLETED' ? 'Status "Selesai" adalah muktamad.' : 'Pastikan anda mempunyai sebab yang sah.'}
+              {targetStatus === 'Completed' ? 'Status "Selesai" adalah muktamad.' : 'Pastikan anda mempunyai sebab yang sah.'}
             </p>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Catatan:</label>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder={targetStatus === 'COMPLETED' 
-                  ? 'Contoh: Pesanan telah diterima dan diselesaikan...' 
-                  : 'Contoh: Pelanggan meminta batal kerana...'}
+                placeholder="Contoh: Pesanan telah diterima..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 rows={3}
-                required
               />
             </div>
             <div className="flex gap-3">
               <button onClick={() => { setShowNotesModal(false); setNotes(''); }} className="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-lg hover:bg-gray-300 transition font-medium">Batal</button>
-              <button onClick={() => updateStatus(targetStatus, notes)} disabled={isUpdating || !notes.trim()} className={`flex-1 py-2.5 rounded-lg transition font-medium ${targetStatus === 'COMPLETED' ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-red-500 text-white hover:bg-red-600'} disabled:opacity-50`}>
-                {isUpdating ? 'Memproses...' : targetStatus === 'COMPLETED' ? 'Selesaikan' : 'Batalkan'}
+              <button onClick={() => updateStatus(targetStatus, notes)} disabled={isUpdating} className={`flex-1 py-2.5 rounded-lg transition font-medium ${targetStatus === 'Completed' ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-red-500 text-white hover:bg-red-600'} disabled:opacity-50`}>
+                {isUpdating ? 'Memproses...' : targetStatus === 'Completed' ? 'Selesaikan' : 'Batalkan'}
               </button>
             </div>
           </div>
