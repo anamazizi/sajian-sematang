@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { updateOrderStatusWithAudit, getOrderStatusHistory } from '../../app/actions/update-order-status-fixed';
+import { updateOrderStatusWithAudit, getOrderStatusHistory } from '../../app/actions/update-order-status';
 
 interface OrderStatusControlProps {
   orderId: string;
@@ -171,7 +171,7 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
                 placeholder={targetStatus === 'COMPLETED' 
                   ? 'Contoh: Pesanan telah diterima dan diselesaikan...' 
                   : 'Contoh: Pelanggan meminta batal kerana...'}
-                className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-green-500 focus:border-green-500 min-h-[120px]"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 rows={3}
                 required
               />

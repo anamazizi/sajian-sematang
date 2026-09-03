@@ -54,11 +54,19 @@ export default function OrdersManagementPage() {
 
       const ordersWithItems = await Promise.all(
         (ordersData || []).map(async (order) => {
-          const { data: itemsData } = await supabase
+          // Fetch order items once
+          const { data: orderItemsData } = await supabase
             .from('order_items')
             .select('*, product:products(*)')
             .eq('order_id', order.id);
-          return { ...order, items: itemsData || [] };
+          
+          const items = orderItemsData || [];
+          
+          return { 
+            ...order, 
+            order_items: items, // For WhatsApp dispatch
+            items: items // For main display (same data)
+          };
         })
       );
 
@@ -106,31 +114,64 @@ export default function OrdersManagementPage() {
       return `+60${cleaned.replace(/^0/, '')}`;
     };
 
-    // Format items list without price
+    // Format items list without price - use order_items data directly
     const formatItemsList = (order: any): string => {
       if (!order.order_items || order.order_items.length === 0) {
+        // Try to use items if order_items not available
+        if (order.items && order.items.length > 0) {
+          return order.items.map((item: any, index: number) => 
+            `${index + 1}. ${item.quantity}x ${item.product?.name || item.product_name_snapshot || 'Produk'}`
+          ).join('\n');
+        }
         return 'Tidak ada item spesifik';
       }
+      
       return order.order_items.map((item: any, index: number) => 
-        `${index + 1}. ${item.quantity} × ${item.product_name_snapshot || 'Product'}`
+        `${index + 1}. ${item.quantity}x ${item.product_name_snapshot || 'Product'}`
       ).join('\n');
     };
 
+    // Get correct address and maps data
+    const getAddress = (order: any): string => {
+      // Priority: customer_address_snapshot, customer_address, address, delivery_address
+      return order.customer_address_snapshot || 
+             order.customer_address || 
+             order.address || 
+             order.delivery_address || 
+             'Alamat tidak tersedia';
+    };
+
+    const getMapsUrl = (order: any): string => {
+      // Priority: customer_pin_location_snapshot, google_maps_url
+      return order.customer_pin_location_snapshot || 
+             order.google_maps_url || 
+             'URL peta tidak tersedia';
+    };
+
     const customerPhone = formatPhoneNumber(order.customer_phone || '');
+    const address = getAddress(order);
+    const mapsUrl = getMapsUrl(order);
+    const itemsList = formatItemsList(order);
     
-    // WhatsApp message template (NO PRICE mentioned)
+    // WhatsApp message template with proper spacing (NO PRICE mentioned)
     const message = `📦 *TUGASAN RUNNER SAJIAN SEMATANG*
 
 🧾 *Order ID:* ${order.id}
+
 👤 *Nama Pelanggan:* ${order.customer_name || 'N/A'}
+
 📞 *Telefon Pelanggan:* ${customerPhone}
-📍 *Alamat Penghantaran:* ${order.delivery_address || 'N/A'}
-🗺️ *Google Maps:* ${order.google_maps_url || 'N/A'}
+
+📍 *Alamat Penghantaran:*
+${address}
+
+🗺️ *Google Maps:*
+${mapsUrl}
 
 🍽️ *Item Pesanan:*
-${formatItemsList(order)}
+${itemsList}
 
-Catatan: Sila pastikan makanan dihantar dalam keadaan baik. Terima kasih!`;
+📝 *Catatan:* Sila pastikan makanan dihantar dalam keadaan baik. Terima kasih!`;
 
     // Encode for WhatsApp URL
     const encodedMessage = encodeURIComponent(message);
