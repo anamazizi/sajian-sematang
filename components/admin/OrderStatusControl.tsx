@@ -27,20 +27,11 @@ const normalizeStatus = (status: string): string => {
 const STATUS_OPTIONS = [
   { value: 'PENDING', display: '⏳ Menunggu (Pending)', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'ACCEPTED', display: '✅ Diterima (Accepted)', color: 'bg-blue-100 text-blue-800' },
-  { value: 'READY', display: '🍲 Sedia di Kedai (Ready)', color: 'bg-purple-100 text-purple-800' },
-  { value: 'DELIVERING', display: '🚚 Sedang Dihantar (Delivering)', color: 'bg-indigo-100 text-indigo-800' },
+  { value: 'READY', display: '🍲 Sedia di Kedai (Ready - Self Pickup)', color: 'bg-purple-100 text-purple-800' },
+  { value: 'DELIVERING', display: '🚚 Sedang Dihantar (Delivering - Runner)', color: 'bg-indigo-100 text-indigo-800' },
   { value: 'COMPLETED', display: '🎉 Selesai (Completed)', color: 'bg-green-100 text-green-800' },
   { value: 'CANCELLED', display: '❌ Batal (Cancelled)', color: 'bg-red-100 text-red-800' },
 ];
-
-const STATUS_FLOW: Record<string, string[]> = {
-  'PENDING': ['ACCEPTED', 'CANCELLED'],
-  'ACCEPTED': ['PENDING', 'READY', 'CANCELLED'],
-  'READY': ['ACCEPTED', 'DELIVERING', 'CANCELLED'],
-  'DELIVERING': ['READY', 'COMPLETED', 'CANCELLED'],
-  'COMPLETED': [],
-  'CANCELLED': [],
-};
 
 export default function OrderStatusControl({ orderId, currentStatus, onStatusUpdate }: OrderStatusControlProps) {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -54,10 +45,8 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
   const normalizedStatus = normalizeStatus(currentStatus);
   const currentOption = STATUS_OPTIONS.find(opt => opt.value === normalizedStatus);
   
-  const availableStatuses = STATUS_FLOW[normalizedStatus] || [];
-  const filteredOptions = STATUS_OPTIONS.filter(opt => 
-    availableStatuses.includes(opt.value) || opt.value === normalizedStatus
-  );
+  // Show ALL status options (flat dropdown) except current status is locked (COMPLETED/CANCELLED)
+  const allOptions = STATUS_OPTIONS;
 
   const handleStatusChange = async (newStatus: string) => {
     const upperStatus = newStatus.toUpperCase();
@@ -149,7 +138,7 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
             disabled={isUpdating}
             className="text-slate-900 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-green-500 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {filteredOptions.map((option) => (
+            {allOptions.map((option) => (
               <option 
                 key={option.value} 
                 value={option.value}

@@ -83,6 +83,63 @@ export default function OrdersManagementPage() {
     return acc;
   }, {} as Record<string, number>);
 
+  // WhatsApp Dispatch function
+  const openWhatsAppDispatch = (order: any) => {
+    // Format phone number to international format (+601xxxxxxxxx)
+    const formatPhoneNumber = (phone: string): string => {
+      if (!phone) return '';
+      // Remove all non-digit characters
+      const cleaned = phone.replace(/\D/g, '');
+      // If starts with 60, return as is with +
+      if (cleaned.startsWith('60')) {
+        return `+${cleaned}`;
+      }
+      // If starts with 0, replace with +60
+      if (cleaned.startsWith('0')) {
+        return `+6${cleaned}`;
+      }
+      // If starts with 1 (without 0), add +60
+      if (cleaned.startsWith('1') && cleaned.length === 9) {
+        return `+60${cleaned}`;
+      }
+      // Default: assume Malaysian number with +60
+      return `+60${cleaned.replace(/^0/, '')}`;
+    };
+
+    // Format items list without price
+    const formatItemsList = (order: any): string => {
+      if (!order.order_items || order.order_items.length === 0) {
+        return 'Tidak ada item spesifik';
+      }
+      return order.order_items.map((item: any, index: number) => 
+        `${index + 1}. ${item.quantity} × ${item.product_name_snapshot || 'Product'}`
+      ).join('\n');
+    };
+
+    const customerPhone = formatPhoneNumber(order.customer_phone || '');
+    
+    // WhatsApp message template (NO PRICE mentioned)
+    const message = `📦 *TUGASAN RUNNER SAJIAN SEMATANG*
+
+🧾 *Order ID:* ${order.id}
+👤 *Nama Pelanggan:* ${order.customer_name || 'N/A'}
+📞 *Telefon Pelanggan:* ${customerPhone}
+📍 *Alamat Penghantaran:* ${order.delivery_address || 'N/A'}
+🗺️ *Google Maps:* ${order.google_maps_url || 'N/A'}
+
+🍽️ *Item Pesanan:*
+${formatItemsList(order)}
+
+Catatan: Sila pastikan makanan dihantar dalam keadaan baik. Terima kasih!`;
+
+    // Encode for WhatsApp URL
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+    
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
+  };
+
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -168,22 +225,22 @@ export default function OrdersManagementPage() {
                 </div>
 
                 <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                  <h4 className="font-semibold text-gray-700 mb-2">Item Pesanan:</h4>
+                  <h4 className="font-semibold text-slate-900 mb-2">Item Pesanan:</h4>
                   <div className="space-y-2">
                     {order.items?.map((item: any) => (
                       <div key={item.id} className="flex justify-between text-sm">
-                        <span className="text-gray-700">
+                        <span className="text-slate-800 font-medium">
                           {item.quantity}x {item.product?.name || 'Produk'}
                         </span>
-                        <span className="text-gray-800 font-medium">
+                        <span className="text-slate-800 font-medium">
                           RM {(item.unit_price * item.quantity).toFixed(2)}
                         </span>
                       </div>
                     ))}
                   </div>
                   <div className="border-t mt-2 pt-2 flex justify-between font-bold">
-                    <span>Jumlah:</span>
-                    <span className="text-green-600">RM {order.total_price.toFixed(2)}</span>
+                    <span className="text-slate-900 font-bold text-base">Jumlah:</span>
+                    <span className="text-slate-900 font-bold text-base">RM {order.total_price.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -193,6 +250,23 @@ export default function OrdersManagementPage() {
                     currentStatus={order.status}
                     onStatusUpdate={handleStatusUpdate}
                   />
+                  
+                  {/* WhatsApp Dispatch Button for Delivery Orders */}
+                  {(order.delivery_mode === 'Delivery' || order.status === 'DELIVERING') && (
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Operasi Penghantaran:</h4>
+                      <button
+                        onClick={() => openWhatsAppDispatch(order)}
+                        className="bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-600 transition flex items-center gap-2"
+                      >
+                        <span>🚚</span>
+                        Hantar Info ke Runner
+                      </button>
+                      <p className="text-xs text-gray-500 mt-2">
+                        WhatsApp akan dibuka dengan maklumat pesanan (tanpa harga). Pilih runner dari contact list.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
