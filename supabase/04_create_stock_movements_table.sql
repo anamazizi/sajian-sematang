@@ -112,9 +112,27 @@ CREATE POLICY "Staff can insert stock movements"
 -- Create a function to automatically log stock changes
 CREATE OR REPLACE FUNCTION log_stock_movement()
 RETURNS TRIGGER AS $$
+DECLARE
+  v_seller_id UUID;
 BEGIN
   -- Only log if stock_quantity changed
   IF (TG_OP = 'UPDATE' AND OLD.stock_quantity != NEW.stock_quantity) THEN
+    -- Ensure seller_id is not null - get from product if NULL
+    IF NEW.seller_id IS NULL THEN
+      -- Fallback: try to get seller_id from product itself
+      SELECT seller_id INTO v_seller_id 
+      FROM public.products 
+      WHERE id = NEW.id;
+      
+      -- If still NULL, set to a default or skip logging
+      IF v_seller_id IS NULL THEN
+        RAISE WARNING 'Cannot log stock movement: seller_id is NULL for product %', NEW.id;
+        RETURN NEW;
+      END IF;
+    ELSE
+      v_seller_id := NEW.seller_id;
+    END IF;
+    
     INSERT INTO public.stock_movements (
       product_id,
       seller_id,
@@ -126,8 +144,7 @@ BEGIN
       changed_by_role
     ) VALUES (
       NEW.id,
-      NEW.seller_id,
-      OLD.stock_quantity,
+      v_seller_id,
       NEW.stock_quantity - OLD.stock_quantity,
       NEW.stock_quantity,
       COALESCE(current_setting('app.stock_change_reason', true), 'Stock update'),

@@ -46,7 +46,7 @@ const SellerProductCard: React.FC<SellerProductCardProps> = ({
     }
   };
     return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition relative">
       {/* Status Badge */}
       <div className="absolute top-2 right-2">
         {product.is_preorder ? (
