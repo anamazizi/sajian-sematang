@@ -9,22 +9,37 @@ interface OrderStatusControlProps {
   onStatusUpdate?: (orderId: string, newStatus: string) => void;
 }
 
+// Normalize status
+const normalizeStatus = (status: string): string => {
+  if (!status) return 'PENDING';
+  const upper = status.toUpperCase().trim();
+  const map: Record<string, string> = {
+    'NEW': 'PENDING', 'BARU': 'PENDING', 'PENDING': 'PENDING',
+    'ACCEPTED': 'ACCEPTED', 'DITERIMA': 'ACCEPTED',
+    'READY': 'READY', 'SEDIA': 'READY',
+    'DELIVERING': 'DELIVERING', 'DELIVERY': 'DELIVERING',
+    'COMPLETED': 'COMPLETED', 'SELESAI': 'COMPLETED',
+    'CANCELLED': 'CANCELLED', 'BATAL': 'CANCELLED',
+  };
+  return map[upper] || 'PENDING';
+};
+
 const STATUS_OPTIONS = [
-  { value: 'Pending', label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'Accepted', label: 'Accepted', color: 'bg-blue-100 text-blue-800' },
-  { value: 'Ready', label: 'Ready', color: 'bg-purple-100 text-purple-800' },
-  { value: 'Delivering', label: 'Delivering', color: 'bg-indigo-100 text-indigo-800' },
-  { value: 'Completed', label: 'Completed', color: 'bg-green-100 text-green-800' },
-  { value: 'Cancelled', label: 'Cancelled', color: 'bg-red-100 text-red-800' },
+  { value: 'Pending', label: 'Menunggu', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'Accepted', label: 'Diterima', color: 'bg-blue-100 text-blue-800' },
+  { value: 'Ready', label: 'Sedia', color: 'bg-purple-100 text-purple-800' },
+  { value: 'Delivering', label: 'Hantar', color: 'bg-indigo-100 text-indigo-800' },
+  { value: 'Completed', label: 'Selesai', color: 'bg-green-100 text-green-800' },
+  { value: 'Cancelled', label: 'Batalkan', color: 'bg-red-100 text-red-800' },
 ];
 
 const STATUS_FLOW: Record<string, string[]> = {
-  'Pending': ['Accepted', 'Cancelled'],
-  'Accepted': ['Pending', 'Ready', 'Cancelled'],
-  'Ready': ['Accepted', 'Delivering', 'Cancelled'],
-  'Delivering': ['Ready', 'Completed', 'Cancelled'],
-  'Completed': [],
-  'Cancelled': [],
+  'PENDING': ['Accepted', 'Cancelled'],
+  'ACCEPTED': ['Pending', 'Ready', 'Cancelled'],
+  'READY': ['Accepted', 'Delivering', 'Cancelled'],
+  'DELIVERING': ['Ready', 'Completed', 'Cancelled'],
+  'COMPLETED': [],
+  'CANCELLED': [],
 };
 
 export default function OrderStatusControl({ orderId, currentStatus, onStatusUpdate }: OrderStatusControlProps) {
@@ -36,9 +51,12 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const availableStatuses = STATUS_FLOW[currentStatus] || [];
-  const filteredStatusOptions = STATUS_OPTIONS.filter(option => 
-    availableStatuses.includes(option.value) || option.value === currentStatus
+  const normalizedStatus = normalizeStatus(currentStatus);
+  const displayStatus = STATUS_OPTIONS.find(opt => opt.value.toUpperCase() === normalizedStatus)?.value || currentStatus;
+  
+  const availableStatuses = STATUS_FLOW[normalizedStatus] || [];
+  const filteredOptions = STATUS_OPTIONS.filter(opt => 
+    availableStatuses.includes(opt.value) || opt.value === displayStatus
   );
 
   const handleStatusChange = async (newStatus: string) => {
@@ -87,38 +105,44 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
     return option?.color || 'bg-gray-100 text-gray-800';
   };
 
+  const getDisplayLabel = (status: string) => {
+    const option = STATUS_OPTIONS.find(opt => opt.value === status);
+    return option?.label || status;
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(currentStatus)}`}>
-          {currentStatus}
+        <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(displayStatus)}`}>
+          {getDisplayLabel(displayStatus)}
         </span>
-        {currentStatus !== 'Completed' && currentStatus !== 'Cancelled' && (
-          <button
-            onClick={loadStatusHistory}
-            disabled={loadingHistory}
-            className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50"
-          >
+        {normalizedStatus !== 'COMPLETED' && normalizedStatus !== 'CANCELLED' && (
+          <button onClick={loadStatusHistory} disabled={loadingHistory} className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50">
             {loadingHistory ? 'Memuatkan...' : 'Lihat Sejarah'}
           </button>
         )}
       </div>
 
-      {currentStatus !== 'Completed' && currentStatus !== 'Cancelled' && (
+      {normalizedStatus !== 'COMPLETED' && normalizedStatus !== 'CANCELLED' && (
         <div className="space-y-2">
           <label className="block text-sm font-medium text-gray-700">Tukar Status:</label>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="text-xs text-gray-500 mb-1 p-1 bg-gray-50 rounded">
+              Debug: {currentStatus} → {normalizedStatus}, options: {filteredOptions.length}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
-            {filteredStatusOptions.map((option) => (
+            {filteredOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleStatusChange(option.value)}
-                disabled={isUpdating || option.value === currentStatus}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${option.value === currentStatus
+                disabled={isUpdating || option.value === displayStatus}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${option.value === displayStatus
                     ? option.color + ' opacity-50 cursor-not-allowed'
-                    : option.color.replace('100', '200').replace('800', '900') + ' hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed'
+                    : option.color.replace('100', '200').replace('800', '900') + ' hover:opacity-90 disabled:opacity-50'
                 }`}
               >
-                {option.value === currentStatus ? '✓ ' : ''}{option.label}
+                {option.value === displayStatus ? '✓ ' : ''}{option.label}
               </button>
             ))}
           </div>
@@ -132,9 +156,7 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
               {targetStatus === 'Completed' ? 'Selesaikan Pesanan' : 'Batalkan Pesanan'}
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              {targetStatus === 'Completed' 
-                ? 'Status "Selesai" adalah muktamad.'
-                : 'Pastikan anda mempunyai sebab yang sah.'}
+              {targetStatus === 'Completed' ? 'Status "Selesai" adalah muktamad.' : 'Pastikan anda mempunyai sebab yang sah.'}
             </p>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">Catatan:</label>
@@ -176,9 +198,9 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.previous_status)}`}>{record.previous_status}</span>
+                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.previous_status)}`}>{getDisplayLabel(record.previous_status)}</span>
                             <span className="text-gray-400">→</span>
-                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.new_status)}`}>{record.new_status}</span>
+                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.new_status)}`}>{getDisplayLabel(record.new_status)}</span>
                           </div>
                         </div>
                         <span className="text-xs text-gray-500">{new Date(record.created_at).toLocaleString('ms-MY')}</span>
