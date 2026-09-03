@@ -84,8 +84,13 @@ export default function AddProductPage() {
         .single();
 
       if (insertError) {
-        console.error('Insert error:', insertError);
-        throw new Error('Gagal mencipta produk');
+        console.error('Insert error details:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code
+        });
+        throw new Error(`Gagal mencipta produk: ${insertError.message}`);
       }
 
       console.log('Product created:', product);
@@ -117,6 +122,7 @@ export default function AddProductPage() {
       router.push('/jualan/products');
     } catch (error: any) {
       console.error('Error creating product:', error);
+      alert(`❌ ${error.message || 'Gagal mencipta produk'}`);
       throw error;
     }
   }
