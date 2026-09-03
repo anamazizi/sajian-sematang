@@ -54,6 +54,7 @@ export default function EditProductPage() {
 
       // Fetch product (with ownership check)
       // Phase R5.4: Explicit column selection (seller CAN see cost_price for own products)
+      // Added is_archived column for completeness
       const { data: productData, error: productError } = await supabase
         .from('products')
         .select(`
@@ -65,6 +66,7 @@ export default function EditProductPage() {
           cost_price,
           category,
           is_available,
+          is_archived,
           stock_quantity,
           is_preorder,
           available_from,

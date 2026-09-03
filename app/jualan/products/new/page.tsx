@@ -74,6 +74,7 @@ export default function AddProductPage() {
           cost_price: formData.cost_price,
           stock_quantity: formData.is_preorder ? 0 : formData.stock_quantity,
           is_available: formData.is_available,
+          is_archived: false, // Ensure new products are not archived by default
           is_preorder: formData.is_preorder,
           available_from: formData.is_preorder ? formData.available_from : null,
           available_until: formData.is_preorder ? formData.available_until : null,

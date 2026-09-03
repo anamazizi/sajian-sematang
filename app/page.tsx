@@ -70,7 +70,7 @@ export default function HomePage() {
           updated_at
         `)
         .eq('is_available', true)
-        .eq('is_archived', false) // Don't show archived products to customers
+        .or('is_archived.is.null,is_archived.eq.false') // Don't show archived products (including NULL)
         .gt('stock_quantity', 0)
         .order('category', { ascending: true })
         .order('name', { ascending: true });

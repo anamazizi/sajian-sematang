@@ -73,7 +73,7 @@ export default function CustomPreOrderPage() {
         `)
         .eq('is_preorder', true)
         .eq('is_available', true)
-        .eq('is_archived', false) // Don't show archived products
+        .or('is_archived.is.null,is_archived.eq.false') // Don't show archived products (including NULL)
         .order('seller_id', { ascending: true });
 
       if (productsError) throw productsError;
