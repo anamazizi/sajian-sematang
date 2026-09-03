@@ -8,12 +8,20 @@ interface SellerProductCardProps {
   product: Product;
   onToggleAvailability: (productId: string, currentStatus: boolean) => void;
   onDelete: (productId: string) => void;
+  onMoveUp: (productId: string) => void;
+  onMoveDown: (productId: string) => void;
+  isFirstProduct?: boolean;
+  isLastProduct?: boolean;
 }
 
 const SellerProductCard: React.FC<SellerProductCardProps> = ({
   product,
   onToggleAvailability,
   onDelete,
+  onMoveUp,
+  onMoveDown,
+  isFirstProduct = false,
+  isLastProduct = false,
 }) => {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition">
@@ -52,6 +60,13 @@ const SellerProductCard: React.FC<SellerProductCardProps> = ({
           </p>
         )}
 
+        {/* Display Order Info (Optional) */}
+        {typeof product.display_order !== 'undefined' && (
+          <div className="mb-2 text-xs text-gray-500">
+            📍 Kedudukan: {product.display_order}
+          </div>
+        )}
+
         {/* Pricing */}
         <div className="flex justify-between items-center mb-3">
           <div>
@@ -83,6 +98,34 @@ const SellerProductCard: React.FC<SellerProductCardProps> = ({
             </p>
           </div>
         )}
+
+        {/* Reorder Buttons */}
+        <div className="flex gap-2 mb-3">
+          <button
+            onClick={() => onMoveUp(product.id)}
+            disabled={isFirstProduct}
+            className={`flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold ${
+              isFirstProduct
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+            title={isFirstProduct ? 'Sudah di kedudukan paling atas' : 'Ke Atas'}
+          >
+            {isFirstProduct ? '⏫' : '▲'}
+          </button>
+          <button
+            onClick={() => onMoveDown(product.id)}
+            disabled={isLastProduct}
+            className={`flex-1 px-3 py-2 rounded-lg transition text-sm font-semibold ${
+              isLastProduct
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-500 text-white hover:bg-blue-600'
+            }`}
+            title={isLastProduct ? 'Sudah di kedudukan paling bawah' : 'Ke Bawah'}
+          >
+            {isLastProduct ? '⏬' : '▼'}
+          </button>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-2">

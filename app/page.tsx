@@ -62,6 +62,7 @@ export default function HomePage() {
           category,
           is_available,
           is_archived,
+          display_order,
           stock_quantity,
           is_preorder,
           available_from,
@@ -72,6 +73,7 @@ export default function HomePage() {
         .eq('is_available', true)
         .or('is_archived.is.null,is_archived.eq.false') // Don't show archived products (including NULL)
         .gt('stock_quantity', 0)
+        .order('display_order', { ascending: true }) // Order by display_order
         .order('category', { ascending: true })
         .order('name', { ascending: true });
 

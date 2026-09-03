@@ -58,6 +58,7 @@ export default function ProductsPage() {
 
       // Phase R5.4: Explicit column selection (seller CAN see cost_price for own products)
       // Added is_archived column for soft delete filtering
+      // Added display_order for product sorting
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -71,6 +72,7 @@ export default function ProductsPage() {
           image_url,
           is_available,
           is_archived,
+          display_order,
           stock_quantity,
           is_preorder,
           available_from,
@@ -80,7 +82,8 @@ export default function ProductsPage() {
         `)
         .eq('seller_id', seller.id)
         .or('is_archived.is.null,is_archived.eq.false') // Fetch non-archived products (including NULL)
-        .order('created_at', { ascending: false });
+        .order('display_order', { ascending: true }) // Order by display_order
+        .order('created_at', { ascending: false }); // Fallback order
 
       if (productsError) throw productsError;
 
@@ -169,7 +172,106 @@ export default function ProductsPage() {
       console.error('Error archiving product:', error);
       alert('❌ Gagal meng-archive produk');
     }
+async function handleResetOrder() {
+    if (!sellerId) return;
+    
+    const confirmed = confirm(
+      'Adakah anda pasti mahu reset susunan produk?\n\n' +
+      '✅ Semua produk akan disusun semula mengikut tarikh dicipta\n' +
+      '✅ Susunan sekarang akan hilang\n' +
+      '✅ Tindakan ini tidak boleh dibatalkan'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      // Import server action
+      const { reorderProducts } = await import('../../actions/reorder-products');
+      
+      const result = await reorderProducts(sellerId);
+      
+      if (result.success) {
+        // Refresh products after successful reset
+        fetchSellerAndProducts();
+        alert('✅ Susunan produk berjaya direset');
+      } else {
+        alert(`Gagal reset susunan produk: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error resetting product order:', error);
+      alert('Ralat berlaku ketika reset susunan produk');
+    }
   }
+  }
+async function handleMoveUp(productId: string) {
+    try {
+      // Import server action
+      const { moveProductUp } = await import('../../actions/reorder-products');
+      
+      const result = await moveProductUp(productId);
+      
+      if (result.success) {
+        // Refresh products after successful move
+        fetchSellerAndProducts();
+      } else {
+        alert(`Gagal menggerakkan produk ke atas: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error moving product up:', error);
+      alert('Ralat berlaku ketika menggerakkan produk ke atas');
+    }
+  }
+
+  async function handleMoveDown(productId: string) {
+    try {
+      // Import server action
+      const { moveProductDown } = await import('../../actions/reorder-products');
+      
+      const result = await moveProductDown(productId);
+      
+      if (result.success) {
+        // Refresh products after successful move
+        fetchSellerAndProducts();
+      } else {
+        alert(`Gagal menggerakkan produk ke bawah: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error moving product down:', error);
+      alert('Ralat berlaku ketika menggerakkan produk ke bawah');
+    }
+  }
+
+async function handleResetOrder() {
+    if (!sellerId) return;
+    
+    const confirmed = confirm(
+      'Adakah anda pasti mahu reset susunan produk?\n\n' +
+      '✅ Semua produk akan disusun semula mengikut tarikh dicipta\n' +
+      '✅ Susunan sekarang akan hilang\n' +
+      '✅ Tindakan ini tidak boleh dibatalkan'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      // Import server action
+      const { reorderProducts } = await import('../../actions/reorder-products');
+      
+      const result = await reorderProducts(sellerId);
+      
+      if (result.success) {
+        // Refresh products after successful reset
+        fetchSellerAndProducts();
+        alert('✅ Susunan produk berjaya direset');
+      } else {
+        alert(`Gagal reset susunan produk: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error resetting product order:', error);
+      alert('Ralat berlaku ketika reset susunan produk');
+    }
+  }
+  
 
   if (authLoading || loading) {
     return (
@@ -202,12 +304,21 @@ export default function ProductsPage() {
                 Urus produk dan stok kedai anda
               </p>
             </div>
-            <Link
-              href="/jualan/products/new"
-              className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold"
-            >
-              + Tambah Produk Baharu
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleResetOrder}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition font-semibold text-sm"
+                title="Reset susunan produk"
+              >
+                🔄 Reset Susunan
+              </button>
+              <Link
+                href="/jualan/products/new"
+                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold text-center"
+              >
+                + Tambah Produk Baharu
+              </Link>
+            </div>
           </div>
         </header>
 
@@ -288,14 +399,18 @@ export default function ProductsPage() {
               </Link>
             )}
           </div>
-) : (
+        ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
+            {filteredProducts.map((product, index) => (
               <SellerProductCard
                 key={product.id}
                 product={product}
                 onToggleAvailability={handleToggleAvailability}
                 onDelete={handleDelete}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                isFirstProduct={index === 0}
+                isLastProduct={index === filteredProducts.length - 1}
               />
             ))}
           </div>

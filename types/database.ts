@@ -1,6 +1,7 @@
 // Database Types for Sajian Sematang
 // Updated: 16 Ogos 2026 - Business Structure v2.0
 // Updated: 3 September 2026 - Added is_archived for soft delete
+// Updated: 3 September 2026 - Added display_order for product sorting
 
 export type UserRole = 'customer' | 'seller' | 'admin' | 'staff';
 
@@ -43,6 +44,8 @@ export interface Product {
   is_available: boolean;
   // Soft delete flag
   is_archived?: boolean; // Added for soft delete: true = archived/deleted, false = active
+  // Display order for product sorting
+  display_order?: number; // Added for product sorting/rearrange
   // Stock management
   stock_quantity: number;
   // Pre-order mode
@@ -67,6 +70,7 @@ export interface CustomerProduct {
   image_url?: string;
   is_available: boolean;
   is_archived?: boolean; // Added for soft delete filtering
+  display_order?: number; // Added for product sorting/rearrange
   stock_quantity: number;
   is_preorder: boolean;
   available_from?: string | null;
