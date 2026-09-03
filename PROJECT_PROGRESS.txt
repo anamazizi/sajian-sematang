@@ -1,11 +1,11 @@
 📊 PROJECT_PROGRESS.txt - SAJIAN SEMATANG
 Status Terkini & Development Progress
 
-Tarikh Kemaskini: 31 Ogos 2026 (Sesi Malam - Updated)
-Versi: sizes 2.5 (Seller Dashboard Refactoring & UI Improvements Complete)
-Build Status: ✅ Success (Latest build: 31 Ogos 2026 - Seller Refactoring & Numeric Input Fixes Complete)
+Tarikh Kemaskini: 3 September 2026 (Product Rearrange & Sorting Feature Complete)
+Versi: 2.6 (Product Rearrange & Sorting Feature Complete)
+Build Status: ✅ Success (Latest build: 3 September 2026 - Product Sorting Complete, TypeScript 0 errors)
 Security Status: ✅ All Security Layers Implemented (RLS + Rate Limiting + Audit)
-Project Completion: 92% COMPLETE (Updated 31 Ogos 2026 - SELLER REFACTORING & UI IMPROVEMENTS COMPLETE)
+Project Completion: 93% COMPLETE (Updated 3 September 2026 - PRODUCT REARRANGE & SORTING FEATURE COMPLETE)
 
 ================================================================================
 
@@ -25,17 +25,19 @@ Stack Teknologi (100% Betul)
 - Deployment: Vercel dengan GitHub integration
 - Development: VS Code dengan Roo Code AI Assistant
 
-Latest Build Verification (31 Ogos 2026 - Sesi Malam):
+Latest Build Verification (3 September 2026 - Product Rearrange & Sorting Complete):
 - ✅ Next.js build completed successfully (0 TypeScript errors)
-- ✅ WhatsApp Unicode Encoding: Strict `encodeURIComponent()` dengan raw template
-- ✅ WhatsApp Direct Redirect: `window.location.href` untuk elak pop-up blocker
-- ✅ Profile Form Contrast: `text-slate-900 bg-white` untuk borang auth/profile
-- ✅ Homepage Header Layout: Responsive flex `flex-col sm:flex-row` dengan spacing `mb-8`
-- ✅ Rate Limiting Middleware: Configurable limits per endpoint
-- ✅ Audit Logging: PII sanitization implemented
-- ✅ Production Monitoring: Error tracking ready
-- ✅ Architecture Documentation: Complete (ARCHITECTURE_PHASE0.md)
-- ✅ Security Compliance: All Master Prompt sections implemented
+- ✅ Product Rearrange Feature: Button-based sorting dengan atomic RPC functions
+- ✅ Database Migration: Column `display_order` ditambah ke table `products`
+- ✅ Seller UI Controls: Butang "Ke Atas" (▲) dan "Ke Bawah" (▼) dengan auto-disable
+- ✅ WhatsApp Unicode Encoding: Strict `encodeURIComponent()` dengan raw template (maintained)
+- ✅ WhatsApp Direct Redirect: `window.location.href` untuk elak pop-up blocker (maintained)
+- ✅ Profile Form Contrast: `text-slate-900 bg-white` untuk borang auth/profile (maintained)
+- ✅ Rate Limiting Middleware: Configurable limits per endpoint (maintained)
+- ✅ Audit Logging: Setiap reorder operation direkodkan dengan PII sanitization
+- ✅ Production Monitoring: Error tracking ready (maintained)
+- ✅ Architecture Documentation: Complete (ARCHITECTURE_PHASE0.md) (maintained)
+- ✅ Security Compliance: All Master Prompt sections implemented (maintained)
 
 Architecture Compliance
 - ✅ Seksyen 12: Database sebagai source of truth (bukan localStorage)
@@ -53,7 +55,51 @@ Architecture Compliance
 
 ================================================================================
 
-2. WHATSAPP ENCODING & UI FIXES (31 OGOS 2026 - SESI MALAM)
+2. PRODUCT REARRANGE & SORTING IMPLEMENTATION (BUTTON BASED) - 3 SEPTEMBER 2026 ✅
+
+A. Database Migration & RPC Functions ✅
+- Penambahan lajur `display_order` (integer) pada jadual `products` untuk menyimpan susunan paparan produk
+- RPC functions untuk transaksi selamat (atomic & transaction-safe):
+  - `swap_product_order()`: Swap display_order antara dua produk (with audit)
+  - `move_product_up()`: Move product ke atas (swap dengan product sebelumnya)
+  - `move_product_down()`: Move product ke bawah (swap dengan product selepasnya)
+  - `reorder_products()`: Reset semua produk seller mengikut tarikh dicipta
+- Index performance: `idx_products_display_order` untuk query optimization
+- Migration files: 18_add_product_display_order_complete.sql
+
+B. Server Actions Implementation ✅
+- `/app/actions/reorder-products.ts` dengan 4 server actions:
+  - `moveProductUp()`: Handle product move up dengan optimistic UI update
+  - `moveProductDown()`: Handle product move down dengan optimistic UI update
+  - `swapProductOrder()`: Core logic untuk swap order antara dua produk
+  - `reorderProducts()`: Reset semua produk seller
+- Audit Trail: Setiap pertukaran susunan produk direkodkan di `audit_logs`
+
+C. UI Controls & Seller Interface ✅
+- Butang "Ke Atas" (▲) dan "Ke Bawah" (▼) pada setiap baris/kad produk
+- Automatic disable state: Butang atas disabled untuk produk pertama, butang bawah disabled untuk produk terakhir
+- SellerProductCard component enhancement dengan props tambahan:
+  - `onMoveUp`: Callback untuk move up action
+  - `onMoveDown`: Callback untuk move down action  
+  - `isFirstProduct`: Boolean untuk disable up button
+  - `isLastProduct`: Boolean untuk disable down button
+- Butang "Reset Susunan" di header peniaga untuk reset semua produk seller
+- Optimistic UI updates: Revalidation selepas setiap operasi tanpa reload page
+
+D. Global Sorting Implementation ✅
+- Halaman Peniaga (`/jualan/products`): Query menggunakan `display_order ASC, created_at DESC`
+- Halaman Pelanggan (`/` Homepage): Products ordered by `display_order ASC`
+- Halaman Pre-Order (`/preorder`): Products ordered by `display_order ASC`
+- Semua product listings kini mengikuti susunan yang ditetapkan oleh peniaga
+
+E. Build Verification & Testing ✅
+- ✅ Next.js build completed successfully (0 TypeScript errors)
+- ✅ Server Actions validation: Semua reorder functions tested
+- ✅ RLS Policy Check: Seller hanya boleh reorder produk sendiri
+- ✅ Database Integrity: Transaction-safe operations dengan rollback jika gagal
+- ✅ TypeScript Types: Interface Product dan CustomerProduct dikemaskini dengan `display_order`
+
+3. WHATSAPP ENCODING & UI FIXES (31 OGOS 2026 - SESI MALAM)
 
 A. WhatsApp Unicode Encoding Fixed ✅
 - Raw Message Template: Mesej WhatsApp dibina dengan raw string template
