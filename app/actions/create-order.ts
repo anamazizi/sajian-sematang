@@ -65,53 +65,68 @@ export async function createOrder(
       };
     }
 
-    // Validate required fields
-    if (!orderData.customer_name?.trim()) {
-      return {
-        success: false,
-        error: 'Nama pelanggan diperlukan',
-      };
-    }
+    // Validate UUID formats before calling RPC
+    const validatedItems = orderData.items.map(item => {
+      // Ensure product_id is a valid UUID
+      if (!item.product_id || typeof item.product_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.product_id)) {
+        throw new Error(`Invalid product_id: ${item.product_id}`);
+      }
 
-    if (!orderData.customer_phone?.trim()) {
-      return {
-        success: false,
-        error: 'Nombor telefon diperlukan',
-      };
-    }
+      // Ensure seller_id is a valid UUID (should be same for all items)
+      if (!orderData.seller_id || typeof orderData.seller_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(orderData.seller_id)) {
+        throw new Error(`Invalid seller_id: ${orderData.seller_id}`);
+      }
 
-    if (orderData.delivery_mode === 'Delivery' && !orderData.customer_address?.trim()) {
-      return {
-        success: false,
-        error: 'Alamat diperlukan untuk penghantaran',
-      };
-    }
+      // Validate options if present
+      const validatedOptions = item.selectedOptions?.map(option => {
+        if (!option.option_id || typeof option.option_id !== 'string') {
+          // If option_id is null/undefined/empty, skip this option
+          return null;
+        }
+        
+        // Check if option_id is a valid UUID
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(option.option_id)) {
+          throw new Error(`Invalid option_id: ${option.option_id} for product ${item.product_id}`);
+        }
 
-    if (!orderData.items || orderData.items.length === 0) {
-      return {
-        success: false,
-        error: 'Tiada item dalam tempahan',
-      };
-    }
+        return {
+          option_id: option.option_id,
+          option_group: option.option_group || '',
+          option_name: option.option_name || '',
+          price_adjustment: option.price_adjustment || 0,
+        };
+      }).filter(option => option !== null) || [];
 
-    // Call RPC function (server-side validation happens here)
+      return {
+        ...item,
+        selectedOptions: validatedOptions,
+      };
+    });
+
+    // Create validated order data
+    const validatedOrderData = {
+      ...orderData,
+      items: validatedItems,
+    };
+
+    // Call RPC function with validated data
     const { data: rpcResult, error: rpcError } = await supabase.rpc(
       'create_order_with_stock_check',
       {
         order_data: {
-          seller_id: orderData.seller_id,
-          customer_name: orderData.customer_name.trim(),
-          customer_phone: orderData.customer_phone.trim(),
-          customer_address: orderData.customer_address?.trim() || null,
-          customer_pin_location: orderData.customer_pin_location || null,
-          delivery_mode: orderData.delivery_mode,
-          delivery_fee: orderData.delivery_fee,
-          calculated_distance: orderData.calculated_distance || 0,
-          total_price: orderData.total_price,
-          items: orderData.items,
-          special_notes: orderData.special_notes?.trim() || null,
-          is_custom_preorder: orderData.is_custom_preorder || false,
-          delivery_datetime: orderData.delivery_datetime || null,
+          seller_id: validatedOrderData.seller_id,
+          customer_name: validatedOrderData.customer_name.trim(),
+          customer_phone: validatedOrderData.customer_phone.trim(),
+          customer_address: validatedOrderData.customer_address?.trim() || null,
+          customer_pin_location: validatedOrderData.customer_pin_location || null,
+          delivery_mode: validatedOrderData.delivery_mode,
+          delivery_fee: validatedOrderData.delivery_fee,
+          calculated_distance: validatedOrderData.calculated_distance || 0,
+          total_price: validatedOrderData.total_price,
+          items: validatedOrderData.items,
+          special_notes: validatedOrderData.special_notes?.trim() || null,
+          is_custom_preorder: validatedOrderData.is_custom_preorder || false,
+          delivery_datetime: validatedOrderData.delivery_datetime || null,
         },
       }
     );
@@ -145,29 +160,25 @@ export async function createOrder(
       `)
       .eq('order_id', orderId);
 
-    if (itemsError) {
-      console.error('Failed to fetch order items:', itemsError);
-    }
-
     // Generate WhatsApp link
     const whatsappLink = generateWhatsAppLink({
       orderId: orderId,
-      customerName: orderData.customer_name,
-      customerPhone: orderData.customer_phone,
-      customerAddress: orderData.customer_address,
-      customerPinLocation: orderData.customer_pin_location,
-      deliveryMode: orderData.delivery_mode,
+      customerName: validatedOrderData.customer_name,
+      customerPhone: validatedOrderData.customer_phone,
+      customerAddress: validatedOrderData.customer_address,
+      customerPinLocation: validatedOrderData.customer_pin_location,
+      deliveryMode: validatedOrderData.delivery_mode,
       subtotal: rpcResult.subtotal,
       deliveryFee: rpcResult.delivery_fee,
       totalPrice: rpcResult.total,
-      calculatedDistance: orderData.calculated_distance,
+      calculatedDistance: validatedOrderData.calculated_distance,
       items: orderItems?.map((item: any) => ({
         name: item.product_name_snapshot || item.product?.name || 'Unknown',
         quantity: item.quantity,
         price: item.unit_price,
         selectedOptions: item.selected_options || [],  // Phase R4D: Include options snapshot
       })) || [],
-      specialNotes: orderData.special_notes,
+      specialNotes: validatedOrderData.special_notes,
     });
 
     return {

@@ -75,6 +75,11 @@ BEGIN
       FOR v_option IN SELECT * FROM jsonb_array_elements(v_item->'selectedOptions')
       LOOP
         -- Validate option exists and belongs to this product
+        -- Handle null/empty option_id gracefully
+        IF v_option->>'option_id' IS NULL OR v_option->>'option_id' = '' OR v_option->>'option_id' = 'null' THEN
+          CONTINUE;
+        END IF;
+        
         SELECT po.price_adjustment INTO v_option_price
         FROM public.product_options po
         WHERE po.id = (v_option->>'option_id')::uuid
@@ -161,6 +166,16 @@ BEGIN
     -- Calculate final unit price (base + options)
     v_item_total := v_product.price;
     v_validated_options := '[]'::jsonb;
+-- Handle null/empty option_id gracefully
+        IF v_option->>'option_id' IS NULL OR v_option->>'option_id' = '' OR v_option->>'option_id' = 'null' THEN
+          CONTINUE;
+        END IF;
+        
+        SELECT po.price_adjustment INTO v_option_price
+        FROM public.product_options po
+        WHERE po.id = (v_option->>'option_id')::uuid
+          AND po.product_id = v_product.id
+          AND po.is_available = true;
 
     -- Re-validate and snapshot options
     IF v_item->'selectedOptions' IS NOT NULL AND jsonb_array_length(v_item->'selectedOptions') > 0 THEN
