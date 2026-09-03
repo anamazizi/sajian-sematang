@@ -79,7 +79,7 @@ export default function ProductsPage() {
           updated_at
         `)
         .eq('seller_id', seller.id)
-        .or('is_archived.is.null,is_archived.eq.false') // Fetch non-archived products (including NULL)
+        .eq('is_archived', false) // Only fetch non-archived products
         .order('created_at', { ascending: false });
 
       if (productsError) throw productsError;
