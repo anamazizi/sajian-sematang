@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
-import OrderStatusControl from '../../../components/admin/OrderStatusControl';
+import OrderStatusControl from '../../../components/admin/OrderStatusControl-final';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Semua Status' },
@@ -47,7 +47,7 @@ export default function OrdersManagementPage() {
       setLoading(true);
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*')
+        .select('*, customer_pin_location_snapshot, customer_address_snapshot')
         .order('created_at', { ascending: false });
 
       if (ordersError) throw ordersError;
@@ -141,16 +141,29 @@ export default function OrdersManagementPage() {
              'Alamat tidak tersedia';
     };
 
-    const getMapsUrl = (order: any): string => {
-      // Priority: customer_pin_location_snapshot, google_maps_url
-      return order.customer_pin_location_snapshot || 
-             order.google_maps_url || 
-             'URL peta tidak tersedia';
+    const getMapsUrl = (order: any, address: string): string => {
+      // Priority: customer_pin_location_snapshot, google_maps_url, customer_pin_location
+      const pinUrl = order.customer_pin_location_snapshot || 
+                     order.google_maps_url ||
+                     order.customer_pin_location;
+      
+      // If we have a valid pin URL, use it
+      if (pinUrl && pinUrl !== 'N/A' && pinUrl.includes('maps')) {
+        return pinUrl;
+      }
+      
+      // Fallback: Generate Google Maps search URL based on address
+      if (address && address !== 'Alamat tidak tersedia' && address !== 'N/A') {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+      }
+      
+      // Ultimate fallback
+      return 'URL peta tidak tersedia';
     };
 
     const customerPhone = formatPhoneNumber(order.customer_phone || '');
     const address = getAddress(order);
-    const mapsUrl = getMapsUrl(order);
+    const mapsUrl = getMapsUrl(order, address);
     const itemsList = formatItemsList(order);
     
     // WhatsApp message template with proper spacing (NO PRICE mentioned)

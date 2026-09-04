@@ -1,28 +1,11 @@
-'use client';
-
 import React, { useState } from 'react';
-import { updateOrderStatusWithAudit, getOrderStatusHistory } from '../../app/actions/update-order-status';
+import { updateOrderStatusWithAudit, getOrderStatusHistory } from '../../app/actions/update-order-status-fixed';
 
 interface OrderStatusControlProps {
   orderId: string;
   currentStatus: string;
   onStatusUpdate?: (orderId: string, newStatus: string) => void;
 }
-
-// Normalize status
-const normalizeStatus = (status: string): string => {
-  if (!status) return 'PENDING';
-  const upper = status.toUpperCase().trim();
-  const map: Record<string, string> = {
-    'NEW': 'PENDING', 'BARU': 'PENDING', 'PENDING': 'PENDING',
-    'ACCEPTED': 'ACCEPTED', 'DITERIMA': 'ACCEPTED',
-    'READY': 'READY', 'SEDIA': 'READY',
-    'DELIVERING': 'DELIVERING', 'DELIVERY': 'DELIVERING', 'PREPARING': 'DELIVERING',
-    'COMPLETED': 'COMPLETED', 'SELESAI': 'COMPLETED',
-    'CANCELLED': 'CANCELLED', 'BATAL': 'CANCELLED',
-  };
-  return map[upper] || 'PENDING';
-};
 
 const STATUS_OPTIONS = [
   { value: 'PENDING', display: '⏳ Menunggu (Pending)', color: 'bg-yellow-100 text-yellow-800' },
@@ -42,21 +25,11 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
   const [statusHistory, setStatusHistory] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  const normalizedStatus = normalizeStatus(currentStatus);
+  const normalizedStatus = currentStatus?.toUpperCase() || 'PENDING';
   const currentOption = STATUS_OPTIONS.find(opt => opt.value === normalizedStatus);
   
-  // Show ALL status options (flat dropdown) except current status is locked (COMPLETED/CANCELLED)
-  const allOptions = STATUS_OPTIONS;
-
-  const handleStatusChange = async (newStatus: string) => {
-    const upperStatus = newStatus.toUpperCase();
-    if (upperStatus === 'COMPLETED' || upperStatus === 'CANCELLED') {
-      setTargetStatus(upperStatus);
-      setShowNotesModal(true);
-      return;
-    }
-    await updateStatus(upperStatus, '');
-  };
+  // Check if status is locked (COMPLETED or CANCELLED)
+  const isStatusLocked = normalizedStatus === 'COMPLETED' || normalizedStatus === 'CANCELLED';
 
   const updateStatus = async (status: string, notes: string) => {
     setIsUpdating(true);
@@ -94,68 +67,57 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
     }
   };
 
-  const getStatusColor = (status: string) => {
-    const option = STATUS_OPTIONS.find(opt => opt.value === status);
-    return option?.color || 'bg-gray-100 text-gray-800';
-  };
-
-  const getDisplayLabel = (status: string) => {
-    const option = STATUS_OPTIONS.find(opt => opt.value === status);
-    return option?.display || status;
-  };
-
-  const isStatusLocked = normalizedStatus === 'COMPLETED' || normalizedStatus === 'CANCELLED';
-
   return (
     <div className="space-y-4">
-      {/* Current Status Display */}
-      <div className="flex items-center gap-3">
-        <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusColor(normalizedStatus)}`}>
-          {currentOption?.display || normalizedStatus}
-        </span>
-        {!isStatusLocked && (
-          <button 
-            onClick={loadStatusHistory}
-            disabled={loadingHistory}
-            className="text-sm text-gray-600 hover:text-gray-800 underline disabled:opacity-50"
-          >
-            {loadingHistory ? 'Memuatkan...' : 'Lihat Sejarah'}
-          </button>
-        )}
-      </div>
-
-      {/* Status Dropdown */}
-      {!isStatusLocked && (
-        <div className="space-y-2">
-          <label className="block text-slate-900 font-semibold text-sm">Tukar Status:</label>
-          
-          {process.env.NODE_ENV === 'development' && (
-            <div className="text-xs text-gray-500 mb-1 p-1 bg-gray-50 rounded">
-              Debug: Raw="{currentStatus}" → Normalized="{normalizedStatus}"
-            </div>
-          )}
-          
-          <select
-            value={normalizedStatus}
-            onChange={(e) => handleStatusChange(e.target.value)}
-            disabled={isUpdating}
-            className="text-slate-900 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-green-500 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {allOptions.map((option) => (
-              <option 
-                key={option.value} 
-                value={option.value}
-              >
-                {option.display}
-              </option>
-            ))}
-          </select>
-          
-          <div className="text-xs text-gray-500 mt-1">
-            Status "Selesai" dan "Batal" memerlukan catatan dan adalah muktamad.
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-gray-600">Status Semasa:</span>
+            {currentOption && (
+              <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${currentOption.color}`}>
+                {currentOption.display}
+              </span>
+            )}
           </div>
         </div>
-      )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={loadStatusHistory}
+            disabled={loadingHistory}
+            className="px-4 py-2 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg border border-gray-300 transition flex items-center gap-2 disabled:opacity-50"
+          >
+            <span>📜</span>
+            {loadingHistory ? 'Memuatkan...' : 'Lihat Sejarah'}
+          </button>
+
+          {!isStatusLocked && (
+            <select
+              value=""
+              onChange={(e) => {
+                const newStatus = e.target.value;
+                if (newStatus === 'COMPLETED' || newStatus === 'CANCELLED') {
+                  setTargetStatus(newStatus);
+                  setShowNotesModal(true);
+                  return;
+                }
+                updateStatus(newStatus, '');
+              }}
+              disabled={isUpdating}
+              className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="">Tukar Status...</option>
+              {STATUS_OPTIONS
+                .filter(opt => opt.value !== normalizedStatus)
+                .map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.display}
+                  </option>
+                ))}
+            </select>
+          )}
+        </div>
+      </div>
 
       {showNotesModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -209,9 +171,13 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.previous_status)}`}>{getDisplayLabel(record.previous_status)}</span>
+                            <span className={`px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800`}>
+                              {record.previous_status}
+                            </span>
                             <span className="text-gray-400">→</span>
-                            <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(record.new_status)}`}>{getDisplayLabel(record.new_status)}</span>
+                            <span className={`px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800`}>
+                              {record.new_status}
+                            </span>
                           </div>
                         </div>
                         <span className="text-xs text-gray-500">{new Date(record.created_at).toLocaleString('ms-MY')}</span>

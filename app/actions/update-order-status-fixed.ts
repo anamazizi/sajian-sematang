@@ -63,6 +63,8 @@ export async function updateOrderStatusWithAudit(
         p_notes: notes || null,
         p_actor_name: actorName, // Pass real name to RPC
         p_actor_role: actorRole, // Pass role to RPC
+        // Note: RPC function does not accept p_actor_id parameter
+        // It uses auth.uid() internally to get user ID
       }
     );
 

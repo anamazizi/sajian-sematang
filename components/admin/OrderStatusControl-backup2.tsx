@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { updateOrderStatusWithAudit, getOrderStatusHistory } from '../../app/actions/update-order-status';
+import { updateOrderStatusWithAudit, getOrderStatusHistory } from '../../app/actions/update-order-status-fixed';
 
 interface OrderStatusControlProps {
   orderId: string;
@@ -67,12 +67,9 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
         if (onStatusUpdate) onStatusUpdate(orderId, upperStatus);
         alert('✅ Status berjaya ditukar');
       } else {
-        // Display specific error message from Server Action
-        const errorMessage = result.error || 'Gagal menukar status';
-        alert(`❌ ${errorMessage}`);
+        alert('❌ Gagal menukar status');
       }
     } catch (error) {
-      console.error('Error updating status:', error);
       alert('Ralat berlaku ketika menukar status');
     } finally {
       setIsUpdating(false);
@@ -174,7 +171,7 @@ export default function OrderStatusControl({ orderId, currentStatus, onStatusUpd
                 placeholder={targetStatus === 'COMPLETED' 
                   ? 'Contoh: Pesanan telah diterima dan diselesaikan...' 
                   : 'Contoh: Pelanggan meminta batal kerana...'}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-green-500 focus:border-green-500 min-h-[120px]"
                 rows={3}
                 required
               />
