@@ -5,13 +5,11 @@
 // Accessible by: admin + staff
 // Staff CANNOT access payout/financial section
 
-export const dynamic = 'force-dynamic';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../../lib/auth/hooks';
-import { supabase } from '../../lib/supabase/client';
 import Link from 'next/link';
+import { useAuth } from '../../lib/auth/hooks';
+import AdminBottomNav from '@/components/admin/AdminBottomNav';
 
 export default function KawalanDashboard() {
   const router = useRouter();
@@ -61,7 +59,7 @@ export default function KawalanDashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pb-24">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Orders Management - Admin & Staff */}
           <Link href="/kawalan/orders" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition border-l-4 border-blue-500">
@@ -73,7 +71,7 @@ export default function KawalanDashboard() {
           {/* Products Management - Admin Only */}
           {isAdmin && (
             <Link href="/kawalan/products" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition border-l-4 border-green-500">
-              <div className="text-4xl mb-3">🍽️</div>
+              <div className="text-4xl mb-3">🏢</div>
               <h2 className="text-xl font-bold text-gray-800 mb-2">Pengurusan Produk</h2>
               <p className="text-gray-600 text-sm">Urus semua produk dari semua peniaga</p>
               <span className="inline-block mt-2 bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">🔒 Admin Sahaja</span>
@@ -102,6 +100,9 @@ export default function KawalanDashboard() {
           </div>
         )}
       </main>
+      
+      {/* Bottom Navigation for Admin/Staff */}
+      <AdminBottomNav />
     </div>
   );
 }

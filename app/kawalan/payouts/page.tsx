@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import ProtectedRoute from '../../../components/auth/ProtectedRoute';
 import SellerOutstanding from '../../../components/admin/SellerOutstanding';
 import PayoutModal from '../../../components/admin/PayoutModal';
+import AdminBottomNav from '@/components/admin/AdminBottomNav';
 import { getAllSellersOutstanding } from '../../../lib/financial/payout';
 import { supabase } from '../../../lib/supabase/client';
 import { SellerOutstandingSummary } from '../../../types/database';
@@ -103,7 +104,7 @@ export default function AdminPayoutsPage() {
         </header>
 
         {/* Content */}
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-4 py-8 pb-24">
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {/* Total Outstanding */}
@@ -202,6 +203,10 @@ export default function AdminPayoutsPage() {
           />
         )}
       </div>
+      
+      {/* Bottom Navigation for Admin/Staff */}
+      <AdminBottomNav />
+      
     </ProtectedRoute>
   );
 }

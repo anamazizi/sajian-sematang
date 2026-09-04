@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
 import OrderStatusControl from '../../../components/admin/OrderStatusControl-final';
+import AdminBottomNav from '@/components/admin/AdminBottomNav';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Semua Status' },
@@ -338,7 +339,7 @@ ${itemsList}
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8 pb-24">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Pengurusan Pesanan</h1>
           <p className="text-gray-600">Urus status pesanan dan pantau audit trail</p>
@@ -495,6 +496,9 @@ ${itemsList}
           </ul>
         </div>
       </div>
+      
+      {/* Bottom Navigation for Admin/Staff */}
+      <AdminBottomNav />
     </div>
   );
 }
