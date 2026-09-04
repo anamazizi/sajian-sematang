@@ -48,6 +48,7 @@ export default function OrdersManagementPage() {
       
       // Debug: Log user info
       console.log('Fetching orders for user:', user?.id, 'Role:', profile?.role);
+      console.log('User email:', user?.email);
       
       // First verify authentication session is valid
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -57,46 +58,57 @@ export default function OrdersManagementPage() {
       }
       
       console.log('Session valid:', !!session?.user);
+      console.log('Auth user ID:', session?.user?.id);
+      console.log('Auth email:', session?.user?.email);
       
       // Check if user has admin/staff role in database
       const { data: userRoleData, error: roleError } = await supabase
         .from('users')
-        .select('role, is_active')
+        .select('role, is_active, email')
         .eq('id', user?.id)
         .single();
         
       if (roleError) {
         console.error('Role check error:', roleError);
+        console.error('Role error details:', JSON.stringify(roleError, null, 2));
       } else {
-        console.log('User role in DB:', userRoleData?.role, 'is_active:', userRoleData?.is_active);
+        console.log('User role in DB:', userRoleData?.role, 'is_active:', userRoleData?.is_active, 'email:', userRoleData?.email);
       }
       
       // Try to fetch orders with basic columns first
       // Using columns that definitely exist based on schema
+      console.log('Attempting to fetch orders...');
+      
+      // FIRST: Try simple query without complex column list
+      const { data: testData, error: testError } = await supabase
+        .from('orders')
+        .select('id')
+        .limit(1);
+      
+      if (testError) {
+        console.error('Simple test query error:', testError);
+        console.error('Test error details:', JSON.stringify(testError, null, 2));
+      } else {
+        console.log('Simple test query success, found rows:', testData?.length || 0);
+      }
+      
+      // SECOND: Fetch orders with simplified query to avoid column issues
+      // Using minimum required columns for UI
+      // Note: customer_email might be needed for RLS policy
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select(`
           id,
           customer_name,
+          customer_email,
           customer_phone,
           customer_address,
-          customer_name_snapshot,
-          customer_phone_snapshot,
-          customer_address_snapshot,
-          customer_pin_location_snapshot,
           seller_id,
           subtotal,
           delivery_fee,
-          delivery_fee_snapshot,
           total_price,
           delivery_mode,
-          calculated_distance,
-          delivery_distance_snapshot,
           status,
-          is_custom_preorder,
-          delivery_datetime,
-          special_notes,
-          whatsapp_sent,
           created_by,
           created_at,
           updated_at
@@ -105,12 +117,12 @@ export default function OrdersManagementPage() {
 
       if (ordersError) {
         console.error('Fetch orders error:', ordersError);
-        console.error('Error details:', {
+        console.error('Error details:', JSON.stringify({
           message: ordersError.message,
           code: ordersError.code,
           details: ordersError.details,
           hint: ordersError.hint
-        });
+        }, null, 2));
         throw ordersError;
       }
 
@@ -121,13 +133,19 @@ export default function OrdersManagementPage() {
           id: ordersData[0].id,
           status: ordersData[0].status,
           customer_name: ordersData[0].customer_name,
-          seller_id: ordersData[0].seller_id
+          seller_id: ordersData[0].seller_id,
+          created_at: ordersData[0].created_at
         });
+      } else {
+        console.log('No orders data returned. This could mean:');
+        console.log('1. Database orders table is empty');
+        console.log('2. RLS policies are preventing access');
+        console.log('3. Query columns don\'t match schema');
       }
 
       const ordersWithItems = await Promise.all(
         (ordersData || []).map(async (order) => {
-          // Fetch order items once
+          // Fetch order items once - simplified to avoid column issues
           const { data: orderItemsData, error: itemsError } = await supabase
             .from('order_items')
             .select(`
@@ -136,9 +154,7 @@ export default function OrdersManagementPage() {
               product_id,
               quantity,
               unit_price,
-              product_name_snapshot,
-              cost_price_snapshot,
-              product:products(id, name, price)
+              product_name_snapshot
             `)
             .eq('order_id', order.id);
           
