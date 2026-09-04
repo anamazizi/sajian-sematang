@@ -127,13 +127,6 @@ export default function AdminProductsManagementPage() {
     if (!user || !profile || !editingProduct) return;
     
     try {
-      // Dapatkan kuantiti asal sebelum update
-      const originalProduct = products.find(p => p.id === editingProduct.id);
-      const originalQuantity = originalProduct?.stock_quantity || 0;
-      const newQuantity = editingProduct.stock_quantity;
-      const quantityChange = newQuantity - originalQuantity;
-      
-      // Update produk
       await supabase
         .from('products')
         .update({
@@ -147,22 +140,6 @@ export default function AdminProductsManagementPage() {
           updated_at: new Date().toISOString()
         })
         .eq('id', editingProduct.id);
-      
-      // Rekod stock movement jika ada perubahan kuantiti
-      if (quantityChange !== 0) {
-        await supabase.from('stock_movements').insert({
-          product_id: editingProduct.id,
-          seller_id: editingProduct.seller_id,
-          change_amount: quantityChange,
-          movement_type: 'CORRECTION',
-          reason: 'Pelarasan stok oleh Admin/Staff',
-          previous_quantity: originalQuantity,
-          new_quantity: newQuantity,
-          created_by: user.id,
-          created_by_role: profile.role,
-          created_at: new Date().toISOString()
-        });
-      }
       
       await supabase.from('audit_logs').insert({
         actor_id: user.id,
@@ -178,7 +155,7 @@ export default function AdminProductsManagementPage() {
       await fetchAllProducts();
       setShowEditModal(false);
       setEditingProduct(null);
-      alert('Produk berjaya dikemaskini!' + (quantityChange !== 0 ? ` Stok diubah: ${originalQuantity} → ${newQuantity}` : ''));
+      alert('Produk berjaya dikemaskini!');
     } catch (error: any) {
       alert('Ralat: ' + error.message);
     }
@@ -213,22 +190,6 @@ export default function AdminProductsManagementPage() {
 
       if (error) throw error;
 
-      // Rekod initial stock movement jika ada stok awal
-      if (newProductData.stock_quantity > 0) {
-        await supabase.from('stock_movements').insert({
-          product_id: data.id,
-          seller_id: newProductData.seller_id,
-          change_amount: newProductData.stock_quantity,
-          movement_type: 'INITIAL_STOCK',
-          reason: 'Stok awal produk baru',
-          previous_quantity: 0,
-          new_quantity: newProductData.stock_quantity,
-          created_by: user.id,
-          created_by_role: profile.role,
-          created_at: new Date().toISOString()
-        });
-      }
-
       await supabase.from('audit_logs').insert({
         actor_id: user.id,
         actor_name: profile.name || '',
@@ -254,7 +215,7 @@ export default function AdminProductsManagementPage() {
         description: ''
       });
       await fetchAllProducts();
-      alert('Produk berjaya dicipta!' + (newProductData.stock_quantity > 0 ? ` Stok awal: ${newProductData.stock_quantity} unit` : ''));
+      alert('Produk berjaya dicipta!');
     } catch (error: any) {
       alert('Ralat: ' + error.message);
     }
@@ -553,136 +514,6 @@ export default function AdminProductsManagementPage() {
           </div>
         )}
       </main>
-
-      {/* Modal Edit Produk */}
-      {showEditModal && editingProduct && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl text-slate-900">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">✏️ Edit Produk</h2>
-              <button onClick={() => { setShowEditModal(false); setEditingProduct(null); }} className="text-gray-500 hover:text-gray-700">✕</button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Produk *</label>
-                <input type="text" value={editingProduct.name} onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white placeholder:text-gray-400" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                <input type="text" value={editingProduct.category || ''} onChange={(e) => setEditingProduct({...editingProduct, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white placeholder:text-gray-400" placeholder="Contoh: Makanan, Minuman" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga Jualan (RM) *</label>
-                  <input type="number" value={editingProduct.price} onChange={(e) => setEditingProduct({...editingProduct, price: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white" min="0" step="0.01" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga SS / Kos (RM)</label>
-                  <input type="number" value={editingProduct.cost_price || 0} onChange={(e) => setEditingProduct({...editingProduct, cost_price: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white" min="0" step="0.01" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kuantiti Stok</label>
-                <input type="number" value={editingProduct.stock_quantity} onChange={(e) => setEditingProduct({...editingProduct, stock_quantity: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white" min="0" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" checked={editingProduct.is_available ?? true} onChange={(e) => setEditingProduct({...editingProduct, is_available: e.target.checked})} className="w-4 h-4 border-gray-300 rounded focus:ring-blue-500 text-blue-600" />
-                  <label className="text-sm font-medium text-gray-700">Aktif / Ketersediaan</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" checked={editingProduct.is_preorder ?? false} onChange={(e) => setEditingProduct({...editingProduct, is_preorder: e.target.checked})} className="w-4 h-4 border-gray-300 rounded focus:ring-blue-500 text-blue-600" />
-                  <label className="text-sm font-medium text-gray-700">Mod Pre-Order</label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Produk</label>
-                <textarea value={editingProduct.description || ''} onChange={(e) => setEditingProduct({...editingProduct, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white placeholder:text-gray-400 min-h-[100px]" placeholder="Penerangan produk..." />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-              <button onClick={() => { setShowEditModal(false); setEditingProduct(null); }} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">Batal</button>
-              <button onClick={handleSaveEdit} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium">Simpan Perubahan</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Tambah Produk */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl text-slate-900">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">+ Tambah Produk Peniaga</h2>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">✕</button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Peniaga *</label>
-                <select value={newProductData.seller_id} onChange={(e) => setNewProductData({...newProductData, seller_id: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white">
-                  <option value="">-- Pilih Peniaga --</option>
-                  {sellers.map(seller => <option key={seller.id} value={seller.id}>{seller.shop_name}</option>)}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nama Produk *</label>
-                <input type="text" value={newProductData.name} onChange={(e) => setNewProductData({...newProductData, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white placeholder:text-gray-400" placeholder="Contoh: Nasi Lemak Special" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
-                <input type="text" value={newProductData.category} onChange={(e) => setNewProductData({...newProductData, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white placeholder:text-gray-400" placeholder="Contoh: Makanan, Minuman" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga Jualan (RM) *</label>
-                  <input type="number" value={newProductData.price} onChange={(e) => setNewProductData({...newProductData, price: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white" min="0" step="0.01" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Harga SS / Kos (RM)</label>
-                  <input type="number" value={newProductData.cost_price} onChange={(e) => setNewProductData({...newProductData, cost_price: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white" min="0" step="0.01" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Kuantiti Stok Awal</label>
-                <input type="number" value={newProductData.stock_quantity} onChange={(e) => setNewProductData({...newProductData, stock_quantity: Number(e.target.value)})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white" min="0" />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" checked={newProductData.is_available} onChange={(e) => setNewProductData({...newProductData, is_available: e.target.checked})} className="w-4 h-4 border-gray-300 rounded focus:ring-blue-500 text-blue-600" />
-                  <label className="text-sm font-medium text-gray-700">Aktif / Ketersediaan</label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input type="checkbox" checked={newProductData.is_preorder} onChange={(e) => setNewProductData({...newProductData, is_preorder: e.target.checked})} className="w-4 h-4 border-gray-300 rounded focus:ring-blue-500 text-blue-600" />
-                  <label className="text-sm font-medium text-gray-700">Mod Pre-Order</label>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Deskripsi Produk</label>
-                <textarea value={newProductData.description} onChange={(e) => setNewProductData({...newProductData, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white placeholder:text-gray-400 min-h-[100px]" placeholder="Penerangan produk..." />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3 mt-6 pt-6 border-t">
-              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">Batal</button>
-              <button onClick={handleCreateProduct} className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-medium">Cipta Produk</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <AdminBottomNav />
     </div>
