@@ -317,6 +317,87 @@ export default function AdminProductsManagementPage() {
     router.push('/jualan/products/' + productId + '/edit?adminView=true');
   }
 
+  // Function untuk save category
+  async function handleSaveCategory(categoryData: any) {
+    if (!user || !profile) return;
+
+    try {
+      if (categoryData.id) {
+        // Update existing category
+        const { error } = await supabase
+          .from('categories')
+          .update({
+            name: categoryData.name,
+            description: categoryData.description || null,
+            is_active: categoryData.is_active,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', categoryData.id);
+
+        if (error) throw error;
+        alert('Kategori berjaya dikemaskini');
+      } else {
+        // Create new category
+        const { error } = await supabase
+          .from('categories')
+          .insert({
+            name: categoryData.name,
+            description: categoryData.description || null,
+            is_active: categoryData.is_active,
+            created_by: profile.id,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+        alert('Kategori baru berjaya ditambah');
+      }
+
+      // Refresh categories
+      await fetchCategories();
+    } catch (error: any) {
+      console.error('Error saving category:', error);
+      alert('Gagal menyimpan kategori: ' + error.message);
+    }
+  }
+
+  // Function untuk delete category
+  async function handleDeleteCategory(categoryId: string) {
+    if (!user || !profile) return;
+
+    if (!confirm('Adakah anda pasti mahu memadam kategori ini?')) {
+      return;
+    }
+
+    try {
+      // Check if category has products
+      const { data: productsCount, error: checkError } = await supabase
+        .from('products')
+        .select('id', { count: 'exact' })
+        .ilike('category', categories.find(c => c.id === categoryId)?.name || '');
+
+      if (checkError) throw checkError;
+
+      if (productsCount && productsCount.length > 0) {
+        alert('Kategori ini mempunyai produk. Sila alihkan produk terlebih dahulu sebelum memadam kategori.');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId);
+
+      if (error) throw error;
+
+      alert('Kategori berjaya dipadam');
+      await fetchCategories();
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      alert('Gagal memadam kategori: ' + error.message);
+    }
+  }
+
   // Extract existing product categories for filtering
   const productCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
   const activeCategories = categories.filter(cat => cat.is_active);
