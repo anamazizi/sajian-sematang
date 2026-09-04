@@ -10,12 +10,12 @@ import OrderStatusControl from '../../../components/admin/OrderStatusControl-fin
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Semua Status' },
-  { value: 'Pending', label: 'Pending' },
-  { value: 'Accepted', label: 'Accepted' },
-  { value: 'Ready', label: 'Ready' },
-  { value: 'Delivering', label: 'Delivering' },
-  { value: 'Completed', label: 'Completed' },
-  { value: 'Cancelled', label: 'Cancelled' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'ACCEPTED', label: 'Accepted' },
+  { value: 'READY', label: 'Ready' },
+  { value: 'DELIVERING', label: 'Delivering' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
 ];
 
 export default function OrdersManagementPage() {
@@ -45,21 +45,42 @@ export default function OrdersManagementPage() {
   async function fetchOrders() {
     try {
       setLoading(true);
+      
+      // Debug: Log user info
+      console.log('Fetching orders for user:', user?.id, 'Role:', profile?.role);
+      
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*, customer_pin_location_snapshot, customer_address_snapshot')
         .order('created_at', { ascending: false });
 
-      if (ordersError) throw ordersError;
+      if (ordersError) {
+        console.error('Fetch orders error:', ordersError);
+        throw ordersError;
+      }
+
+      // Debug: Log raw data
+      console.log('Raw orders data:', ordersData?.length || 0, 'orders found');
+      if (ordersData && ordersData.length > 0) {
+        console.log('Sample order:', {
+          id: ordersData[0].id,
+          status: ordersData[0].status,
+          customer_name: ordersData[0].customer_name
+        });
+      }
 
       const ordersWithItems = await Promise.all(
         (ordersData || []).map(async (order) => {
           // Fetch order items once
-          const { data: orderItemsData } = await supabase
+          const { data: orderItemsData, error: itemsError } = await supabase
             .from('order_items')
             .select('*, product:products(*)')
             .eq('order_id', order.id);
           
+          if (itemsError) {
+            console.error('Error fetching items for order', order.id, itemsError);
+          }
+
           const items = orderItemsData || [];
           
           return { 
@@ -70,9 +91,10 @@ export default function OrdersManagementPage() {
         })
       );
 
+      console.log('Processed orders:', ordersWithItems.length);
       setOrders(ordersWithItems);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
     }
@@ -82,9 +104,37 @@ export default function OrdersManagementPage() {
     fetchOrders();
   };
 
-  const filteredOrders = orders.filter(order => 
-    selectedStatus === 'all' || order.status === selectedStatus
-  );
+  const filteredOrders = orders.filter(order => {
+    if (selectedStatus === 'all') {
+      return true;
+    }
+    
+    // Normalize both statuses to uppercase for comparison
+    const orderStatus = order.status?.toUpperCase() || '';
+    const selectedStatusUpper = selectedStatus.toUpperCase();
+    
+    const matches = orderStatus === selectedStatusUpper;
+    
+    // Debug logging for filter issues
+    if (process.env.NODE_ENV === 'development' && selectedStatusUpper !== 'ALL') {
+      console.log(`Filter check: Order ${order.id} status="${order.status}" (normalized: "${orderStatus}") vs selected="${selectedStatus}" (normalized: "${selectedStatusUpper}") => ${matches ? 'MATCHES' : 'NO MATCH'}`);
+    }
+    
+    return matches;
+  });
+
+  // Debug: Log filter results
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Filter debug:', {
+        totalOrders: orders.length,
+        selectedStatus,
+        filteredCount: filteredOrders.length,
+        availableStatuses: [...new Set(orders.map(o => o.status?.toUpperCase()).filter(Boolean))],
+        sampleOrderStatuses: orders.slice(0, 3).map(o => ({ id: o.id, status: o.status }))
+      });
+    }
+  }, [orders, selectedStatus, filteredOrders.length]);
 
   const statusCounts = orders.reduce((acc, order) => {
     acc[order.status] = (acc[order.status] || 0) + 1;
@@ -253,7 +303,32 @@ ${itemsList}
         {/* Orders List */}
         {filteredOrders.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <p className="text-gray-600">Tiada pesanan dijumpai.</p>
+            {orders.length === 0 ? (
+              <div>
+                <p className="text-gray-600 mb-2">Tiada pesanan dijumpai dalam sistem.</p>
+                <p className="text-sm text-gray-500">
+                  Status pengguna: {profile?.role} | Total orders dalam database: 0
+                </p>
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-700">
+                  <p className="font-medium">Debug info:</p>
+                  <ul className="text-left mt-1 space-y-1">
+                    <li>• User ID: {user?.id}</li>
+                    <li>• Role: {profile?.role}</li>
+                    <li>• Selected status filter: {selectedStatus}</li>
+                    <li>• Check browser console for detailed fetch logs</li>
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="text-gray-600 mb-2">
+                  Tiada pesanan dengan status "{selectedStatus}" dijumpai.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Total orders: {orders.length} | Available statuses: {[...new Set(orders.map(o => o.status))].join(', ')}
+                </p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
