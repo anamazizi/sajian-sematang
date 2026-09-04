@@ -257,7 +257,7 @@ export default function PayoutModal({
                   <select
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-slate-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                     disabled={submitting}
                   >
                     <option value="DuitNow">DuitNow</option>
@@ -276,7 +276,7 @@ export default function PayoutModal({
                     type="text"
                     value={referenceNumber}
                     onChange={(e) => setReferenceNumber(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-slate-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                     placeholder="Contoh: REF123456"
                     disabled={submitting}
                   />
@@ -290,7 +290,7 @@ export default function PayoutModal({
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-slate-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
                     rows={3}
                     placeholder="Catatan tambahan..."
                     disabled={submitting}
