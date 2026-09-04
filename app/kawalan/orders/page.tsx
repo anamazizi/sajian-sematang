@@ -58,10 +58,49 @@ export default function OrdersManagementPage() {
       
       console.log('Session valid:', !!session?.user);
       
-      // Try to fetch orders with expanded select to see all columns
+      // Check if user has admin/staff role in database
+      const { data: userRoleData, error: roleError } = await supabase
+        .from('users')
+        .select('role, is_active')
+        .eq('id', user?.id)
+        .single();
+        
+      if (roleError) {
+        console.error('Role check error:', roleError);
+      } else {
+        console.log('User role in DB:', userRoleData?.role, 'is_active:', userRoleData?.is_active);
+      }
+      
+      // Try to fetch orders with basic columns first
+      // Using columns that definitely exist based on schema
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
-        .select('*, customer_pin_location_snapshot, customer_address_snapshot')
+        .select(`
+          id,
+          customer_name,
+          customer_phone,
+          customer_address,
+          customer_name_snapshot,
+          customer_phone_snapshot,
+          customer_address_snapshot,
+          customer_pin_location_snapshot,
+          seller_id,
+          subtotal,
+          delivery_fee,
+          delivery_fee_snapshot,
+          total_price,
+          delivery_mode,
+          calculated_distance,
+          delivery_distance_snapshot,
+          status,
+          is_custom_preorder,
+          delivery_datetime,
+          special_notes,
+          whatsapp_sent,
+          created_by,
+          created_at,
+          updated_at
+        `)
         .order('created_at', { ascending: false });
 
       if (ordersError) {
@@ -81,7 +120,8 @@ export default function OrdersManagementPage() {
         console.log('Sample order:', {
           id: ordersData[0].id,
           status: ordersData[0].status,
-          customer_name: ordersData[0].customer_name
+          customer_name: ordersData[0].customer_name,
+          seller_id: ordersData[0].seller_id
         });
       }
 
@@ -90,7 +130,16 @@ export default function OrdersManagementPage() {
           // Fetch order items once
           const { data: orderItemsData, error: itemsError } = await supabase
             .from('order_items')
-            .select('*, product:products(*)')
+            .select(`
+              id,
+              order_id,
+              product_id,
+              quantity,
+              unit_price,
+              product_name_snapshot,
+              cost_price_snapshot,
+              product:products(id, name, price)
+            `)
             .eq('order_id', order.id);
           
           if (itemsError) {
