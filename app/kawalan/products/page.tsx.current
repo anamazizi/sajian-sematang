@@ -9,9 +9,6 @@ import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
 import { Product, Seller } from '../../../types/database';
 import AdminBottomNav from '@/components/admin/AdminBottomNav';
-import AdminProductEditModal from '@/components/admin/AdminProductEditModal';
-import AdminProductCreateModal from '@/components/admin/AdminProductCreateModal';
-import AdminCategoryModal from '@/components/admin/AdminCategoryModal';
 
 export default function AdminProductsManagementPage() {
   const router = useRouter();
@@ -28,7 +25,6 @@ export default function AdminProductsManagementPage() {
   // Modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [newProductData, setNewProductData] = useState({
     seller_id: '',
@@ -41,25 +37,6 @@ export default function AdminProductsManagementPage() {
     is_available: true,
     is_archived: false,
     description: ''
-  });
-
-  // Category state
-  interface Category {
-    id: string;
-    name: string;
-    description: string | null;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-    created_by: string | null;
-    product_count?: number;
-  }
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [categoryFormData, setCategoryFormData] = useState({
-    name: '',
-    description: '',
-    is_active: true
   });
 
   useEffect(() => {
@@ -75,20 +52,19 @@ export default function AdminProductsManagementPage() {
 
     fetchAllProducts();
     fetchSellers();
-    fetchCategories();
   }, [user, profile, authLoading, router]);
 
-  async function fetchCategories() {
+  async function fetchSellers() {
     try {
-      const { data: categoriesData, error } = await supabase
-        .from('categories')
-        .select('*, product_count:products(count)')
-        .order('name', { ascending: true });
+      const { data: sellersData, error } = await supabase
+        .from('sellers')
+        .select('*')
+        .order('shop_name', { ascending: true });
 
       if (error) throw error;
-      setCategories(categoriesData || []);
+      setSellers(sellersData || []);
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('Error fetching sellers:', error);
     }
   }
 
@@ -108,19 +84,38 @@ export default function AdminProductsManagementPage() {
     }
   }
 
-  async function fetchSellers() {
-    try {
-      const { data: sellersData, error } = await supabase
-        .from('sellers')
-        .select('*')
-        .order('shop_name', { ascending: true });
-
-      if (error) throw error;
-      setSellers(sellersData || []);
-    } catch (error) {
-      console.error('Error fetching sellers:', error);
+  const filteredProducts = products.filter(product => {
+    if (sellerFilter !== 'all' && product.seller_id !== sellerFilter) return false;
+    if (categoryFilter !== 'all' && product.category !== categoryFilter) return false;
+    
+    const isAvailable = product.is_available ?? true;
+    const isArchived = product.is_archived ?? false;
+    const isPreorder = product.is_preorder ?? false;
+    
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'active' && (!isAvailable || isPreorder || isArchived)) return false;
+      if (statusFilter === 'inactive' && isAvailable) return false;
+      if (statusFilter === 'preorder' && !isPreorder) return false;
+      if (statusFilter === 'archived' && !isArchived) return false;
     }
-  }
+    
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const seller = sellers.find(s => s.id === product.seller_id);
+      const sellerName = seller?.shop_name || '';
+      
+      return (
+        product.name.toLowerCase().includes(query) ||
+        product.description?.toLowerCase().includes(query) ||
+        product.category?.toLowerCase().includes(query) ||
+        sellerName.toLowerCase().includes(query)
+      );
+    }
+    
+    return true;
+  });
+
+  const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
 
   // Function untuk edit produk
   function handleEditProduct(product: Product) {
@@ -220,44 +215,11 @@ export default function AdminProductsManagementPage() {
         description: ''
       });
       await fetchAllProducts();
-      alert('Produk baru berjaya dicipta!');
+      alert('Produk berjaya dicipta!');
     } catch (error: any) {
       alert('Ralat: ' + error.message);
     }
   }
-
-  const filteredProducts = products.filter(product => {
-    if (sellerFilter !== 'all' && product.seller_id !== sellerFilter) return false;
-    if (categoryFilter !== 'all' && product.category !== categoryFilter) return false;
-    
-    const isAvailable = product.is_available ?? true;
-    const isArchived = product.is_archived ?? false;
-    const isPreorder = product.is_preorder ?? false;
-    
-    if (statusFilter !== 'all') {
-      if (statusFilter === 'active' && (!isAvailable || isPreorder || isArchived)) return false;
-      if (statusFilter === 'inactive' && isAvailable) return false;
-      if (statusFilter === 'preorder' && !isPreorder) return false;
-      if (statusFilter === 'archived' && !isArchived) return false;
-    }
-    
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      const seller = sellers.find(s => s.id === product.seller_id);
-      const sellerName = seller?.shop_name || '';
-      
-      return (
-        product.name.toLowerCase().includes(query) ||
-        product.description?.toLowerCase().includes(query) ||
-        product.category?.toLowerCase().includes(query) ||
-        sellerName.toLowerCase().includes(query)
-      );
-    }
-    
-    return true;
-  });
-
-  
   async function handleToggleArchived(productId: string, currentStatus: boolean) {
     if (!user || !profile) return;
     if (!confirm('Anda pasti mahu ' + (currentStatus ? 'archive' : 'aktifkan semula') + ' produk ini?')) return;
@@ -317,10 +279,6 @@ export default function AdminProductsManagementPage() {
     router.push('/jualan/products/' + productId + '/edit?adminView=true');
   }
 
-  // Extract existing product categories for filtering
-  const productCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-  const activeCategories = categories.filter(cat => cat.is_active);
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -349,15 +307,6 @@ export default function AdminProductsManagementPage() {
                 <span>+</span>
                 <span>Tambah Produk Peniaga</span>
               </button>
-              {profile?.role === 'admin' && (
-                <button
-                  onClick={() => setShowCategoryModal(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 shadow-sm flex items-center gap-2"
-                >
-                  <span>🏷️</span>
-                  <span>Urus Kategori</span>
-                </button>
-              )}
               <button
                 onClick={() => router.push('/kawalan')}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium"
@@ -394,7 +343,7 @@ export default function AdminProductsManagementPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               >
                 <option value="all">Semua Kategori</option>
-                {productCategories.map(category => (
+                {categories.map(category => (
                   <option key={category} value={category}>{category}</option>
                 ))}
               </select>
@@ -565,39 +514,6 @@ export default function AdminProductsManagementPage() {
           </div>
         )}
       </main>
-
-      {/* Modals */}
-      <AdminProductEditModal
-        product={editingProduct!}
-        categories={categories}
-        isOpen={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onSave={handleSaveEdit}
-        onCloseAndOpenCategoryModal={() => {
-          setShowEditModal(false);
-          setShowCategoryModal(true);
-        }}
-      />
-
-      <AdminProductCreateModal
-        sellers={sellers}
-        categories={categories}
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onCreate={handleCreateProduct}
-        onCloseAndOpenCategoryModal={() => {
-          setShowCreateModal(false);
-          setShowCategoryModal(true);
-        }}
-      />
-
-      <AdminCategoryModal
-        categories={categories}
-        isOpen={showCategoryModal}
-        onClose={() => setShowCategoryModal(false)}
-        onSaveCategory={handleSaveCategory}
-        onDeleteCategory={handleDeleteCategory}
-      />
 
       <AdminBottomNav />
     </div>
