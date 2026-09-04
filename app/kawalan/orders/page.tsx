@@ -49,6 +49,16 @@ export default function OrdersManagementPage() {
       // Debug: Log user info
       console.log('Fetching orders for user:', user?.id, 'Role:', profile?.role);
       
+      // First verify authentication session is valid
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw sessionError;
+      }
+      
+      console.log('Session valid:', !!session?.user);
+      
+      // Try to fetch orders with expanded select to see all columns
       const { data: ordersData, error: ordersError } = await supabase
         .from('orders')
         .select('*, customer_pin_location_snapshot, customer_address_snapshot')
@@ -56,6 +66,12 @@ export default function OrdersManagementPage() {
 
       if (ordersError) {
         console.error('Fetch orders error:', ordersError);
+        console.error('Error details:', {
+          message: ordersError.message,
+          code: ordersError.code,
+          details: ordersError.details,
+          hint: ordersError.hint
+        });
         throw ordersError;
       }
 
