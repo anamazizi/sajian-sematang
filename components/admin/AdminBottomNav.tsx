@@ -9,9 +9,6 @@ export default function AdminBottomNav() {
   const pathname = usePathname();
   const { profile } = useAuth();
 
-  const isAdmin = profile?.role === 'admin';
-  const isStaff = profile?.role === 'staff';
-
   // Define navigation items
   const navItems = [
     {
@@ -86,11 +83,6 @@ export default function AdminBottomNav() {
               {/* Active indicator */}
               {isActive && (
                 <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1"></div>
-              )}
-              
-              {/* Role badge for admin-only items */}
-              {item.roles.length === 1 && item.roles[0] === 'admin' && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-white"></div>
               )}
             </Link>
           );
