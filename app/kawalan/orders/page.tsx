@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
-import OrderStatusControl from '../../../components/admin/OrderStatusControl-final';
+import OrderStatusControl from '../../../components/admin/OrderStatusControl';
 import AdminBottomNav from '@/components/admin/AdminBottomNav';
 
 const STATUS_FILTERS = [
@@ -182,8 +182,19 @@ export default function OrdersManagementPage() {
     }
   }
 
-  const handleStatusUpdate = () => {
-    fetchOrders();
+  const handleStatusUpdate = async (orderId: string, newStatus: string, notes?: string) => {
+    try {
+      console.log('Updating status:', { orderId, newStatus, notes });
+      
+      // TODO: Implement actual status update API call
+      // For now, just refresh orders
+      await fetchOrders();
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      return Promise.reject(error);
+    }
   };
 
   const filteredOrders = orders.filter(order => {
