@@ -4,6 +4,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 
 export default function AdminProductEditModal({ product, categories, isOpen, onClose, onSave }: any) {
+  // Debug: Log received categories
+  console.log('AdminProductEditModal received categories:', categories);
+  console.log('Categories type:', typeof categories);
+  console.log('Is array?', Array.isArray(categories));
+  
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -25,7 +30,33 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [localCategories, setLocalCategories] = useState<any[]>([]);
+
   useEffect(() => {
+    const fetchCategoriesIfNeeded = async () => {
+      // Jika prop categories kosong atau undefined, fetch sendiri dari Supabase
+      if (!Array.isArray(categories) || categories.length === 0) {
+        console.log('Fetching categories from Supabase (fallback)...');
+        try {
+          const { data: categoriesData, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('name', { ascending: true });
+
+          if (error) throw error;
+          
+          console.log('Fallback categories fetched:', categoriesData);
+          setLocalCategories(categoriesData || []);
+        } catch (error) {
+          console.error('Error fetching categories (fallback):', error);
+          setLocalCategories([]);
+        }
+      } else {
+        // Gunakan prop categories yang diberikan
+        setLocalCategories(categories);
+      }
+    };
+
     const fetchProductOptions = async () => {
       if (product?.id) {
         try {
@@ -65,11 +96,13 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
         preorder_end: product.preorder_end || '',
       });
       
+      fetchCategoriesIfNeeded();
       fetchProductOptions();
     } else {
+      fetchCategoriesIfNeeded();
       setProductOptions([]);
     }
-  }, [product]);
+  }, [product, categories]);
 
   if (!isOpen) return null;
 
@@ -159,15 +192,26 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
             <div>
               <label className="text-slate-900 font-semibold text-sm mb-1 block">Kategori</label>
               <select
-                value={formData.category}
+                value={formData.category || ''}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               >
                 <option value="">Pilih Kategori</option>
-                {categories?.map((cat: any) => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
-                ))}
+                {Array.isArray(localCategories) && localCategories.length > 0 ? (
+                  localCategories.map((cat: any, index: number) => {
+                    const catName = typeof cat === 'string' ? cat : cat.name;
+                    const catId = cat.id || `cat-${index}`;
+                    console.log(`Category option: ${catName} (ID: ${catId})`);
+                    return (
+                      <option key={catId} value={catName}>
+                        {catName}
+                      </option>
+                    );
+                  })
+                ) : (
+                  <option disabled value="">(Tiada kategori ditemui - Sila semak data)</option>
+                )}
               </select>
             </div>
 

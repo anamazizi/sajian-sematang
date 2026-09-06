@@ -86,6 +86,10 @@ export default function AdminProductsManagementPage() {
         .order('name', { ascending: true });
 
       if (error) throw error;
+      
+      console.log('Categories loaded from database:', categoriesData);
+      console.log('Categories count:', categoriesData?.length || 0);
+      
       setCategories(categoriesData || []);
     } catch (error) {
       console.error('Error fetching categories:', error);

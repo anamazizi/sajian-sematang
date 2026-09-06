@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
 
 interface AdminProductCreateModalProps {
   sellers: any[];
@@ -18,10 +19,16 @@ export default function AdminProductCreateModal({
   onClose,
   onCreate,
 }: AdminProductCreateModalProps) {
+  // Debug: Log received categories
+  console.log('AdminProductCreateModal received categories:', categories);
+  console.log('Categories type:', typeof categories);
+  console.log('Is array?', Array.isArray(categories));
+  
+  const [localCategories, setLocalCategories] = useState<any[]>([]);
   const [formData, setFormData] = useState({
     seller_id: sellers[0]?.id || '',
     name: '',
-    category: categories[0]?.name || '',
+    category: '',
     price: '',
     cost_price: '',
     stock_quantity: '0',
@@ -36,7 +43,49 @@ export default function AdminProductCreateModal({
     is_available: boolean;
     display_order: number;
   }>>([]);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch categories jika prop kosong
+  useEffect(() => {
+    const fetchCategoriesIfNeeded = async () => {
+      // Jika prop categories kosong atau undefined, fetch sendiri dari Supabase
+      if (!Array.isArray(categories) || categories.length === 0) {
+        console.log('CreateModal: Fetching categories from Supabase (fallback)...');
+        try {
+          const { data: categoriesData, error } = await supabase
+            .from('categories')
+            .select('*')
+            .order('name', { ascending: true });
+
+          if (error) throw error;
+          
+          console.log('CreateModal: Fallback categories fetched:', categoriesData);
+          setLocalCategories(categoriesData || []);
+        } catch (error) {
+          console.error('CreateModal: Error fetching categories (fallback):', error);
+          setLocalCategories([]);
+        }
+      } else {
+        // Gunakan prop categories yang diberikan
+        console.log('CreateModal: Using prop categories, count:', categories.length);
+        setLocalCategories(categories);
+      }
+    };
+
+    fetchCategoriesIfNeeded();
+  }, [categories]);
+
+  // Update formData.category apabila localCategories berubah dan formData.category kosong
+  useEffect(() => {
+    if (Array.isArray(localCategories) && localCategories.length > 0 && !formData.category) {
+      const defaultCategory = localCategories[0]?.name;
+      if (defaultCategory) {
+        console.log('Setting default category to:', defaultCategory);
+        setFormData(prev => ({ ...prev, category: defaultCategory }));
+      }
+    }
+  }, [localCategories, formData.category]);
 
   if (!isOpen) return null;
 
@@ -140,15 +189,26 @@ export default function AdminProductCreateModal({
             <div>
               <label className="text-slate-900 font-semibold text-sm mb-1 block">Kategori</label>
               <select
-                value={formData.category}
+                value={formData.category || ''}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               >
                 <option value="">Pilih Kategori</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.name}>{cat.name}</option>
-                ))}
+                {Array.isArray(localCategories) && localCategories.length > 0 ? (
+                  localCategories.map((cat: any, index: number) => {
+                    const catName = typeof cat === 'string' ? cat : cat.name;
+                    const catId = cat.id || `cat-${index}`;
+                    console.log(`CreateModal Category option: ${catName} (ID: ${catId})`);
+                    return (
+                      <option key={catId} value={catName}>
+                        {catName}
+                      </option>
+                    );
+                  })
+                ) : (
+                  <option disabled value="">(Tiada kategori ditemui - Sila semak data)</option>
+                )}
               </select>
             </div>
 
