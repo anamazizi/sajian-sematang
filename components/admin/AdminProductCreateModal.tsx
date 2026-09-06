@@ -30,9 +30,47 @@ export default function AdminProductCreateModal({
     preorder_start: '',
     preorder_end: '',
   });
+  const [productOptions, setProductOptions] = useState<Array<{
+    option_name: string;
+    price_adjustment: string;
+    is_available: boolean;
+    display_order: number;
+  }>>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleAddOption = () => {
+    setProductOptions([
+      ...productOptions,
+      {
+        option_name: '',
+        price_adjustment: '0.00',
+        is_available: true,
+        display_order: productOptions.length + 1
+      }
+    ]);
+  };
+
+  const handleRemoveOption = (index: number) => {
+    const newOptions = [...productOptions];
+    newOptions.splice(index, 1);
+    // Update display order
+    const updatedOptions = newOptions.map((option, idx) => ({
+      ...option,
+      display_order: idx + 1
+    }));
+    setProductOptions(updatedOptions);
+  };
+
+  const handleOptionChange = (index: number, field: string, value: string | boolean) => {
+    const newOptions = [...productOptions];
+    newOptions[index] = {
+      ...newOptions[index],
+      [field]: value
+    };
+    setProductOptions(newOptions);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +85,10 @@ export default function AdminProductCreateModal({
         is_preorder: formData.is_preorder,
         preorder_start: formData.is_preorder && formData.preorder_start ? formData.preorder_start : null,
         preorder_end: formData.is_preorder && formData.preorder_end ? formData.preorder_end : null,
+        options: productOptions.map(option => ({
+          ...option,
+          price_adjustment: parseFloat(option.price_adjustment)
+        }))
       });
       onClose();
     } catch (error) {
@@ -57,7 +99,7 @@ export default function AdminProductCreateModal({
     }
   };
 
-  const standardCategories = ['Makanan', 'Minuman', 'Kuih-Muih', 'Snek', 'Pencuci Mulut'];
+
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
@@ -103,9 +145,7 @@ export default function AdminProductCreateModal({
                 className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               >
-                {standardCategories.map((cat) => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
+                <option value="">Pilih Kategori</option>
                 {categories.map((cat) => (
                   <option key={cat.id} value={cat.name}>{cat.name}</option>
                 ))}
@@ -150,6 +190,96 @@ export default function AdminProductCreateModal({
                 className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               />
+            </div>
+
+            {/* Product Options Section */}
+            <div className="border-t pt-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-slate-900 font-semibold text-sm mb-1">Pilihan / Add-ons</h3>
+                  <p className="text-xs text-gray-600">Tambahan seperti saiz, topping, atau bahan tambahan</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddOption}
+                  className="px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition text-sm font-medium"
+                >
+                  + Tambah Pilihan
+                </button>
+              </div>
+
+              {productOptions.length > 0 ? (
+                <div className="space-y-4 bg-blue-50 p-4 rounded-lg border border-blue-100">
+                  {productOptions.map((option, index) => (
+                    <div key={index} className="bg-white p-3 rounded-lg border border-gray-200">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            #{option.display_order}
+                          </span>
+                          <span className="text-sm font-medium text-gray-700">
+                            Pilihan {option.display_order}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOption(index)}
+                          className="text-red-500 hover:text-red-700 text-sm"
+                        >
+                          🗑️ Padam
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-slate-900 font-semibold text-xs mb-1 block">Nama Option</label>
+                          <input
+                            type="text"
+                            value={option.option_name}
+                            onChange={(e) => handleOptionChange(index, 'option_name', e.target.value)}
+                            className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full text-sm"
+                            placeholder="Contoh: Saiz Besar, Extra Cheese, Ais"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-slate-900 font-semibold text-xs mb-1 block">Harga Tambahan (RM)</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={option.price_adjustment}
+                            onChange={(e) => handleOptionChange(index, 'price_adjustment', e.target.value)}
+                            className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full text-sm"
+                            placeholder="0.00"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                        <div>
+                          <p className="text-slate-900 font-semibold text-xs mb-1">Status Aktif</p>
+                          <p className="text-xs text-gray-600">Paparkan kepada pelanggan</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleOptionChange(index, 'is_available', !option.is_available)}
+                          className={`w-10 h-5 flex items-center rounded-full p-0.5 ${
+                            option.is_available ? 'bg-green-400' : 'bg-gray-300'
+                          }`}
+                        >
+                          <div className={`bg-white w-3 h-3 rounded-full transform ${
+                            option.is_available ? 'translate-x-5' : ''
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-gray-500 text-sm">Tiada pilihan ditambah.</p>
+                  <p className="text-gray-400 text-xs mt-1">Klik "Tambah Pilihan" untuk menambah add-on.</p>
+                </div>
+              )}
             </div>
 
             {/* Mod Pre-Order Section */}

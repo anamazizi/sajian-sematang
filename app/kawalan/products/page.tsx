@@ -128,34 +128,90 @@ export default function AdminProductsManagementPage() {
     setShowEditModal(true);
   }
 
-  async function handleSaveEdit() {
-    if (!user || !profile || !editingProduct) return;
+  async function handleSaveEdit(productData: any) {
+    if (!user || !profile || !productData.id) return;
     
     try {
-      await supabase
+      const productId = productData.id;
+      
+      // Update produk dalam database
+      const { error: productError } = await supabase
         .from('products')
         .update({
-          name: editingProduct.name,
-          category: editingProduct.category,
-          price: editingProduct.price,
-          cost_price: editingProduct.cost_price,
-          stock_quantity: editingProduct.stock_quantity,
-          is_preorder: editingProduct.is_preorder,
-          is_available: editingProduct.is_available,
+          name: productData.name,
+          category: productData.category,
+          price: productData.price,
+          cost_price: productData.cost_price,
+          stock_quantity: productData.stock_quantity,
+          is_preorder: productData.is_preorder,
+          preorder_start: productData.preorder_start,
+          preorder_end: productData.preorder_end,
+          is_available: productData.is_available,
           updated_at: new Date().toISOString()
         })
-        .eq('id', editingProduct.id);
-      
+        .eq('id', productId);
+
+      if (productError) throw productError;
+
+      // Urus product options: delete existing dan insert baru
+      if (productData.options && Array.isArray(productData.options)) {
+        // Padam semua options sedia ada untuk produk ini
+        const { error: deleteError } = await supabase
+          .from('product_options')
+          .delete()
+          .eq('product_id', productId);
+
+        if (deleteError) {
+          console.error('Error deleting existing product options:', deleteError);
+        }
+
+        // Masukkan options baru jika ada
+        if (productData.options.length > 0) {
+          const optionsToInsert = productData.options.map((option: any, index: number) => ({
+            product_id: productId,
+            option_name: option.option_name,
+            price_adjustment: option.price_adjustment,
+            is_available: option.is_available,
+            display_order: option.display_order || index + 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }));
+
+          const { error: insertError } = await supabase
+            .from('product_options')
+            .insert(optionsToInsert);
+
+          if (insertError) {
+            console.error('Error inserting product options:', insertError);
+          }
+        }
+      }
+
+      // Log audit untuk pengemaskinian produk
       await supabase.from('audit_logs').insert({
         actor_id: user.id,
         actor_name: profile.name || '',
         actor_role: profile.role,
         action: 'PRODUCT_EDITED_BY_ADMIN_STAFF',
         entity_type: 'products',
-        entity_id: editingProduct.id,
+        entity_id: productId,
         reason: 'Product edited by admin/staff',
         created_at: new Date().toISOString(),
       });
+
+      // Log audit untuk options jika ada
+      if (productData.options && productData.options.length > 0) {
+        await supabase.from('audit_logs').insert({
+          actor_id: user.id,
+          actor_name: profile.name || '',
+          actor_role: profile.role,
+          action: 'PRODUCT_OPTIONS_UPDATED',
+          entity_type: 'product_options',
+          entity_id: productId,
+          reason: `${productData.options.length} options updated for product ${productId}`,
+          created_at: new Date().toISOString(),
+        });
+      }
       
       await fetchAllProducts();
       setShowEditModal(false);
@@ -167,44 +223,86 @@ export default function AdminProductsManagementPage() {
   }
 
   // Function untuk create produk baru
-  async function handleCreateProduct() {
-    if (!user || !profile || !newProductData.seller_id || !newProductData.name) {
+  async function handleCreateProduct(productData: any) {
+    if (!user || !profile || !productData.seller_id || !productData.name) {
       alert('Sila pilih peniaga dan isi nama produk');
       return;
     }
 
     try {
-      const { data, error } = await supabase
+      // Insert produk ke dalam database
+      const { data: productDataResult, error: productError } = await supabase
         .from('products')
         .insert({
-          seller_id: newProductData.seller_id,
-          name: newProductData.name,
-          category: newProductData.category,
-          price: newProductData.price,
-          cost_price: newProductData.cost_price,
-          stock_quantity: newProductData.stock_quantity,
-          is_preorder: newProductData.is_preorder,
-          is_available: newProductData.is_available,
-          is_archived: newProductData.is_archived,
-          description: newProductData.description,
+          seller_id: productData.seller_id,
+          name: productData.name,
+          category: productData.category,
+          price: productData.price,
+          cost_price: productData.cost_price,
+          stock_quantity: productData.stock_quantity,
+          is_preorder: productData.is_preorder,
+          preorder_start: productData.preorder_start,
+          preorder_end: productData.preorder_end,
+          is_available: productData.is_available,
+          is_archived: productData.is_archived,
+          description: productData.description,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (productError) throw productError;
 
+      const productId = productDataResult.id;
+
+      // Jika terdapat options, simpan ke dalam product_options table
+      if (productData.options && productData.options.length > 0) {
+        const optionsToInsert = productData.options.map((option: any, index: number) => ({
+          product_id: productId,
+          option_name: option.option_name,
+          price_adjustment: option.price_adjustment,
+          is_available: option.is_available,
+          display_order: option.display_order || index + 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }));
+
+        const { error: optionsError } = await supabase
+          .from('product_options')
+          .insert(optionsToInsert);
+
+        if (optionsError) {
+          console.error('Error inserting product options:', optionsError);
+          // Tidak throw error di sini supaya produk masih boleh dicipta
+        }
+      }
+
+      // Log audit untuk penciptaan produk
       await supabase.from('audit_logs').insert({
         actor_id: user.id,
         actor_name: profile.name || '',
         actor_role: profile.role,
         action: 'PRODUCT_CREATED_BY_ADMIN_STAFF',
         entity_type: 'products',
-        entity_id: data.id,
-        reason: 'Product created by admin/staff for seller ' + newProductData.seller_id,
+        entity_id: productId,
+        reason: 'Product created by admin/staff for seller ' + productData.seller_id,
         created_at: new Date().toISOString(),
       });
+
+      // Log audit untuk options jika ada
+      if (productData.options && productData.options.length > 0) {
+        await supabase.from('audit_logs').insert({
+          actor_id: user.id,
+          actor_name: profile.name || '',
+          actor_role: profile.role,
+          action: 'PRODUCT_OPTIONS_CREATED',
+          entity_type: 'product_options',
+          entity_id: productId,
+          reason: `${productData.options.length} options created for product ${productId}`,
+          created_at: new Date().toISOString(),
+        });
+      }
 
       setShowCreateModal(false);
       setNewProductData({
@@ -475,8 +573,8 @@ export default function AdminProductsManagementPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               >
                 <option value="all">Semua Kategori</option>
-                {productCategories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {activeCategories.map(category => (
+                  <option key={category.id} value={category.name}>{category.name}</option>
                 ))}
               </select>
             </div>
