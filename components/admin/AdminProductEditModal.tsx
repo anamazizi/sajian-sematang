@@ -10,6 +10,9 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
     cost_price: '',
     stock_quantity: '',
     is_available: true,
+    is_preorder: false,
+    preorder_start: '',
+    preorder_end: '',
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +26,9 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
         cost_price: product.cost_price?.toString() || '',
         stock_quantity: product.stock_quantity?.toString() || '0',
         is_available: product.is_available !== false,
+        is_preorder: product.is_preorder || false,
+        preorder_start: product.preorder_start || '',
+        preorder_end: product.preorder_end || '',
       });
     }
   }, [product]);
@@ -42,6 +48,9 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
         cost_price: parseFloat(formData.cost_price),
         stock_quantity: parseInt(formData.stock_quantity),
         is_available: formData.is_available,
+        is_preorder: formData.is_preorder,
+        preorder_start: formData.is_preorder && formData.preorder_start ? formData.preorder_start : null,
+        preorder_end: formData.is_preorder && formData.preorder_end ? formData.preorder_end : null,
       });
       onClose();
     } catch (error) {
@@ -54,31 +63,31 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
 
   return (
     <div className="fixed inset-0 bg-black/50 z-[70] flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl">
+      <div className="bg-white rounded-2xl max-w-lg w-full max-h-[85vh] overflow-y-auto shadow-2xl pb-28">
         <div className="p-5">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold">✏️ Edit Produk</h2>
-            <button onClick={onClose} className="text-gray-500">✕</button>
+            <h2 className="text-slate-900 text-xl font-bold">✏️ Edit Produk</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 transition-colors">✕</button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Nama Produk</label>
+              <label className="text-slate-900 font-semibold text-sm mb-1 block">Nama Produk</label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Kategori</label>
+              <label className="text-slate-900 font-semibold text-sm mb-1 block">Kategori</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               >
                 <option value="">Pilih Kategori</option>
@@ -95,46 +104,95 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Harga Jualan</label>
+                <label className="text-slate-900 font-semibold text-sm mb-1 block">Harga Jualan</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.price}
                   onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Harga Kos</label>
+                <label className="text-slate-900 font-semibold text-sm mb-1 block">Harga Kos</label>
                 <input
                   type="number"
                   step="0.01"
                   value={formData.cost_price}
                   onChange={(e) => setFormData({ ...formData, cost_price: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Stok</label>
+              <label className="text-slate-900 font-semibold text-sm mb-1 block">Stok</label>
               <input
                 type="number"
                 min="0"
                 value={formData.stock_quantity}
                 onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               />
             </div>
 
-            <div className="flex items-center justify-between">
+            {/* Mod Pre-Order Section */}
+            <div className="border-t pt-6 mt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-slate-900 font-semibold text-sm mb-1">Mod Pre-Order</h3>
+                  <p className="text-xs text-gray-600">Aktifkan untuk tempahan masa hadapan</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, is_preorder: !formData.is_preorder })}
+                  className={`w-12 h-6 flex items-center rounded-full p-1 ${
+                    formData.is_preorder ? 'bg-purple-500' : 'bg-gray-300'
+                  }`}
+                >
+                  <div className={`bg-white w-4 h-4 rounded-full transform ${
+                    formData.is_preorder ? 'translate-x-6' : ''
+                  }`} />
+                </button>
+              </div>
+
+              {formData.is_preorder && (
+                <div className="space-y-4 bg-purple-50 p-4 rounded-lg border border-purple-100">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-slate-900 font-semibold text-sm mb-1 block">Mula Pre-Order</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.preorder_start}
+                        onChange={(e) => setFormData({ ...formData, preorder_start: e.target.value })}
+                        className="text-slate-900 bg-white border border-gray-300 rounded-lg p-2 w-full"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-slate-900 font-semibold text-sm mb-1 block">Tamat Pre-Order</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.preorder_end}
+                        onChange={(e) => setFormData({ ...formData, preorder_end: e.target.value })}
+                        className="text-slate-900 bg-white border border-gray-300 rounded-lg p-2 w-full"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Nota: Apabila Mod Pre-Order aktif, stok dikira sebagai kuantiti tidak terhad dan tempahan hanya boleh dibuat dalam tempoh yang ditetapkan.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t">
               <div>
-                <p className="text-sm font-medium">Status Aktif</p>
-                <p className="text-xs text-gray-500">Paparkan kepada pelanggan</p>
+                <p className="text-slate-900 font-semibold text-sm mb-1">Status Aktif</p>
+                <p className="text-xs text-gray-600">Paparkan kepada pelanggan</p>
               </div>
               <button
                 type="button"
@@ -153,14 +211,14 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
                 disabled={isSubmitting}
               >
                 Batal
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg disabled:opacity-50"
+                className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? 'Menyimpan...' : 'Simpan'}
