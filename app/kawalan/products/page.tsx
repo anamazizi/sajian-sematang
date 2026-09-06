@@ -89,6 +89,7 @@ export default function AdminProductsManagementPage() {
       
       console.log('Categories loaded from database:', categoriesData);
       console.log('Categories count:', categoriesData?.length || 0);
+      console.log('Active categories (is_active !== false):', categoriesData?.filter(cat => cat.is_active !== false)?.length || 0);
       
       setCategories(categoriesData || []);
     } catch (error) {
@@ -502,7 +503,9 @@ export default function AdminProductsManagementPage() {
 
   // Extract existing product categories for filtering
   const productCategories = Array.from(new Set(products.map(p => p.category).filter(Boolean)));
-  const activeCategories = categories.filter(cat => cat.is_active);
+  
+  // Flexible filtering: include categories where is_active is not false (true or null)
+  const activeCategories = categories.filter(cat => cat.is_active !== false);
 
   if (authLoading || loading) {
     return (
@@ -577,9 +580,32 @@ export default function AdminProductsManagementPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 bg-white"
               >
                 <option value="all">Semua Kategori</option>
-                {activeCategories.map(category => (
-                  <option key={category.id} value={category.name}>{category.name}</option>
-                ))}
+                {activeCategories && activeCategories.length > 0 ? (
+                  activeCategories.map((category: any, index: number) => {
+                    const catName = typeof category === 'string' ? category : category.name;
+                    const catId = category.id || `filter-cat-${index}`;
+                    return (
+                      <option key={catId} value={catName}>
+                        {catName}
+                      </option>
+                    );
+                  })
+                ) : (
+                  // Fallback: show all categories without active filter
+                  categories && categories.length > 0 ? (
+                    categories.map((category: any, index: number) => {
+                      const catName = typeof category === 'string' ? category : category.name;
+                      const catId = category.id || `filter-cat-${index}`;
+                      return (
+                        <option key={catId} value={catName}>
+                          {catName}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    <option disabled>Tidak ada kategori</option>
+                  )
+                )}
               </select>
             </div>
             
