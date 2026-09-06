@@ -73,6 +73,7 @@ export default function AdminProductsManagementPage() {
       return;
     }
 
+    console.log('[FIX] useEffect: Memanggil fetchCategories...');
     fetchAllProducts();
     fetchSellers();
     fetchCategories();
@@ -80,20 +81,31 @@ export default function AdminProductsManagementPage() {
 
   async function fetchCategories() {
     try {
+      console.log('[FIX] Memulakan fetchCategories di page.tsx...');
+      
       const { data: categoriesData, error } = await supabase
         .from('categories')
-        .select('*, product_count:products(count)')
+        .select('*')
         .order('name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[FIX] Ralat fetching categories di page.tsx:', error);
+        console.error('[FIX] Error details:', error.message, error.details);
+        return;
+      }
+
+      console.log('[FIX] Data categories diterima di page.tsx:', categoriesData);
+      console.log('[FIX] Categories count:', categoriesData?.length || 0);
       
-      console.log('Categories loaded from database:', categoriesData);
-      console.log('Categories count:', categoriesData?.length || 0);
-      console.log('Active categories (is_active !== false):', categoriesData?.filter(cat => cat.is_active !== false)?.length || 0);
-      
-      setCategories(categoriesData || []);
+      if (categoriesData) {
+        setCategories(categoriesData);
+        console.log('[FIX] State categories diupdate:', categoriesData.length, 'items');
+      } else {
+        console.warn('[FIX] categoriesData adalah null/undefined');
+        setCategories([]);
+      }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('[FIX] Error dalam fetchCategories:', error);
     }
   }
 
@@ -803,7 +815,10 @@ export default function AdminProductsManagementPage() {
       <AdminCategoryModal
         categories={categories}
         isOpen={showCategoryModal}
-        onClose={() => setShowCategoryModal(false)}
+        onClose={() => {
+          setShowCategoryModal(false);
+          fetchCategories(); // Refresh categories setelah modal ditutup
+        }}
         onSaveCategory={handleSaveCategory}
         onDeleteCategory={handleDeleteCategory}
       />
