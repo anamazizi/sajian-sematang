@@ -56,25 +56,41 @@ export default function AdminCategoryModal({
 
   async function fetchCategories() {
     try {
+      console.log('Fetching categories from Supabase...');
       const { data, error } = await supabase
         .from('categories')
-        .select('*, products:products(count)')
+        .select('*')
         .order('name', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching categories from Supabase:', error);
+        throw error;
+      }
 
-      const processedCategories = (data || []).map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        description: cat.description,
-        is_active: cat.is_active,
-        created_at: cat.created_at,
-        updated_at: cat.updated_at,
-        created_by: cat.created_by,
-        product_count: cat.products?.[0]?.count || 0
-      }));
+      console.log('Categories fetched successfully:', data?.length || 0, 'categories found');
+      
+      // Also fetch product counts for each category
+      const categoriesWithProductCounts = await Promise.all(
+        (data || []).map(async (cat) => {
+          const { count } = await supabase
+            .from('products')
+            .select('id', { count: 'exact', head: true })
+            .eq('category', cat.name);
 
-      setCategories(processedCategories);
+          return {
+            id: cat.id,
+            name: cat.name,
+            description: cat.description,
+            is_active: cat.is_active,
+            created_at: cat.created_at,
+            updated_at: cat.updated_at,
+            created_by: cat.created_by,
+            product_count: count || 0
+          };
+        })
+      );
+
+      setCategories(categoriesWithProductCounts);
     } catch (error) {
       console.error('Error fetching categories:', error);
       setCategories([]);
@@ -115,14 +131,30 @@ export default function AdminCategoryModal({
         if (error) throw error;
       }
 
+      const addedCategoryName = categoryName.trim();
+      
       setCategoryName('');
       setCategoryDescription('');
-      setSuccessMessage(`Kategori "${categoryName}" berjaya ditambah!`);
+      setSuccessMessage(`Kategori "${addedCategoryName}" berjaya ditambah!`);
       
-      // Refresh categories list
-      if (!propCategories || propCategories.length === 0) {
-        await fetchCategories();
-      }
+      // Optimistic update: tambah kategori baru ke senarai sementara
+      const optimisticCategory = {
+        id: 'temp-' + Date.now(), // Temporary ID untuk optimistic update
+        name: addedCategoryName,
+        description: categoryDescription.trim() || null,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created_by: null,
+        product_count: 0
+      };
+      
+      setCategories(prev => [...prev, optimisticCategory].sort((a, b) => 
+        a.name.localeCompare(b.name)
+      ));
+      
+      // Always refresh categories list from server untuk data terkini
+      await fetchCategories();
     } catch (error: any) {
       console.error('Error adding category:', error);
       setError(`Gagal menambah kategori: ${error.message || 'Sila cuba lagi'}`);
