@@ -281,8 +281,14 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
                       alt="Preview" 
                       className="max-w-full max-h-full object-contain"
                       onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.parentElement.innerHTML = '<div class="flex items-center justify-center w-full h-full text-xs text-gray-500">Gambar tidak boleh dimuatkan</div>';
+                        const imgElement = e.currentTarget;
+                        const parentElement = imgElement.parentElement;
+                        
+                        imgElement.style.display = 'none';
+                        
+                        if (parentElement) {
+                          parentElement.innerHTML = '<div class="flex items-center justify-center w-full h-full text-xs text-gray-500">Gambar tidak boleh dimuatkan</div>';
+                        }
                       }}
                     />
                   </div>
