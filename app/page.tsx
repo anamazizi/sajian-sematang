@@ -235,7 +235,7 @@ export default function HomePage() {
               <section key={category}>
                 {/* Category Header */}
                 <div className="flex items-center mb-4">
-                  <h2 className="text-2xl font-bold text-gray-800">
+                  <h2 className="text-slate-900 font-bold text-lg">
                     {category}
                   </h2>
                   <div className="flex-1 h-px bg-gray-300 ml-4"></div>
@@ -257,7 +257,7 @@ export default function HomePage() {
                         {/* Product Info */}
                         <div className="p-4">
                           <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-lg text-gray-800">
+                            <h3 className="text-slate-900 font-bold text-base">
                               {product.name}
                             </h3>
                             <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
@@ -312,7 +312,7 @@ export default function HomePage() {
                                   −
                                 </button>
                               )}
-                              <span className="font-bold text-gray-800 text-lg">
+                              <span className="text-slate-900 font-bold text-base">
                                 {quantity}
                               </span>
                               <button
