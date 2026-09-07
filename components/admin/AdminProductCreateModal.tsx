@@ -32,8 +32,6 @@ export default function AdminProductCreateModal({
     price: '',
     cost_price: '',
     stock_quantity: '0',
-    image_url: '',
-    display_order: 1,
     is_available: true,
     is_preorder: false,
     preorder_start: '',
@@ -253,60 +251,6 @@ export default function AdminProductCreateModal({
                 className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
                 required
               />
-            </div>
-
-            {/* Gambar Produk */}
-            <div>
-              <label className="text-slate-900 font-semibold text-sm mb-1 block">
-                Gambar Produk (URL / Pautan Imej)
-              </label>
-              <input
-                type="text"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="https://example.com/image.jpg"
-                className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
-              />
-              {formData.image_url && (
-                <div className="mt-2">
-                  <p className="text-xs text-gray-600 mb-1">Pratonton:</p>
-                  <div className="w-24 h-24 border border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                    <img 
-                      src={formData.image_url} 
-                      alt="Preview" 
-                      className="max-w-full max-h-full object-contain"
-                      onError={(e) => {
-                        const imgElement = e.currentTarget;
-                        const parentElement = imgElement.parentElement;
-                        
-                        imgElement.style.display = 'none';
-                        
-                        if (parentElement) {
-                          parentElement.innerHTML = '<div class="flex items-center justify-center w-full h-full text-xs text-gray-500">Gambar tidak boleh dimuatkan</div>';
-                        }
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {formData.image_url.length > 60 ? formData.image_url.substring(0, 60) + '...' : formData.image_url}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Susunan Paparan */}
-            <div>
-              <label className="text-slate-900 font-semibold text-sm mb-1 block">
-                Susunan Paparan (Sort Order)
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={formData.display_order}
-                onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 1 })}
-                className="text-slate-900 bg-white placeholder:text-gray-400 border border-gray-300 rounded-lg px-3 py-2 w-full focus:ring-2 focus:ring-green-500"
-              />
-              <p className="text-xs text-gray-600 mt-1">Nombor lebih rendah = lebih awal dalam senarai</p>
             </div>
 
             {/* Product Options Section */}
