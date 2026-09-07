@@ -8,6 +8,7 @@ import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
 import OrderStatusControl from '../../../components/admin/OrderStatusControl';
 import AdminBottomNav from '@/components/admin/AdminBottomNav';
+import { updateOrderStatusWithAudit } from '../../../app/actions/update-order-status-fixed';
 
 const STATUS_FILTERS = [
   { value: 'all', label: 'Semua Status' },
@@ -26,6 +27,8 @@ export default function OrdersManagementPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('all');
+  const [expandedTimelineOrders, setExpandedTimelineOrders] = useState<Set<string>>(new Set());
+  const [statusHistory, setStatusHistory] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -42,6 +45,45 @@ export default function OrdersManagementPage() {
       fetchOrders();
     }
   }, [user, profile, authLoading, router]);
+
+  async function fetchStatusHistory(orderId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('order_status_history')
+        .select('*')
+        .eq('order_id', orderId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching status history:', error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('Failed to fetch status history:', error);
+      return [];
+    }
+  }
+
+  const toggleTimeline = async (orderId: string) => {
+    const newExpanded = new Set(expandedTimelineOrders);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+      
+      // Fetch history if not already fetched
+      if (!statusHistory[orderId]) {
+        const history = await fetchStatusHistory(orderId);
+        setStatusHistory(prev => ({
+          ...prev,
+          [orderId]: history
+        }));
+      }
+    }
+    setExpandedTimelineOrders(newExpanded);
+  };
 
   async function fetchOrders() {
     try {
@@ -186,9 +228,22 @@ export default function OrdersManagementPage() {
     try {
       console.log('Updating status:', { orderId, newStatus, notes });
       
-      // TODO: Implement actual status update API call
-      // For now, just refresh orders
+      // Update order status using server action
+      const result = await updateOrderStatusWithAudit(orderId, newStatus, notes);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Gagal mengemas kini status pesanan');
+      }
+      
+      // Refresh orders and status history
       await fetchOrders();
+      
+      // Clear cached status history for this order
+      setStatusHistory(prev => {
+        const updated = { ...prev };
+        delete updated[orderId];
+        return updated;
+      });
       
       return Promise.resolve();
     } catch (error) {
@@ -376,20 +431,34 @@ ${itemsList}
 
         {/* Status Filters */}
         <div className="mb-6">
-          <div className="flex flex-wrap gap-2">
-            {STATUS_FILTERS.map(filter => (
-              <button
-                key={filter.value}
-                onClick={() => setSelectedStatus(filter.value)}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                  selectedStatus === filter.value 
-                    ? 'bg-blue-600 text-white ring-2 ring-offset-2 ring-blue-400' 
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-                }`}
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <label htmlFor="status-filter" className="text-sm font-medium text-gray-700">
+                Penapis Status:
+              </label>
+              <select
+                id="status-filter"
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full max-w-xs"
               >
-                {filter.label}
-              </button>
-            ))}
+                {STATUS_FILTERS.map(filter => (
+                  <option key={filter.value} value={filter.value}>
+                    {filter.label}
+                  </option>
+                ))}
+              </select>
+              
+              {/* Quick stats info */}
+              <div className="text-sm text-gray-500 ml-0 sm:ml-4">
+                Menunjukkan <span className="font-semibold text-gray-700">{filteredOrders.length}</span> pesanan
+                {selectedStatus !== 'all' && (
+                  <span> dengan status <span className="font-semibold text-gray-700">
+                    {STATUS_FILTERS.find(f => f.value === selectedStatus)?.label}
+                  </span></span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -471,7 +540,64 @@ ${itemsList}
                     orderId={order.id}
                     currentStatus={order.status}
                     onStatusUpdate={handleStatusUpdate}
+                    showTimeline={expandedTimelineOrders.has(order.id)}
+                    onToggleTimeline={toggleTimeline}
                   />
+                  
+                  {/* Timeline/Sejarah Pesanan */}
+                  {expandedTimelineOrders.has(order.id) && (
+                    <div className="mt-4 pt-3 border-t border-gray-200 bg-gray-50 rounded-lg p-3">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Sejarah & Timeline Pesanan:</h4>
+                      
+                      <div className="space-y-2 text-sm">
+                        {/* Display order creation time */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-500">⏰ Pesanan dibuat:</span>
+                          <span className="text-gray-700 font-medium">
+                            {new Date(order.created_at).toLocaleString('ms-MY', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short'
+                            })}
+                          </span>
+                        </div>
+
+                        {/* Display status history if available */}
+                        {statusHistory[order.id] && statusHistory[order.id].length > 0 ? (
+                          <div className="mt-3">
+                            <h5 className="text-xs font-semibold text-gray-600 mb-1">Log Perubahan Status:</h5>
+                            <div className="space-y-1">
+                              {statusHistory[order.id].map((history, idx) => (
+                                <div key={history.id} className="flex items-start gap-2">
+                                  <span className="text-gray-400 text-xs">{idx + 1}.</span>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-gray-700">{history.actor_name || 'System'}</span>
+                                      <span className="text-gray-500 text-xs">({history.actor_role})</span>
+                                      <span className="text-gray-500 text-xs">→</span>
+                                      <span className="text-gray-700">{history.new_status}</span>
+                                    </div>
+                                    <div className="text-gray-500 text-xs">
+                                      {new Date(history.created_at).toLocaleString('ms-MY', {
+                                        dateStyle: 'short',
+                                        timeStyle: 'short'
+                                      })}
+                                      {history.notes && (
+                                        <span className="ml-2 text-gray-600">• Catatan: {history.notes}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-gray-500 text-sm">
+                            Tiada log perubahan status. Status semasa: {order.status}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   
                   {/* WhatsApp Dispatch Button for Delivery Orders */}
                   {(order.delivery_mode === 'Delivery' || order.status === 'DELIVERING') && (
