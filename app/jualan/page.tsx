@@ -156,7 +156,7 @@ export default function JualanDashboard() {
 
   function getStatusColor(status: Order['status']) {
     // Only return green for completed orders
-    if (status === 'Completed') {
+    if (status === 'COMPLETED') {
       return 'bg-green-100 text-green-700';
     }
     return 'bg-gray-100 text-gray-700';

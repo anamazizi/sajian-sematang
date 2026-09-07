@@ -97,15 +97,17 @@ export default function SellerDashboard() {
 
   function getStatusColor(status: Order['status']) {
     switch (status) {
-      case 'New':
+      case 'PENDING':
         return 'bg-blue-100 text-blue-700';
-      case 'Preparing':
+      case 'ACCEPTED':
         return 'bg-yellow-100 text-yellow-700';
-      case 'Ready':
+      case 'READY':
         return 'bg-green-100 text-green-700';
-      case 'Completed':
+      case 'DELIVERING':
+        return 'bg-orange-100 text-orange-700';
+      case 'COMPLETED':
         return 'bg-gray-100 text-gray-700';
-      case 'Cancelled':
+      case 'CANCELLED':
         return 'bg-red-100 text-red-700';
       default:
         return 'bg-gray-100 text-gray-700';
@@ -114,12 +116,14 @@ export default function SellerDashboard() {
 
   function getNextStatus(currentStatus: Order['status']): Order['status'] | null {
     switch (currentStatus) {
-      case 'New':
-        return 'Preparing';
-      case 'Preparing':
-        return 'Ready';
-      case 'Ready':
-        return 'Completed';
+      case 'PENDING':
+        return 'ACCEPTED';
+      case 'ACCEPTED':
+        return 'DELIVERING';
+      case 'DELIVERING':
+        return 'READY';
+      case 'READY':
+        return 'COMPLETED';
       default:
         return null;
     }
@@ -175,34 +179,44 @@ export default function SellerDashboard() {
               Semua ({orders.length})
             </button>
             <button
-              onClick={() => setSelectedStatus('New')}
+              onClick={() => setSelectedStatus('PENDING')}
               className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedStatus === 'New'
+                selectedStatus === 'PENDING'
                   ? 'bg-blue-500 text-white'
                   : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
               }`}
             >
-              Baru ({orders.filter(o => o.status === 'New').length})
+              Baru ({orders.filter(o => o.status === 'PENDING').length})
             </button>
             <button
-              onClick={() => setSelectedStatus('Preparing')}
+              onClick={() => setSelectedStatus('ACCEPTED')}
               className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedStatus === 'Preparing'
+                selectedStatus === 'ACCEPTED'
                   ? 'bg-yellow-500 text-white'
                   : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
               }`}
             >
-              Sedang Disediakan ({orders.filter(o => o.status === 'Preparing').length})
+              Diterima ({orders.filter(o => o.status === 'ACCEPTED').length})
             </button>
             <button
-              onClick={() => setSelectedStatus('Ready')}
+              onClick={() => setSelectedStatus('DELIVERING')}
               className={`px-4 py-2 rounded-lg font-medium transition ${
-                selectedStatus === 'Ready'
+                selectedStatus === 'DELIVERING'
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+              }`}
+            >
+              Dihantar ({orders.filter(o => o.status === 'DELIVERING').length})
+            </button>
+            <button
+              onClick={() => setSelectedStatus('READY')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                selectedStatus === 'READY'
                   ? 'bg-green-500 text-white'
                   : 'bg-green-100 text-green-700 hover:bg-green-200'
               }`}
             >
-              Siap ({orders.filter(o => o.status === 'Ready').length})
+              Sedia ({orders.filter(o => o.status === 'READY').length})
             </button>
           </div>
         </div>
@@ -292,9 +306,9 @@ export default function SellerDashboard() {
                         Tukar ke "{nextStatus}"
                       </button>
                     )}
-                    {order.status !== 'Cancelled' && order.status !== 'Completed' && (
+                    {order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
                       <button
-                        onClick={() => updateOrderStatus(order.id, 'Cancelled')}
+                        onClick={() => updateOrderStatus(order.id, 'CANCELLED')}
                         className="px-4 bg-red-500 text-white py-2 rounded-lg hover:bg-red-600 transition font-semibold"
                       >
                         Batal

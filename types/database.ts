@@ -2,6 +2,7 @@
 // Updated: 16 Ogos 2026 - Business Structure v2.0
 // Updated: 3 September 2026 - Added is_archived for soft delete
 // Updated: 3 September 2026 - Added display_order for product sorting
+// Updated: 8 September 2026 - Fixed order status types (PENDING, ACCEPTED, READY, DELIVERING, COMPLETED, CANCELLED)
 
 export type UserRole = 'customer' | 'seller' | 'admin' | 'staff';
 
@@ -126,7 +127,8 @@ export interface Order {
   // Delivery
   delivery_mode: 'Delivery' | 'Self-Pickup';
   calculated_distance?: number | null;
-  status: 'New' | 'Accepted' | 'Preparing' | 'Ready' | 'Completed' | 'Cancelled';
+  // Status: Updated to match check constraint and Master Prompt Seksyen 32
+  status: 'PENDING' | 'ACCEPTED' | 'READY' | 'DELIVERING' | 'COMPLETED' | 'CANCELLED';
   // Custom pre-order fields
   is_custom_preorder: boolean;
   delivery_datetime?: string | null;
