@@ -172,6 +172,20 @@ export default function SellerDashboard() {
     }
   }
 
+  function getNextStatus(currentStatus: Order['status']): Order['status'] | null {
+    switch (currentStatus) {
+      case 'PENDING':
+        return 'ACCEPTED';
+      case 'ACCEPTED':
+        return 'DELIVERING';
+      case 'DELIVERING':
+        return 'READY';
+      case 'READY':
+        return 'COMPLETED';
+      default:
+        return null;
+    }
+  }
 
   const filteredOrders = selectedStatus === 'all' 
     ? orders 

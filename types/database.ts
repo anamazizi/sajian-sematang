@@ -163,6 +163,18 @@ export interface OrderItem {
   }> | null;
 }
 
+// Order Status History Record
+export interface OrderStatusHistoryRecord {
+  id: string;
+  order_id: string;
+  previous_status: Order['status'];
+  new_status: Order['status'];
+  actor_id?: string;
+  actor_name?: string;
+  notes?: string;
+  created_at: string;
+}
+
 export interface Payout {
   id: string;
   seller_id: string;
