@@ -151,6 +151,10 @@ export default function AdminProductsManagementPage() {
     try {
       const productId = productData.id;
       
+      // Clean pre-order fields - only send if is_preorder is true and values exist
+      const cleanPreorderStart = productData.is_preorder && productData.preorder_start ? productData.preorder_start : null;
+      const cleanPreorderEnd = productData.is_preorder && productData.preorder_end ? productData.preorder_end : null;
+
       // Update produk dalam database
       const { error: productError } = await supabase
         .from('products')
@@ -161,8 +165,8 @@ export default function AdminProductsManagementPage() {
           cost_price: productData.cost_price,
           stock_quantity: productData.stock_quantity,
           is_preorder: productData.is_preorder,
-          preorder_start: productData.preorder_start,
-          preorder_end: productData.preorder_end,
+          preorder_start: cleanPreorderStart,
+          preorder_end: cleanPreorderEnd,
           is_available: productData.is_available,
           updated_at: new Date().toISOString()
         })
@@ -247,6 +251,10 @@ export default function AdminProductsManagementPage() {
     }
 
     try {
+      // Clean pre-order fields - only send if is_preorder is true and values exist
+      const cleanPreorderStart = productData.is_preorder && productData.preorder_start ? productData.preorder_start : null;
+      const cleanPreorderEnd = productData.is_preorder && productData.preorder_end ? productData.preorder_end : null;
+      
       // Insert produk ke dalam database
       const { data: productDataResult, error: productError } = await supabase
         .from('products')
@@ -258,8 +266,8 @@ export default function AdminProductsManagementPage() {
           cost_price: productData.cost_price,
           stock_quantity: productData.stock_quantity,
           is_preorder: productData.is_preorder,
-          preorder_start: productData.preorder_start,
-          preorder_end: productData.preorder_end,
+          preorder_start: cleanPreorderStart,
+          preorder_end: cleanPreorderEnd,
           is_available: productData.is_available,
           is_archived: productData.is_archived,
           description: productData.description,
