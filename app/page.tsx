@@ -47,56 +47,25 @@ export default function HomePage() {
 
   async function fetchProducts() {
     try {
+      setLoading(true);
       const supabase = createClient();
-      // Phase R5.4: Explicit column selection - NEVER include cost_price for customers
-      // Master Prompt Seksyen 66: Customer tidak boleh lihat cost_price
-      // Added is_archived filter for soft delete
       const { data, error } = await supabase
         .from('products')
-        .select(`
-          id,
-          seller_id,
-          name,
-          description,
-          price,
-          category,
-          is_available,
-          is_archived,
-          display_order,
-          stock_quantity,
-          is_preorder,
-          available_from,
-          available_until,
-          created_at,
-          updated_at
-        `)
-        .eq('is_available', true)
-        .or('is_archived.is.null,is_archived.eq.false') // Don't show archived products (including NULL)
-        .gt('stock_quantity', 0)
-        .order('display_order', { ascending: true }) // Order by display_order
-        .order('category', { ascending: true })
-        .order('name', { ascending: true });
+        .select('*')
+        .order('is_preorder', { ascending: false });
 
-      // Get product stats (likes & total sold) from view
-      const { data: statsData } = await supabase
-        .from('product_stats')
-        .select('id, total_likes, total_sold')
-        .in('id', data?.map(p => p.id) || []);
+      if (error) {
+        console.error('Error fetching products:', error);
+        setProducts([]);
+        return;
+      }
 
-      // Combine products with stats
-      const productsWithStats = (data || []).map(product => {
-        const stats = statsData?.find(s => s.id === product.id);
-        return {
-          ...product,
-          total_likes: stats?.total_likes || 0,
-          total_sold: stats?.total_sold || 0
-        };
-      });
-
-      if (error) throw error;
-      setProducts(productsWithStats);
+      // Hanya tapis jika produk benar-benar diarkib
+      const activeList = (data || []).filter((p: any) => p.is_archived !== true);
+      setProducts(activeList);
     } catch (err) {
-      console.error('Error fetching products:', err);
+      console.error('Unexpected error:', err);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
