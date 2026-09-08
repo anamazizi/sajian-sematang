@@ -540,8 +540,6 @@ ${itemsList}
                     orderId={order.id}
                     currentStatus={order.status}
                     onStatusUpdate={handleStatusUpdate}
-                    showTimeline={expandedTimelineOrders.has(order.id)}
-                    onToggleTimeline={toggleTimeline}
                   />
                   
                   {/* Timeline/Sejarah Pesanan */}
