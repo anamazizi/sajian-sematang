@@ -246,24 +246,49 @@ export default function HomePage() {
   // Format WhatsApp message
   function formatWhatsAppMessage(): string {
     const itemsList = cart.map((item, index) => {
-      return `${index + 1}. ${item.name} x ${item.quantity}`;
+      return `${item.quantity}x ${item.name} - RM${(item.price * item.quantity).toFixed(2)}`;
     }).join('\n');
 
-    const total = getCartTotal().toFixed(2);
-    const deliveryText = checkoutForm.deliveryMode === 'Delivery' ? 'Delivery' : 'Self Pickup';
+    const subtotal = getCartTotal().toFixed(2);
+    const deliveryMethod = checkoutForm.deliveryMode === 'Delivery' ? 'Penghantaran' : 'Ambil Sendiri';
     const deliveryFee = checkoutForm.deliveryMode === 'Delivery' ? 'RM6.00' : 'RM0.00';
+    const total = (getCartTotal() + (checkoutForm.deliveryMode === 'Delivery' ? 6 : 0)).toFixed(2);
+    const orderId = `SS-${Date.now().toString().slice(-6)}`;
     
-    return `Nama : ${checkoutForm.name}
-No Phone : ${checkoutForm.phone}
-Alamat : ${checkoutForm.address}
+    return `🍽️ *ORDER SAJIAN SEMATANG*
 
-Senarai Tempahan :
+🧾 *Order ID:*
+${orderId}
+
+👤 *Nama:*
+${checkoutForm.name}
+
+📞 *Telefon:*
+${checkoutForm.phone}
+
+📍 *Alamat:*
+${checkoutForm.address}
+
+🗺️ *Google Maps:*
+-
+
+--------------------
+
+🛒 *PESANAN*
+
 ${itemsList}
 
-Jenis Tempahan : ${deliveryText}
-Caj Delivery : ${deliveryFee}
-Jumlah Perlu Dibayar : RM${total}
-Order ID : SS-${Date.now().toString().slice(-6)}`;
+--------------------
+
+Subtotal: RM${subtotal}
+Delivery: RM${deliveryFee}
+
+💰 *JUMLAH: RM${total}*
+
+🚚 *Kaedah:*
+${deliveryMethod}
+
+Terima kasih.`;
   }
 
   return (
@@ -508,17 +533,17 @@ Order ID : SS-${Date.now().toString().slice(-6)}`;
                     <h3 className="font-bold text-slate-900 mb-2">Ringkasan Bayaran</h3>
                     <div className="space-y-1">
                       <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>RM{getCartTotal().toFixed(2)}</span>
+                        <span className="text-slate-900 font-medium">Subtotal</span>
+                        <span className="text-slate-900 font-medium">RM{getCartTotal().toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Caj Delivery</span>
-                        <span>{checkoutForm.deliveryMode === 'Delivery' ? 'RM6.00' : 'RM0.00'}</span>
+                        <span className="text-slate-900 font-medium">Caj Delivery</span>
+                        <span className="text-slate-900 font-medium">{checkoutForm.deliveryMode === 'Delivery' ? 'RM6.00' : 'RM0.00'}</span>
                       </div>
                       <div className="border-t pt-2 mt-2">
                         <div className="flex justify-between">
-                          <span className="font-bold">Jumlah</span>
-                          <span className="font-bold">RM{(getCartTotal() + (checkoutForm.deliveryMode === 'Delivery' ? 6 : 0)).toFixed(2)}</span>
+                          <span className="text-slate-950 font-bold">Jumlah</span>
+                          <span className="text-slate-950 font-bold">RM{(getCartTotal() + (checkoutForm.deliveryMode === 'Delivery' ? 6 : 0)).toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
