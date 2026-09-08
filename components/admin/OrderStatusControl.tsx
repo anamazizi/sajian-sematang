@@ -6,19 +6,14 @@ interface OrderStatusControlProps {
   orderId: string;
   currentStatus: string;
   onStatusUpdate: (orderId: string, newStatus: string, notes?: string) => Promise<void>;
-  showTimeline?: boolean;
-  onToggleTimeline?: (orderId: string) => void;
 }
 
 const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'READY', 'DELIVERING', 'COMPLETED'];
-const ALL_STATUSES = ['PENDING', 'ACCEPTED', 'READY', 'DELIVERING', 'COMPLETED', 'CANCELLED'];
 
 export default function OrderStatusControl({
   orderId,
   currentStatus,
   onStatusUpdate,
-  showTimeline = false,
-  onToggleTimeline,
 }: OrderStatusControlProps) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
@@ -67,33 +62,50 @@ export default function OrderStatusControl({
     }
   };
 
-  const cancelNotes = () => {
-    setShowNotes(false);
-    setNotes('');
-    setTargetStatus('');
-  };
-
-  const statusLabels = {
-    PENDING: 'Pending',
-    ACCEPTED: 'Accepted',
-    READY: 'Ready',
-    DELIVERING: 'Delivering',
-    COMPLETED: 'Completed',
-    CANCELLED: 'Cancelled'
-  };
-
-  const handleSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newStatus = e.target.value;
+  const getAvailableStatuses = () => {
+    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
     
-    // Special handling for COMPLETED/CANCELLED
-    if (newStatus === 'COMPLETED' || newStatus === 'CANCELLED') {
-      setTargetStatus(newStatus);
-      setShowNotes(true);
-      return;
+    if (currentStatus === 'COMPLETED') {
+      return [{ value: 'COMPLETED', label: 'Completed' }];
     }
     
-    await handleStatusChange(newStatus);
+    if (currentStatus === 'CANCELLED') {
+      return [
+        { value: 'CANCELLED', label: 'Cancelled' },
+        { value: 'PENDING', label: 'Reactivate to Pending' },
+      ];
+    }
+
+    const available = [];
+    const statusLabels = {
+      PENDING: 'Pending',
+      ACCEPTED: 'Accepted',
+      READY: 'Ready',
+      DELIVERING: 'Delivering',
+      COMPLETED: 'Completed',
+      CANCELLED: 'Cancel Order'
+    };
+
+    available.push({ value: currentStatus, label: statusLabels[currentStatus as keyof typeof statusLabels] });
+
+    if (currentIndex < STATUS_FLOW.length - 1) {
+      const nextStatus = STATUS_FLOW[currentIndex + 1];
+      available.push({ value: nextStatus, label: statusLabels[nextStatus as keyof typeof statusLabels] });
+    }
+    
+    if (currentIndex > 0) {
+      const prevStatus = STATUS_FLOW[currentIndex - 1];
+      available.push({ value: prevStatus, label: `Revert to ${statusLabels[prevStatus as keyof typeof statusLabels]}` });
+    }
+    
+    if (currentStatus !== 'CANCELLED') {
+      available.push({ value: 'CANCELLED', label: 'Cancel Order' });
+    }
+
+    return available;
   };
+
+  const availableStatuses = getAvailableStatuses();
 
   return (
     <div className="space-y-3">
@@ -111,36 +123,21 @@ export default function OrderStatusControl({
         </span>
       </div>
 
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <label htmlFor={`status-select-${orderId}`} className="text-sm font-medium text-gray-700">
-            Tukar Status:
-          </label>
-          <select
-            id={`status-select-${orderId}`}
-            value={showNotes ? targetStatus || currentStatus : currentStatus}
-            onChange={handleSelectChange}
-            disabled={isUpdating}
-            className={`px-3 py-1.5 text-sm border border-slate-300 rounded-lg w-full max-w-xs text-slate-900 font-bold bg-white ${
-              isUpdating ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
-          >
-            {ALL_STATUSES.map((status) => (
-              <option key={status} value={status} className="text-slate-900 bg-white">
-                {statusLabels[status as keyof typeof statusLabels]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {onToggleTimeline && (
+      <div className="flex flex-wrap gap-2">
+        {availableStatuses.map((status) => (
           <button
-            onClick={() => onToggleTimeline(orderId)}
-            className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            key={status.value}
+            onClick={() => handleStatusChange(status.value)}
+            disabled={isUpdating || status.value === currentStatus}
+            className={`px-3 py-1.5 text-sm rounded-lg transition ${
+              status.value === currentStatus
+                ? 'bg-gray-100 text-gray-500 cursor-default'
+                : 'bg-green-500 text-white hover:bg-green-600'
+            } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            {showTimeline ? '▼' : '▶'} Lihat Sejarah Pesanan / Timeline
+            {status.label}
           </button>
-        )}
+        ))}
       </div>
 
       {showNotes && (
@@ -154,7 +151,7 @@ export default function OrderStatusControl({
           />
           <div className="flex justify-end gap-2">
             <button
-              onClick={cancelNotes}
+              onClick={() => setShowNotes(false)}
               className="px-3 py-1 text-sm border border-gray-300 rounded-lg"
             >
               Batal
