@@ -440,10 +440,10 @@ ${itemsList}
                 id="status-filter"
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm w-full max-w-xs"
+                className="px-3 py-2 border border-slate-300 rounded-lg text-sm w-full max-w-xs text-slate-900 font-semibold bg-white"
               >
                 {STATUS_FILTERS.map(filter => (
-                  <option key={filter.value} value={filter.value}>
+                  <option key={filter.value} value={filter.value} className="text-slate-900 bg-white">
                     {filter.label}
                   </option>
                 ))}

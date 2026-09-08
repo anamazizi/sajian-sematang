@@ -121,12 +121,12 @@ export default function OrderStatusControl({
             value={showNotes ? targetStatus || currentStatus : currentStatus}
             onChange={handleSelectChange}
             disabled={isUpdating}
-            className={`px-3 py-1.5 text-sm border rounded-lg w-full max-w-xs ${
+            className={`px-3 py-1.5 text-sm border border-slate-300 rounded-lg w-full max-w-xs text-slate-900 font-bold bg-white ${
               isUpdating ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
             {ALL_STATUSES.map((status) => (
-              <option key={status} value={status}>
+              <option key={status} value={status} className="text-slate-900 bg-white">
                 {statusLabels[status as keyof typeof statusLabels]}
               </option>
             ))}
