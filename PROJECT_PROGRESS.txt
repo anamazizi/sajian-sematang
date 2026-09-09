@@ -1,11 +1,11 @@
 📊 PROJECT_PROGRESS.txt - SAJIAN SEMATANG
 Status Terkini & Development Progress
 
-Tarikh Kemaskini: 3 September 2026 (Product Rearrange & Sorting Feature Complete)
-Versi: 2.6 (Product Rearrange & Sorting Feature Complete)
-Build Status: ✅ Success (Latest build: 3 September 2026 - Product Sorting Complete, TypeScript 0 errors)
+Tarikh Kemaskini: 9 September 2026 (Sesi Petang)
+Versi: 2.7 (Dynamic Category Ordering & Social Proof Features Complete)
+Build Status: ✅ Clean Build (0 TypeScript/JavaScript errors, Exit Code 0)
 Security Status: ✅ All Security Layers Implemented (RLS + Rate Limiting + Audit)
-Project Completion: 93% COMPLETE (Updated 3 September 2026 - PRODUCT REARRANGE & SORTING FEATURE COMPLETE)
+Project Completion: 93% COMPLETE (Updated 9 September 2026 - DYNAMIC CATEGORY ORDERING & SOCIAL PROOF FEATURES COMPLETE)
 
 ================================================================================
 
@@ -25,16 +25,17 @@ Stack Teknologi (100% Betul)
 - Deployment: Vercel dengan GitHub integration
 - Development: VS Code dengan Roo Code AI Assistant
 
-Latest Build Verification (3 September 2026 - Product Rearrange & Sorting Complete):
-- ✅ Next.js build completed successfully (0 TypeScript errors)
-- ✅ Product Rearrange Feature: Button-based sorting dengan atomic RPC functions
-- ✅ Database Migration: Column `display_order` ditambah ke table `products`
-- ✅ Seller UI Controls: Butang "Ke Atas" (▲) dan "Ke Bawah" (▼) dengan auto-disable
+Latest Build Verification (9 September 2026 - Dynamic Category Ordering & Social Proof Features Complete):
+- ✅ Next.js build completed successfully (0 TypeScript/JavaScript errors, Exit Code 0)
+- ✅ Dynamic Category Ordering: Column `display_order` added to `categories` table with admin swap buttons
+- ✅ Customer Order History: `customer_id` binding, case-insensitive status filtering, 24h time format
+- ✅ Social Proof System: `product_likes` table, RPC `toggle_product_like`, interactive 👍/✅ buttons
+- ✅ Product Sales Counter: Automatic `total_sold` increment on order completion
 - ✅ WhatsApp Unicode Encoding: Strict `encodeURIComponent()` dengan raw template (maintained)
 - ✅ WhatsApp Direct Redirect: `window.location.href` untuk elak pop-up blocker (maintained)
 - ✅ Profile Form Contrast: `text-slate-900 bg-white` untuk borang auth/profile (maintained)
 - ✅ Rate Limiting Middleware: Configurable limits per endpoint (maintained)
-- ✅ Audit Logging: Setiap reorder operation direkodkan dengan PII sanitization
+- ✅ Audit Logging: Setiap reorder operation direkodkan dengan PII sanitization (maintained)
 - ✅ Production Monitoring: Error tracking ready (maintained)
 - ✅ Architecture Documentation: Complete (ARCHITECTURE_PHASE0.md) (maintained)
 - ✅ Security Compliance: All Master Prompt sections implemented (maintained)
@@ -715,6 +716,33 @@ UX & Code Quality Improvements
    - Organized Supabase migrations dengan run order
 
 ================================================================================
+4. PENAMBAHBAIKAN & PATCH TERKINI (9 SEPTEMBER 2026 - SESI PETANG) ✅
+
+A. Dynamic Category Ordering:
+   * Penambahan kolum `display_order INT DEFAULT 0` pada jadual `categories`.
+   * Butang Naik (▲) & Turun (▼) pada modal urus kategori admin (`AdminCategoryModal.tsx`) berserta fungsi `swapCategories`.
+   * Susunan seksyen kategori di Laman Utama (`/`) disusun mengikut `display_order` Supabase.
+
+B. Customer Order History & Tracking (/orders):
+   * Pemautan `customer_id` terus ke akaun pengguna semasa checkout (RPC `create_order_with_stock_check` & migration).
+   * Pembaikan penapisan tab status (Semua, Menunggu, Diterima/Sedang Disediakan, Selesai, Dibatalkan) secara case-insensitive.
+   * Penyeragaman format masa 24 jam tulen (tanpa PG/PTG/AM/PM) dan kod pendek pesanan 8 aksara (`#bceb85c0`).
+   * Pembuangan butang navigasi duplikasi di halaman kejayaan tempahan.
+
+C. Social Proof & Customer Engagement:
+   * Cipta jadual `product_likes` (RLS terjamin) dan fungsi RPC `toggle_product_like`.
+   * Paparan butang interaktif 👍 / ✅ pada setiap item pesanan yang berstatus 'COMPLETED'.
+   * Penyegerakan automatik (hydration) rekod like pengguna dari `product_likes` supaya status ✅ kekal terpapar selepas refresh.
+   * Automasi kiraan `total_sold` produk apabila pesanan mencapai status 'COMPLETED'.
+   * Lencana statistik kemas di Laman Utama: `🔥 X terjual  👍 Y`.
+
+D. Build Gate Verification:
+   * ✅ `npm run build` berjaya dengan Exit Code 0.
+   * ✅ 0 TypeScript/JavaScript errors.
+   * ✅ Semua security layers maintained (RLS + Rate Limiting + Audit).
+   * ✅ Architecture compliance dengan Master Prompt Seksyen 28/64 (Order Snapshot), 29 (Price Security), 66 (RLS).
+
+===============================================================================
 
 5. FASA SEMASA & TUGAS SETERUSNYA
 
