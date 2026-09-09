@@ -487,10 +487,13 @@ export default function HomePage() {
                           </div>
 
                           {/* Sales & Likes Stats */}
-                           <div className="flex items-center justify-between text-xs text-slate-500 font-medium mb-3">
-                            <span>🛒 {product.total_sold || 0} terjual</span>
-                            <span>•</span>
-                            <span>👍 {product.likes_count || 0}</span>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 font-medium mb-3">
+                            <span className="flex items-center gap-1">
+                              🔥 {product.total_sold || 0} terjual
+                            </span>
+                            <span className="flex items-center gap-1 ml-2">
+                              👍 {product.likes_count || 0}
+                            </span>
                           </div>
                           {/* Add to Cart Button */}
                           {(() => {

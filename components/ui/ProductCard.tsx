@@ -145,7 +145,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
           
           {product.total_sold !== undefined && product.total_sold > 0 && (
             <div className="flex items-center gap-1 text-sm text-green-600" title="Jumlah berjaya dijual">
-              <span>📦</span>
+              <span>🔥</span>
               <span>{product.total_sold}</span>
             </div>
           )}
@@ -167,7 +167,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
               )}
               {product.total_sold !== undefined && product.total_sold > 0 && (
                 <span className="flex items-center gap-1">
-                  <span className="text-green-500">📦</span>
+                  <span className="text-green-500">🔥</span>
                   <span>{product.total_sold} terjual</span>
                 </span>
               )}
