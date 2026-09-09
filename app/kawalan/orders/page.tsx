@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
 import OrderStatusControl from '../../../components/admin/OrderStatusControl';
+import { formatDate } from '@/lib/utils';
 import AdminBottomNav from '@/components/admin/AdminBottomNav';
 import { updateOrderStatusWithAudit } from '../../../app/actions/update-order-status-fixed';
 
@@ -28,6 +29,8 @@ export default function OrdersManagementPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [expandedTimelineOrders, setExpandedTimelineOrders] = useState<Set<string>>(new Set());
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [statusHistory, setStatusHistory] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
@@ -65,6 +68,17 @@ export default function OrdersManagementPage() {
       return [];
     }
   }
+
+  const openHistoryModal = (orderId: string) => {
+    setSelectedOrderId(orderId);
+    setShowHistoryModal(true);
+    // fetch status history jika belum
+    if (!statusHistory[orderId]) {
+      fetchStatusHistory(orderId).then(history => {
+        setStatusHistory(prev => ({ ...prev, [orderId]: history }));
+      });
+    }
+  };
 
   const toggleTimeline = async (orderId: string) => {
     const newExpanded = new Set(expandedTimelineOrders);
@@ -499,7 +513,7 @@ ${itemsList}
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <p className="text-sm text-gray-500">
-                      {new Date(order.created_at).toLocaleString('ms-MY')}
+                      {formatDate(order.created_at)}
                     </p>
                     <h3 className="text-xl font-semibold text-gray-800">
                       Pesanan #{order.id.substring(0, 8)}
@@ -512,6 +526,14 @@ ${itemsList}
                         📍 {order.customer_address}
                       </p>
                     )}
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => openHistoryModal(order.id)}
+                      className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 px-3 py-1 rounded-lg flex items-center gap-1"
+                    >
+                      🕒 Lihat Sejarah
+                    </button>
                   </div>
                 </div>
 
@@ -552,10 +574,7 @@ ${itemsList}
                         <div className="flex items-center gap-2">
                           <span className="text-gray-500">⏰ Pesanan dibuat:</span>
                           <span className="text-gray-700 font-medium">
-                            {new Date(order.created_at).toLocaleString('ms-MY', {
-                              dateStyle: 'medium',
-                              timeStyle: 'short'
-                            })}
+                            {formatDate(order.created_at)}
                           </span>
                         </div>
 
@@ -575,10 +594,7 @@ ${itemsList}
                                       <span className="text-gray-700">{history.new_status}</span>
                                     </div>
                                     <div className="text-gray-500 text-xs">
-                                      {new Date(history.created_at).toLocaleString('ms-MY', {
-                                        dateStyle: 'short',
-                                        timeStyle: 'short'
-                                      })}
+                                      {formatDate(history.created_at)}
                                       {history.notes && (
                                         <span className="ml-2 text-gray-600">• Catatan: {history.notes}</span>
                                       )}
@@ -633,6 +649,60 @@ ${itemsList}
       </div>
       
       {/* Bottom Navigation for Admin/Staff */}
+      {/* Modal Sejarah Status Pesanan */}
+      {showHistoryModal && selectedOrderId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800">Sejarah Status Pesanan</h2>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-4">
+              {statusHistory[selectedOrderId] && statusHistory[selectedOrderId].length > 0 ? (
+                statusHistory[selectedOrderId].map((history, idx) => (
+                  <div key={history.id} className="border border-gray-200 rounded p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {history.previous_status} → {history.new_status}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {formatDate(history.created_at)}
+                        </div>
+                        <div className="text-sm text-gray-700 mt-2">
+                          <span className="font-medium">Oleh:</span> {history.actor_name || 'System'} ({history.actor_role})
+                        </div>
+                        {history.notes && (
+                          <div className="text-sm text-gray-800 mt-1">
+                            <span className="font-medium">Catatan:</span> {history.notes}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-500">{idx + 1}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600">Tiada sejarah status dijumpai.</p>
+              )}
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-lg font-medium"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <AdminBottomNav />
     </div>
   );

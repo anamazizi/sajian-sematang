@@ -435,7 +435,7 @@ export default function HomePage() {
                                    badge = <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-medium">Belum Dibuka</span>;
                                    // Format tarikh untuk paparan
                                    const openDate = new Date(startDate);
-                                   statusText = `Dibuka Pada: ${openDate.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'short' })}, ${openDate.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+                                   statusText = `Dibuka Pada: ${openDate.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'short' })}, ${openDate.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit', hour12: false })}`;
                                  } else if (now >= start && now <= end) {
                                    badge = <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">Pre-Order Aktif</span>;
                                    // Calculate remaining time
