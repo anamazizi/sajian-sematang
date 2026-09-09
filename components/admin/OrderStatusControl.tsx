@@ -80,17 +80,9 @@ export default function OrderStatusControl({
 
   // Determine which status options are available based on current status
   const getAvailableStatuses = () => {
-    // If order is COMPLETED, lock it (only show COMPLETED)
-    if (currentStatus === 'COMPLETED') {
-      return STATUS_OPTIONS.filter(opt => opt.value === 'COMPLETED');
-    }
-
-    // If order is CANCELLED, allow reactivation to PENDING
-    if (currentStatus === 'CANCELLED') {
-      return [
-        { value: 'CANCELLED', label: 'Cancelled' },
-        { value: 'PENDING', label: 'Reactivate to Pending' },
-      ];
+    // If order is COMPLETED or CANCELLED, lock it (only show current status)
+    if (currentStatus === 'COMPLETED' || currentStatus === 'CANCELLED') {
+      return STATUS_OPTIONS.filter(opt => opt.value === currentStatus);
     }
 
     // For other statuses, allow all status options except maybe restrict some illogical transitions?
@@ -121,7 +113,7 @@ export default function OrderStatusControl({
         <select
           value={currentStatus}
           onChange={(e) => handleStatusChange(e.target.value)}
-          disabled={isUpdating || currentStatus === 'COMPLETED'}
+          disabled={isUpdating || currentStatus === 'COMPLETED' || currentStatus === 'CANCELLED'}
           className="bg-white border border-slate-300 text-slate-900 font-semibold rounded-lg p-2 w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {availableStatuses.map((status) => (
@@ -141,21 +133,21 @@ export default function OrderStatusControl({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Masukkan nota (wajib untuk Completed/Cancelled)..."
-            className="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm mb-2"
+            className="w-full px-3 py-2 text-slate-900 bg-white placeholder-slate-500 border border-slate-300 font-medium rounded-lg text-sm mb-2"
             rows={2}
             required
           />
           <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowNotes(false)}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-lg"
+                className="bg-slate-200 text-slate-800 hover:bg-slate-300 px-4 py-2 rounded-lg font-medium"
             >
               Batal
             </button>
             <button
               onClick={handleSubmitWithNotes}
               disabled={!notes.trim()}
-              className="px-3 py-1 text-sm bg-yellow-500 text-white rounded-lg"
+              className="px-4 py-2 bg-yellow-500 text-white rounded-lg font-medium"
             >
               Simpan
             </button>

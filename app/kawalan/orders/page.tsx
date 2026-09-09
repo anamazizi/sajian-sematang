@@ -562,10 +562,10 @@ ${itemsList}
                         {/* Display status history if available */}
                         {statusHistory[order.id] && statusHistory[order.id].length > 0 ? (
                           <div className="mt-3">
-                            <h5 className="text-xs font-semibold text-gray-600 mb-1">Log Perubahan Status:</h5>
+                            <h5 className="text-xs font-semibold text-slate-700 mb-1">Log Perubahan Status:</h5>
                             <div className="space-y-1">
                               {statusHistory[order.id].map((history, idx) => (
-                                <div key={history.id} className="flex items-start gap-2">
+                                <div key={history.id} className="flex items-start gap-2 border border-slate-200 bg-slate-50 rounded px-3 py-2">
                                   <span className="text-gray-400 text-xs">{idx + 1}.</span>
                                   <div className="flex-1">
                                     <div className="flex items-center gap-1">
@@ -589,7 +589,7 @@ ${itemsList}
                             </div>
                           </div>
                         ) : (
-                          <div className="text-gray-500 text-sm">
+                          <div className="text-slate-600 text-sm">
                             Tiada log perubahan status. Status semasa: {order.status}
                           </div>
                         )}
