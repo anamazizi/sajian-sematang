@@ -486,6 +486,12 @@ export default function HomePage() {
                              })()}
                           </div>
 
+                          {/* Sales & Likes Stats */}
+                           <div className="flex items-center justify-between text-xs text-slate-500 font-medium mb-3">
+                            <span>🛒 {product.total_sold || 0} terjual</span>
+                            <span>•</span>
+                            <span>👍 {product.likes_count || 0}</span>
+                          </div>
                           {/* Add to Cart Button */}
                           {(() => {
                              const startDate = product.preorder_start || product.available_from;

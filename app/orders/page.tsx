@@ -23,6 +23,7 @@ interface Order {
 interface OrderItem {
   id: string;
   order_id: string;
+  product_id: string;
   product_name_snapshot: string;
   quantity: number;
   unit_price: number;
@@ -35,6 +36,7 @@ export default function CustomerOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [orderItems, setOrderItems] = useState<Record<string, OrderItem[]>>({});
+  const [likedItems, setLikedItems] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -99,6 +101,27 @@ export default function CustomerOrdersPage() {
       console.error('Error fetching orders:', error);
     } finally {
       setLoading(false);
+    }
+  }
+  async function handleToggleLike(productId: string, orderId: string) {
+    try {
+      const { data: liked, error } = await supabase.rpc('toggle_product_like', {
+        p_product_id: productId,
+        p_order_id: orderId,
+      });
+      
+      if (error) throw error;
+      
+      // Optimistic update
+      setLikedItems(prev => ({
+        ...prev,
+        [productId]: liked,
+      }));
+      
+      // Optionally refresh likes count display (boleh fetch semula)
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+      alert('Gagal mengemaskini like. Sila cuba lagi.');
     }
   }
 
@@ -256,9 +279,20 @@ export default function CustomerOrdersPage() {
                             <span className="text-gray-700">
                               {item.quantity}x {item.product_name_snapshot}
                             </span>
-                            <span className="text-gray-800 font-medium">
-                              RM {(item.unit_price * item.quantity).toFixed(2)}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-800 font-medium">
+                                RM {(item.unit_price * item.quantity).toFixed(2)}
+                              </span>
+                              {order.status === 'COMPLETED' && (
+                                <button
+                                  onClick={() => handleToggleLike(item.product_id, order.id)}
+                                  className={`text-sm p-1 rounded-full ${likedItems[item.product_id] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-600'}`}
+                                  title={likedItems[item.product_id] ? 'Sudah like' : 'Like produk ini'}
+                                >
+                                  {likedItems[item.product_id] ? '✅' : '👍'}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>

@@ -1,0 +1,416 @@
+-- Migration untuk menambahkan likes dan sales metrics pada produk
+-- ===========================================
+-- 1. TAMBAH KOLUM PADA PRODUCTS
+-- ===========================================
+
+DO $$
+BEGIN
+    -- Tambah kolum total_sold jika belum wujud
+    IF NOT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'products'
+        AND column_name = 'total_sold'
+    ) THEN
+        ALTER TABLE public.products
+        ADD COLUMN total_sold INTEGER NOT NULL DEFAULT 0;
+        RAISE NOTICE '✅ Added total_sold column to products table';
+    ELSE
+        RAISE NOTICE '⏩ total_sold column already exists, skipping';
+    END IF;
+
+    -- Tambah kolum likes_count jika belum wujud
+    IF NOT EXISTS (
+        SELECT FROM information_schema.columns
+        WHERE table_schema = 'public'
+        AND table_name = 'products'
+        AND column_name = 'likes_count'
+    ) THEN
+        ALTER TABLE public.products
+-- ===========================================
+-- 2. KEMASKINI JADUAL PRODUCT_LIKES DENGAN ORDER_ID
+-- ===========================================
+
+-- Drop jadual sedia ada jika perlu (kita akan recreate dengan skema yang betul)
+-- Sebenarnya jadual product_likes mungkin sudah wujud dengan skema lama.
+-- Kita perlu menambah kolum order_id jika belum ada.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.tables
+        WHERE table_schema = 'public'
+        AND table_name = 'product_likes'
+    ) THEN
+        -- Jadual sudah wujud, tambah kolum order_id jika belum
+        IF NOT EXISTS (
+            SELECT FROM information_schema.columns
+            WHERE table_schema = 'public'
+            AND table_name = 'product_likes'
+            AND column_name = 'order_id'
+        ) THEN
+            ALTER TABLE public.product_likes
+            ADD COLUMN order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL;
+            RAISE NOTICE '✅ Added order_id column to existing product_likes table';
+        ELSE
+            RAISE NOTICE '⏩ order_id column already exists in product_likes';
+        END IF;
+    ELSE
+        -- Jadual belum wujud, buat baru dengan skema lengkap
+        CREATE TABLE public.product_likes (
+            id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+            product_id UUID NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+            user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+            order_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+            created_at TIMESTAMPTZ DEFAULT now(),
+            -- Ensure one like per user per product per order (order_id boleh NULL)
+            UNIQUE(product_id, user_id, order_id)
+        );
+        RAISE NOTICE '✅ Created product_likes table with order_id';
+    END IF;
+-- ===========================================
+-- 3. FUNGSI TOGGLE PRODUCT LIKE DENGAN ORDER_ID
+-- ===========================================
+
+CREATE OR REPLACE FUNCTION toggle_product_like(
+    p_product_id UUID,
+    p_order_id UUID DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_user_id UUID;
+    v_already_liked BOOLEAN;
+    v_liked BOOLEAN;
+BEGIN
+    -- Dapatkan user ID dari sesi
+    v_user_id := auth.uid();
+    
+    IF v_user_id IS NULL THEN
+        RAISE EXCEPTION 'User must be authenticated';
+    END IF;
+
+    -- Semak jika like sudah wujud
+    SELECT EXISTS (
+        SELECT 1 FROM public.product_likes
+        WHERE product_id = p_product_id
+          AND user_id = v_user_id
+          AND (order_id IS NOT DISTINCT FROM p_order_id)
+    ) INTO v_already_liked;
+
+    IF v_already_liked THEN
+        -- Unlike: delete like
+        DELETE FROM public.product_likes
+        WHERE product_id = p_product_id
+          AND user_id = v_user_id
+          AND (order_id IS NOT DISTINCT FROM p_order_id);
+
+        -- Kurangkan likes_count pada produk
+-- ===========================================
+-- 4. FUNGSI UPDATE SALES METRICS APABILA ORDER COMPLETED
+-- ===========================================
+
+CREATE OR REPLACE FUNCTION update_product_sales_on_order_completion(
+    p_order_id UUID
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_order_status TEXT;
+BEGIN
+    -- Semak status order adalah COMPLETED
+    SELECT status INTO v_order_status
+    FROM public.orders
+    WHERE id = p_order_id;
+
+    IF v_order_status != 'COMPLETED' THEN
+-- ===========================================
+-- 5. UPDATE FUNGSI update_order_status_with_audit
+-- untuk panggil update_product_sales_on_order_completion
+-- ===========================================
+
+-- Drop fungsi sedia ada dan recreate dengan tambahan sales update.
+CREATE OR REPLACE FUNCTION update_order_status_with_audit(
+    p_order_id UUID,
+    p_new_status TEXT,
+    p_notes TEXT DEFAULT NULL,
+    p_actor_name TEXT DEFAULT NULL,
+    p_actor_role TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_current_status TEXT;
+    v_changed_by UUID;
+    v_final_actor_name TEXT;
+    v_final_actor_role TEXT;
+    v_delivery_fee DECIMAL(10, 2);
+    v_order_data RECORD;
+    v_result JSONB;
+BEGIN
+    -- Get current order status and verify it exists
+    SELECT status, delivery_fee_snapshot, total_price
+    INTO v_current_status, v_delivery_fee, v_order_data
+    FROM public.orders
+    WHERE id = p_order_id;
+    
+    IF v_current_status IS NULL THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Order not found'
+        );
+    END IF;
+    
+    -- Prevent updates to COMPLETED orders (locked state)
+    IF v_current_status = 'COMPLETED' OR v_current_status = 'CANCELLED' THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Cannot update status of completed or cancelled orders'
+        );
+    END IF;
+    
+    -- Get current user info
+    v_changed_by := auth.uid();
+    
+    -- Determine actor name and role
+    -- Priority: 1. Parameters from Server Action, 2. profiles table, 3. users table, 4. Default
+    IF p_actor_name IS NOT NULL AND p_actor_role IS NOT NULL THEN
+        -- Use parameters from Server Action (already has real name from profiles)
+        v_final_actor_name := p_actor_name;
+        v_final_actor_role := p_actor_role;
+    ELSE
+        -- Fallback: Try to get from profiles table (most likely source of full_name)
+        BEGIN
+            SELECT full_name, role INTO v_final_actor_name, v_final_actor_role
+            FROM public.profiles
+            WHERE id = v_changed_by;
+            
+            IF v_final_actor_name IS NULL THEN
+                -- Try users table as secondary fallback
+                SELECT name, role INTO v_final_actor_name, v_final_actor_role
+                FROM public.users
+                WHERE id = v_changed_by;
+            END IF;
+            
+            IF v_final_actor_name IS NULL THEN
+                v_final_actor_name := 'Admin/Staff';
+                v_final_actor_role := 'admin';
+            END IF;
+        EXCEPTION
+            WHEN OTHERS THEN
+                v_final_actor_name := 'Admin/Staff';
+                v_final_actor_role := 'admin';
+        END;
+    END IF;
+    
+    -- Update order status
+    UPDATE public.orders
+    SET status = p_new_status,
+        updated_at = now()
+    WHERE id = p_order_id;
+    
+    -- Log status change to audit history
+    INSERT INTO public.order_status_history (
+        order_id,
+        previous_status,
+        new_status,
+        changed_by,
+        actor_name,
+        actor_role,
+        notes
+    ) VALUES (
+        p_order_id,
+        v_current_status,
+        p_new_status,
+        v_changed_by,
+        v_final_actor_name,
+        v_final_actor_role,
+        p_notes
+    );
+    
+    -- If status changed to COMPLETED and has delivery fee, record runner cost
+    IF p_new_status = 'COMPLETED' AND v_delivery_fee > 0 THEN
+        -- Check if expenses table exists
+        IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'expenses') THEN
+            -- Insert runner cost as expense
+            INSERT INTO public.expenses (
+                date,
+                supplier,
+                description,
+                amount,
+                notes,
+                created_by,
+                order_id
+            ) VALUES (
+-- ===========================================
+-- 6. KEMASKINI VIEW PRODUCT_STATS JIKA ADA
+-- ===========================================
+
+-- Jika view product_stats sedia ada, kita drop dan recreate dengan kolum baru
+DROP VIEW IF EXISTS public.product_stats;
+
+CREATE OR REPLACE VIEW public.product_stats AS
+SELECT 
+    p.id,
+-- ===========================================
+-- 7. MESSAGE SUCCESS
+-- ===========================================
+
+DO $$
+BEGIN
+    RAISE NOTICE '===========================================';
+    RAISE NOTICE '✅ Migration 30 selesai!';
+    RAISE NOTICE '✅ Added total_sold & likes_count columns to products';
+    RAISE NOTICE '✅ Updated product_likes table with order_id';
+    RAISE NOTICE '✅ Created toggle_product_like RPC function';
+    RAISE NOTICE '✅ Created update_product_sales_on_order_completion function';
+    RAISE NOTICE '✅ Updated update_order_status_with_audit to update sales metrics';
+    RAISE NOTICE '✅ Updated product_stats view';
+    RAISE NOTICE '===========================================';
+END $$;
+    p.name,
+    p.seller_id,
+    p.is_active,
+    p.likes_count,
+    p.total_sold,
+    -- Simpan juga fungsi pengiraan untuk backward compatibility
+    public.get_product_total_likes(p.id) as calculated_total_likes,
+    public.get_product_total_sold(p.id) as calculated_total_sold
+FROM public.products p;
+
+GRANT SELECT ON public.product_stats TO authenticated;
+GRANT SELECT ON public.product_stats TO anon;
+                CURRENT_DATE,
+                'Runner Delivery',
+                CONCAT('Runner fee for Order ', p_order_id),
+                v_delivery_fee,
+                CONCAT('Automated runner cost for completed delivery order. Actor: ', v_final_actor_name),
+                v_changed_by,
+                p_order_id
+            );
+            
+            RAISE NOTICE '✅ Runner cost recorded: RM % for Order %', v_delivery_fee, p_order_id;
+        END IF;
+    END IF;
+
+    -- NEW: Update product sales metrics apabila order COMPLETED
+    IF p_new_status = 'COMPLETED' THEN
+        -- Panggil fungsi untuk update total_sold pada produk
+        PERFORM update_product_sales_on_order_completion(p_order_id);
+        RAISE NOTICE '✅ Product sales metrics updated for order %', p_order_id;
+    END IF;
+    
+    -- Return success
+    RETURN jsonb_build_object(
+        'success', true,
+        'order_id', p_order_id,
+        'previous_status', v_current_status,
+        'new_status', p_new_status,
+        'message', 'Order status updated successfully'
+    );
+    
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', SQLERRM,
+            'message', 'Failed to update order status'
+        );
+END;
+$$;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION update_order_status_with_audit(UUID, TEXT, TEXT, TEXT, TEXT) TO authenticated;
+        RAISE NOTICE 'Order % is not COMPLETED, skipping sales update', p_order_id;
+        RETURN;
+    END IF;
+
+    -- Update total_sold untuk setiap produk dalam order items
+    UPDATE public.products p
+    SET total_sold = total_sold + oi.quantity
+    FROM public.order_items oi
+    WHERE oi.order_id = p_order_id
+      AND oi.product_id = p.id;
+
+    RAISE NOTICE 'Updated total_sold for products in order %', p_order_id;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE WARNING 'Failed to update product sales for order %: %', p_order_id, SQLERRM;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION update_product_sales_on_order_completion(UUID) TO authenticated;
+        UPDATE public.products
+        SET likes_count = likes_count - 1
+        WHERE id = p_product_id;
+
+        v_liked := FALSE;
+    ELSE
+        -- Like: insert like
+        INSERT INTO public.product_likes (product_id, user_id, order_id)
+        VALUES (p_product_id, v_user_id, p_order_id);
+
+        -- Tambah likes_count pada produk
+        UPDATE public.products
+        SET likes_count = likes_count + 1
+        WHERE id = p_product_id;
+
+        v_liked := TRUE;
+    END IF;
+
+    RETURN v_liked;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE;
+END;
+$$;
+
+-- Berikan kebenaran execute kepada authenticated users
+GRANT EXECUTE ON FUNCTION toggle_product_like(UUID, UUID) TO authenticated;
+END $$;
+
+-- Enable RLS on product_likes (jika belum)
+ALTER TABLE public.product_likes ENABLE ROW LEVEL SECURITY;
+
+-- Drop policies lama jika ada (untuk recreate)
+DROP POLICY IF EXISTS "Customers can view product likes" ON public.product_likes;
+DROP POLICY IF EXISTS "Customers can manage their likes" ON public.product_likes;
+DROP POLICY IF EXISTS "Admin can manage all likes" ON public.product_likes;
+
+-- Policies baru untuk product_likes
+-- Customer boleh view semua likes (untuk count)
+CREATE POLICY "Customers can view product likes"
+    ON public.product_likes
+    FOR SELECT
+    USING (true);
+
+-- Customer boleh insert/delete like sendiri
+CREATE POLICY "Customers can manage their likes"
+    ON public.product_likes
+    FOR ALL
+    USING (auth.uid() = user_id);
+
+-- Admin/Staff boleh manage semua likes
+CREATE POLICY "Admin can manage all likes"
+    ON public.product_likes
+    FOR ALL
+    USING (
+        EXISTS (
+            SELECT 1 FROM public.users
+            WHERE id = auth.uid()
+            AND role IN ('admin', 'staff')
+        )
+    );
+        ADD COLUMN likes_count INTEGER NOT NULL DEFAULT 0;
+        RAISE NOTICE '✅ Added likes_count column to products table';
+    ELSE
+        RAISE NOTICE '⏩ likes_count column already exists, skipping';
+    END IF;
+END $$;
+-- Nombor: 30
+-- Tarikh: 9 September 2026

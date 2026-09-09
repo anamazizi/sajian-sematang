@@ -15,6 +15,7 @@ interface Product {
   available_until?: string | null;
   total_likes?: number;
   total_sold?: number;
+  likes_count?: number;
 }
 
 interface ProductCardProps {
@@ -25,7 +26,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(product.total_likes || 0);
+  const [likesCount, setLikesCount] = useState(product.likes_count ?? product.total_likes ?? 0);
   const [loading, setLoading] = useState(false);
   const isLowStock = !product.is_preorder && product.stock_quantity !== undefined && product.stock_quantity > 0 && product.stock_quantity <= 5;
 

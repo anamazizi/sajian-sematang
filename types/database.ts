@@ -87,6 +87,8 @@ export interface CustomerProduct {
   display_order?: number; // Added for product sorting/rearrange
   stock_quantity: number;
   is_preorder: boolean;
+  total_sold?: number;
+  likes_count?: number;
   available_from?: string | null;
   available_until?: string | null;
 preorder_start?: string | null;
