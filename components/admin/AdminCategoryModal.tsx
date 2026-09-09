@@ -86,6 +86,7 @@ export default function AdminCategoryModal({
       console.error('Error fetching categories:', error);
       setCategories([]);
     }
+  }
   async function swapCategories(categoryId1: string, categoryId2: string) {
     setLoading(true);
     try {
@@ -145,7 +146,6 @@ export default function AdminCategoryModal({
     const nextCategoryId = categories[index + 1].id;
     swapCategories(categoryId, nextCategoryId);
   };
-  }
 
   async function handleAddCategory() {
     if (!categoryName.trim()) {
@@ -397,24 +397,44 @@ export default function AdminCategoryModal({
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleDeleteCategory(category.id)}
-                      disabled={deleteLoading === category.id || category.product_count! > 0}
-                      className={`ml-4 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors ${
-                        category.product_count! > 0 ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                      title={
-                        category.product_count! > 0 
-                          ? `Kategori sedang digunakan oleh ${category.product_count} produk`
-                          : 'Padam kategori'
-                      }
-                    >
-                      {deleteLoading === category.id ? (
-                        <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></span>
-                      ) : (
-                        <span className="text-lg">🗑️</span>
-                      )}
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveUp(index)}
+                        disabled={index === 0}
+                        className="p-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Naik"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveDown(index)}
+                        disabled={index === categories.length - 1}
+                        className="p-2 text-sm bg-slate-100 hover:bg-slate-200 text-slate-800 rounded border border-slate-300 disabled:opacity-30 disabled:cursor-not-allowed"
+                        title="Turun"
+                      >
+                        ▼
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(category.id)}
+                        disabled={deleteLoading === category.id || category.product_count! > 0}
+                        className={`ml-4 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors ${
+                          category.product_count! > 0 ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                        title={
+                          category.product_count! > 0 
+                            ? `Kategori sedang digunakan oleh ${category.product_count} produk`
+                            : 'Padam kategori'
+                        }
+                      >
+                        {deleteLoading === category.id ? (
+                          <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-red-600"></span>
+                        ) : (
+                          <span className="text-lg">🗑️</span>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
