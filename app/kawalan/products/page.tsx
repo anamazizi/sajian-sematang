@@ -549,9 +549,9 @@ export default function AdminProductsManagementPage() {
               {profile?.role === 'admin' && (
                 <button
                   onClick={() => setShowCategoryModal(true)}
-                  className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 shadow-sm flex items-center gap-2"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-lg text-sm border border-slate-300 flex items-center gap-2"
                 >
-                  <span>🏷️</span>
+                  <span>📂</span>
                   <span>Urus Kategori</span>
                 </button>
               )}
