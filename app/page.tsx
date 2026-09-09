@@ -19,6 +19,7 @@ export default function HomePage() {
   const { cart, addToCart, removeFromCart, getCartTotal, getCartCount, clearCart } = useCart();
   
   const [products, setProducts] = useState<CustomerProduct[]>([]);
+  const [categoriesOrder, setCategoriesOrder] = useState<Array<{name: string, display_order: number}>>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   
@@ -43,6 +44,7 @@ export default function HomePage() {
   useEffect(() => {
     if (user) {
       fetchProducts();
+      fetchCategories();
     }
   }, [user]);
 
@@ -83,6 +85,25 @@ export default function HomePage() {
     }
   }
 
+  async function fetchCategories() {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('categories')
+        .select('name, display_order')
+        .eq('is_active', true)
+        .order('display_order', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching categories:', error);
+        return;
+      }
+      
+      setCategoriesOrder(data || []);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  }
   // Group products by category
   const groupedProducts: GroupedProducts = products.reduce((acc, product) => {
     const category = product.category || 'Lain-lain';
@@ -377,7 +398,13 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="space-y-8">
-            {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
+            {Object.entries(groupedProducts)
+              .sort(([catA], [catB]) => {
+                const orderA = categoriesOrder.find(c => c.name === catA)?.display_order ?? Number.MAX_SAFE_INTEGER;
+                const orderB = categoriesOrder.find(c => c.name === catB)?.display_order ?? Number.MAX_SAFE_INTEGER;
+                return orderA - orderB;
+              })
+              .map(([category, categoryProducts]) => (
               <section key={category}>
                 {/* Category Header */}
                 <div className="flex items-center mb-4">

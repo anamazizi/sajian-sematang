@@ -33,6 +33,17 @@ export interface Seller {
   updated_at?: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+  display_order?: number;
+  created_by?: string | null;
+  created_at: string;
+  updated_at?: string;
+  product_count?: number;
+}
 export interface Product {
   id: string;
   seller_id: string;

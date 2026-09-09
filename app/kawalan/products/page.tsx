@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../lib/auth/hooks';
 import { supabase } from '../../../lib/supabase/client';
-import { Product, Seller } from '../../../types/database';
+import { Product, Seller, Category } from '@/types/database';
 import AdminBottomNav from '@/components/admin/AdminBottomNav';
 import AdminProductEditModal from '@/components/admin/AdminProductEditModal';
 import AdminProductCreateModal from '@/components/admin/AdminProductCreateModal';
@@ -44,16 +44,7 @@ export default function AdminProductsManagementPage() {
   });
 
   // Category state
-  interface Category {
-    id: string;
-    name: string;
-    description: string | null;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-    created_by: string | null;
-    product_count?: number;
-  }
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryFormData, setCategoryFormData] = useState({
