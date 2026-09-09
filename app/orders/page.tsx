@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase/client';
 import { useAuth } from '../../lib/auth/hooks';
+import { formatDate } from '../../lib/utils';
 import Link from 'next/link';
 
 interface Order {
@@ -117,16 +118,7 @@ export default function CustomerOrdersPage() {
     return colors[status] || 'bg-gray-100 text-gray-700';
   }
 
-  function formatDate(dateString: string) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ms-MY', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
+
 
   if (authLoading || loading) {
     return (
@@ -217,7 +209,7 @@ export default function CustomerOrdersPage() {
                         {formatDate(order.created_at)}
                       </p>
                       <h3 className="text-xl font-semibold text-gray-800 mb-1">
-                        Pesanan #{order.order_number}
+                        Pesanan #{order.id.slice(0,8)}
                       </h3>
                       <p className="text-gray-600">
                         {order.delivery_mode === 'Delivery' ? '🚗 Penghantaran' : '🏪 Ambil Sendiri'}

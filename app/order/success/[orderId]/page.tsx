@@ -176,10 +176,10 @@ export default function OrderSuccessPage() {
                 Kembali ke Halaman Utama
               </Link>
               <Link
-                href="/"
-                className="inline-block w-full bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-semibold text-center"
+                href="/orders"
+                className="inline-block w-full bg-slate-100 border border-slate-300 text-slate-800 py-3 rounded-lg hover:bg-slate-200 transition font-semibold text-center"
               >
-                Halaman Utama
+                Semak Status Pesanan
               </Link>
             </div>
         </div>
