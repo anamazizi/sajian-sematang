@@ -102,20 +102,40 @@ export default function CustomerOrdersPage() {
     }
   }
 
-  const filteredOrders = orders.filter(order => 
-    selectedStatus === 'all' || order.status === selectedStatus
-  );
+  const filteredOrders = orders.filter(order => {
+    const status = order.status?.toUpperCase() || '';
+    if (selectedStatus === 'all') return true;
+    if (selectedStatus === 'Pending') return status === 'PENDING';
+    if (selectedStatus === 'in_progress') return ['ACCEPTED', 'READY', 'DELIVERING'].includes(status);
+    if (selectedStatus === 'Completed') return status === 'COMPLETED';
+    if (selectedStatus === 'Cancelled') return status === 'CANCELLED';
+    return true;
+  });
 
   function getStatusColor(status: string) {
+    const statusUpper = status?.toUpperCase() || '';
     const colors: Record<string, string> = {
-      'Pending': 'bg-yellow-100 text-yellow-700',
-      'Accepted': 'bg-blue-100 text-blue-700',
-      'Ready': 'bg-purple-100 text-purple-700',
-      'Delivering': 'bg-indigo-100 text-indigo-700',
-      'Completed': 'bg-green-100 text-green-700',
-      'Cancelled': 'bg-red-100 text-red-700',
+      'PENDING': 'bg-yellow-100 text-yellow-700',
+      'ACCEPTED': 'bg-blue-100 text-blue-700',
+      'READY': 'bg-purple-100 text-purple-700',
+      'DELIVERING': 'bg-indigo-100 text-indigo-700',
+      'COMPLETED': 'bg-green-100 text-green-700',
+      'CANCELLED': 'bg-red-100 text-red-700',
     };
-    return colors[status] || 'bg-gray-100 text-gray-700';
+    return colors[statusUpper] || 'bg-gray-100 text-gray-700';
+  }
+
+  function formatStatus(status: string): string {
+    const statusUpper = status?.toUpperCase() || '';
+    const mapping: Record<string, string> = {
+      'PENDING': 'Menunggu',
+      'ACCEPTED': 'Diterima',
+      'READY': 'Sedia',
+      'DELIVERING': 'Sedang Dihantar',
+      'COMPLETED': 'Selesai',
+      'CANCELLED': 'Dibatalkan',
+    };
+    return mapping[statusUpper] || status;
   }
 
 
@@ -155,27 +175,33 @@ export default function CustomerOrdersPage() {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedStatus('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'all' ? 'bg-yellow-400 text-slate-900' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'all' ? 'bg-amber-400 text-slate-900 font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               Semua
             </button>
             <button
               onClick={() => setSelectedStatus('Pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'Pending' ? 'bg-yellow-100 text-yellow-700 border border-yellow-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'Pending' ? 'bg-amber-400 text-slate-900 font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               Menunggu
             </button>
             <button
-              onClick={() => setSelectedStatus('Accepted')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'Accepted' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              onClick={() => setSelectedStatus('in_progress')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'in_progress' ? 'bg-amber-400 text-slate-900 font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
-              Diterima
+              Diterima / Sedang Disediakan
             </button>
             <button
               onClick={() => setSelectedStatus('Completed')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'Completed' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'Completed' ? 'bg-amber-400 text-slate-900 font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
             >
               Selesai
+            </button>
+            <button
+              onClick={() => setSelectedStatus('Cancelled')}
+              className={`px-4 py-2 rounded-lg font-medium transition ${selectedStatus === 'Cancelled' ? 'bg-amber-400 text-slate-900 font-bold' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              Dibatalkan
             </button>
           </div>
         </div>
@@ -216,7 +242,7 @@ export default function CustomerOrdersPage() {
                       </p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                      {order.status}
+                      {formatStatus(order.status)}
                     </span>
                   </div>
 
