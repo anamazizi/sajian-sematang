@@ -48,6 +48,24 @@ export default function CustomerOrdersPage() {
       fetchOrders();
     }
   }, [user, authLoading, router]);
+// Fetch user's liked products on mount and when user changes
+  useEffect(() => {
+    if (!user) return;
+    const fetchLikes = async () => {
+      const { data: likesData, error } = await supabase
+        .from('product_likes')
+        .select('product_id')
+        .eq('user_id', user.id);
+      if (!error && likesData) {
+        const likedMap: Record<string, boolean> = {};
+        likesData.forEach((like) => {
+          likedMap[like.product_id] = true;
+        });
+        setLikedItems(likedMap);
+      }
+    };
+    fetchLikes();
+  }, [user]);
 
   async function fetchOrders() {
     try {
@@ -96,7 +114,9 @@ export default function CustomerOrdersPage() {
           
           setOrderItems(itemsByOrderId);
         }
+
       }
+      
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
