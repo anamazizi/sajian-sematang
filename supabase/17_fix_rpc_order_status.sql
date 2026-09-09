@@ -80,7 +80,7 @@ BEGIN
 
   -- STEP 3: Create order
   INSERT INTO public.orders (
-    seller_id, customer_name, customer_phone, customer_address,
+    seller_id, customer_id, customer_name, customer_phone, customer_address,
     customer_pin_location, delivery_mode, subtotal, delivery_fee,
     total_price, total_cost, calculated_distance, status,
     is_custom_preorder, delivery_datetime, special_notes,
@@ -90,6 +90,7 @@ BEGIN
     delivery_fee_snapshot
   ) VALUES (
     (order_data->>'seller_id')::uuid,
+    auth.uid(),
     order_data->>'customer_name',
     order_data->>'customer_phone',
     order_data->>'customer_address',

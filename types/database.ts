@@ -134,6 +134,7 @@ export interface Order {
   customer_address?: string | null;
   customer_pin_location?: string | null;
   seller_id: string;
+  customer_id?: string | null; // Link to authenticated user (auth.users.id)
   // Pricing
   subtotal: number;
   delivery_fee: number;

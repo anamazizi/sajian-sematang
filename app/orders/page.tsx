@@ -29,7 +29,7 @@ interface OrderItem {
 
 export default function CustomerOrdersPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -50,11 +50,25 @@ export default function CustomerOrdersPage() {
     try {
       setLoading(true);
 
-      const { data: ordersData, error: ordersError } = await supabase
+      // Build query: match by customer_id OR customer_phone_snapshot
+      let query = supabase
         .from('orders')
         .select('*')
-        .eq('customer_id', user?.id)
         .order('created_at', { ascending: false });
+
+      if (user) {
+        const conditions = [`customer_id.eq.${user.id}`];
+        if (profile?.phone_number) {
+          conditions.push(`customer_phone_snapshot.eq.${profile.phone_number}`);
+        }
+        // Also match by customer_phone (original column) for backward compatibility
+        if (profile?.phone_number) {
+          conditions.push(`customer_phone.eq.${profile.phone_number}`);
+        }
+        query = query.or(conditions.join(','));
+      }
+
+      const { data: ordersData, error: ordersError } = await query;
 
       if (ordersError) throw ordersError;
 
