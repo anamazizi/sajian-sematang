@@ -8,7 +8,23 @@ interface OrderStatusControlProps {
   onStatusUpdate: (orderId: string, newStatus: string, notes?: string) => Promise<void>;
 }
 
-const STATUS_FLOW = ['PENDING', 'ACCEPTED', 'READY', 'DELIVERING', 'COMPLETED'];
+const STATUS_OPTIONS = [
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'ACCEPTED', label: 'Preparing' },
+  { value: 'READY', label: 'Ready' },
+  { value: 'DELIVERING', label: 'Delivering' },
+  { value: 'COMPLETED', label: 'Completed' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: 'Pending',
+  ACCEPTED: 'Preparing',
+  READY: 'Ready',
+  DELIVERING: 'Delivering',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
+};
 
 export default function OrderStatusControl({
   orderId,
@@ -62,13 +78,14 @@ export default function OrderStatusControl({
     }
   };
 
+  // Determine which status options are available based on current status
   const getAvailableStatuses = () => {
-    const currentIndex = STATUS_FLOW.indexOf(currentStatus);
-    
+    // If order is COMPLETED, lock it (only show COMPLETED)
     if (currentStatus === 'COMPLETED') {
-      return [{ value: 'COMPLETED', label: 'Completed' }];
+      return STATUS_OPTIONS.filter(opt => opt.value === 'COMPLETED');
     }
-    
+
+    // If order is CANCELLED, allow reactivation to PENDING
     if (currentStatus === 'CANCELLED') {
       return [
         { value: 'CANCELLED', label: 'Cancelled' },
@@ -76,33 +93,9 @@ export default function OrderStatusControl({
       ];
     }
 
-    const available = [];
-    const statusLabels = {
-      PENDING: 'Pending',
-      ACCEPTED: 'Accepted',
-      READY: 'Ready',
-      DELIVERING: 'Delivering',
-      COMPLETED: 'Completed',
-      CANCELLED: 'Cancel Order'
-    };
-
-    available.push({ value: currentStatus, label: statusLabels[currentStatus as keyof typeof statusLabels] });
-
-    if (currentIndex < STATUS_FLOW.length - 1) {
-      const nextStatus = STATUS_FLOW[currentIndex + 1];
-      available.push({ value: nextStatus, label: statusLabels[nextStatus as keyof typeof statusLabels] });
-    }
-    
-    if (currentIndex > 0) {
-      const prevStatus = STATUS_FLOW[currentIndex - 1];
-      available.push({ value: prevStatus, label: `Revert to ${statusLabels[prevStatus as keyof typeof statusLabels]}` });
-    }
-    
-    if (currentStatus !== 'CANCELLED') {
-      available.push({ value: 'CANCELLED', label: 'Cancel Order' });
-    }
-
-    return available;
+    // For other statuses, allow all status options except maybe restrict some illogical transitions?
+    // We'll allow all options for simplicity; server-side validation will enforce business rules
+    return STATUS_OPTIONS;
   };
 
   const availableStatuses = getAvailableStatuses();
@@ -119,25 +112,27 @@ export default function OrderStatusControl({
           currentStatus === 'COMPLETED' ? 'bg-green-100 text-green-800' :
           'bg-red-100 text-red-800'
         }`}>
-          {currentStatus}
+          {STATUS_LABELS[currentStatus] || currentStatus}
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {availableStatuses.map((status) => (
-          <button
-            key={status.value}
-            onClick={() => handleStatusChange(status.value)}
-            disabled={isUpdating || status.value === currentStatus}
-            className={`px-3 py-1.5 text-sm rounded-lg transition ${
-              status.value === currentStatus
-                ? 'bg-gray-100 text-gray-500 cursor-default'
-                : 'bg-green-500 text-white hover:bg-green-600'
-            } ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}
-          >
-            {status.label}
-          </button>
-        ))}
+      {/* Dropdown for status selection */}
+      <div className="space-y-2">
+        <select
+          value={currentStatus}
+          onChange={(e) => handleStatusChange(e.target.value)}
+          disabled={isUpdating || currentStatus === 'COMPLETED'}
+          className="bg-white border border-slate-300 text-slate-900 font-semibold rounded-lg p-2 w-full focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {availableStatuses.map((status) => (
+            <option key={status.value} value={status.value}>
+              {status.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-gray-500">
+          Pilih status baru dari dropdown di atas. Status <strong>Completed</strong> dan <strong>Cancelled</strong> memerlukan nota.
+        </p>
       </div>
 
       {showNotes && (
@@ -145,9 +140,10 @@ export default function OrderStatusControl({
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Masukkan nota..."
+            placeholder="Masukkan nota (wajib untuk Completed/Cancelled)..."
             className="w-full px-3 py-2 border border-yellow-300 rounded-lg text-sm mb-2"
             rows={2}
+            required
           />
           <div className="flex justify-end gap-2">
             <button

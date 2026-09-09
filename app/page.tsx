@@ -8,6 +8,7 @@ import { getMalaysiaTime } from '@/lib/utils';
 import { CustomerProduct } from '@/types/database';
 import { useCart } from '@/contexts/CartContext';
 import OptionSelector from '@/components/OptionSelector';
+import { createOrder } from '@/app/actions/create-order';
 
 interface GroupedProducts {
   [category: string]: CustomerProduct[];
@@ -15,7 +16,7 @@ interface GroupedProducts {
 
 export default function HomePage() {
   const router = useRouter();
-  const { cart, addToCart, removeFromCart, getCartTotal, getCartCount } = useCart();
+  const { cart, addToCart, removeFromCart, getCartTotal, getCartCount, clearCart } = useCart();
   
   const [products, setProducts] = useState<CustomerProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,7 @@ export default function HomePage() {
     address: '',
     deliveryMode: 'Self-Pickup' as 'Delivery' | 'Self-Pickup'
   });
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -205,7 +207,7 @@ export default function HomePage() {
   }
 
   // Submit order and generate WhatsApp message
-  function submitOrder() {
+  async function submitOrder() {
     // Validate form
     if (!checkoutForm.name.trim()) {
       alert('Sila masukkan nama anda');
@@ -222,74 +224,101 @@ export default function HomePage() {
       return;
     }
 
-    // Format WhatsApp message
-    const whatsappMessage = formatWhatsAppMessage();
-    
-    // Encode message for WhatsApp URL
-    const encodedMessage = encodeURIComponent(whatsappMessage);
-    const whatsappUrl = `https://wa.me/601110890100?text=${encodedMessage}`;
-    
-    // Close modal first
-    setShowCheckoutModal(false);
-    
-    // Clear cart after successful order
-    // Note: In real implementation, you would save order to database first
-    // For now, just clear cart and open WhatsApp
-    setTimeout(() => {
-      // Clear cart - this should be done after database save in production
-      // For now, we'll just show WhatsApp
-      window.open(whatsappUrl, '_blank');
+    // Validate cart not empty
+    if (cart.length === 0) {
+      alert('Bakul anda kosong');
+      return;
+    }
+
+    // Group cart items by seller_id
+    const itemsBySeller: Record<string, typeof cart> = {};
+    cart.forEach(item => {
+      if (!itemsBySeller[item.seller_id]) {
+        itemsBySeller[item.seller_id] = [];
+      }
+      itemsBySeller[item.seller_id].push(item);
+    });
+
+    // For each seller, create order
+    setIsSubmittingOrder(true);
+    try {
+      const sellerIds = Object.keys(itemsBySeller);
+      // For now, we assume only one seller per order (simplified)
+      // If multiple sellers, we need to create multiple orders (future enhancement)
+      if (sellerIds.length > 1) {
+        alert('Sila buat pesanan berasingan untuk setiap penjual. Sistem ini sedang dikemaskini untuk menyokong multi-seller.');
+        setIsSubmittingOrder(false);
+        return;
+      }
+
+      const sellerId = sellerIds[0];
+      const sellerItems = itemsBySeller[sellerId];
+
+      // Prepare order items
+      const items = sellerItems.map(item => ({
+        product_id: item.id,
+        quantity: item.quantity,
+        selectedOptions: item.selectedOptions || []
+      }));
+
+      const subtotal = getCartTotal();
+      const deliveryFee = checkoutForm.deliveryMode === 'Delivery' ? 6 : 0;
+      const totalPrice = subtotal + deliveryFee;
+
+      // Call server action to create order
+      const result = await createOrder({
+        seller_id: sellerId,
+        customer_name: checkoutForm.name.trim(),
+        customer_phone: checkoutForm.phone.trim(),
+        customer_address: checkoutForm.address.trim(),
+        customer_pin_location: undefined, // TODO: implement location pin
+        delivery_mode: checkoutForm.deliveryMode,
+        delivery_fee: deliveryFee,
+        calculated_distance: undefined, // TODO: implement distance calculation
+        total_price: totalPrice,
+        items,
+        special_notes: '', // TODO: add notes field in checkout form
+        is_custom_preorder: false,
+        delivery_datetime: undefined
+      });
+
+      if (!result.success) {
+        alert(`Gagal membuat pesanan: ${result.error}`);
+        return;
+      }
+
+      // Order created successfully
+      // Close modal
+      setShowCheckoutModal(false);
       
-      alert('✅ Pesanan anda telah dihantar ke WhatsApp! Sila selesaikan pesanan anda melalui WhatsApp.');
-    }, 100);
-  }
+      // Clear cart for this seller (or entire cart)
+      // For simplicity, we clear entire cart
+      clearCart();
+      
+      // Open WhatsApp link
+      if (result.whatsapp_link) {
+        window.open(result.whatsapp_link, '_blank');
+        alert('✅ Pesanan anda telah disimpan ke database dan WhatsApp dibuka! Sila selesaikan pesanan anda melalui WhatsApp.');
+      } else {
+        // Fallback: generate WhatsApp link manually
+        const orderId = result.order_id || `SS-${Date.now().toString().slice(-6)}`;
+        const itemsList = sellerItems.map(item => 
+          `${item.quantity}x ${item.name} - RM${(item.price * item.quantity).toFixed(2)}`
+        ).join('\n');
+        const whatsappMessage = `🍽️ *ORDER SAJIAN SEMATANG*\n\n🧾 *Order ID:*\n${orderId}\n\n👤 *Nama:*\n${checkoutForm.name}\n\n📞 *Telefon:*\n${checkoutForm.phone}\n\n📍 *Alamat:*\n${checkoutForm.address}\n\n🗺️ *Google Maps:*\n-\n\n--------------------\n\n🛒 *PESANAN*\n\n${itemsList}\n\n--------------------\n\nSubtotal: RM${subtotal.toFixed(2)}\nDelivery: RM${deliveryFee.toFixed(2)}\n\n💰 *JUMLAH: RM${totalPrice.toFixed(2)}*\n\n🚚 *Kaedah:*\n${checkoutForm.deliveryMode === 'Delivery' ? 'Penghantaran' : 'Ambil Sendiri'}\n\nTerima kasih.`;
+        const encodedMessage = encodeURIComponent(whatsappMessage);
+        const whatsappUrl = `https://wa.me/601110890100?text=${encodedMessage}`;
+        window.open(whatsappUrl, '_blank');
+        alert('✅ Pesanan anda telah disimpan ke database! WhatsApp dibuka.');
+      }
 
-  // Format WhatsApp message
-  function formatWhatsAppMessage(): string {
-    const itemsList = cart.map((item, index) => {
-      return `${item.quantity}x ${item.name} - RM${(item.price * item.quantity).toFixed(2)}`;
-    }).join('\n');
-
-    const subtotal = getCartTotal().toFixed(2);
-    const deliveryMethod = checkoutForm.deliveryMode === 'Delivery' ? 'Penghantaran' : 'Ambil Sendiri';
-    const deliveryFee = checkoutForm.deliveryMode === 'Delivery' ? 'RM6.00' : 'RM0.00';
-    const total = (getCartTotal() + (checkoutForm.deliveryMode === 'Delivery' ? 6 : 0)).toFixed(2);
-    const orderId = `SS-${Date.now().toString().slice(-6)}`;
-    
-    return `🍽️ *ORDER SAJIAN SEMATANG*
-
-🧾 *Order ID:*
-${orderId}
-
-👤 *Nama:*
-${checkoutForm.name}
-
-📞 *Telefon:*
-${checkoutForm.phone}
-
-📍 *Alamat:*
-${checkoutForm.address}
-
-🗺️ *Google Maps:*
--
-
---------------------
-
-🛒 *PESANAN*
-
-${itemsList}
-
---------------------
-
-Subtotal: RM${subtotal}
-Delivery: RM${deliveryFee}
-
-💰 *JUMLAH: RM${total}*
-
-🚚 *Kaedah:*
-${deliveryMethod}
-
-Terima kasih.`;
+      // Cart already cleared above
+    } catch (error) {
+      console.error('Error submitting order:', error);
+      alert('Ralat tidak dijangka. Sila cuba lagi.');
+    } finally {
+      setIsSubmittingOrder(false);
+    }
   }
 
   return (
@@ -558,7 +587,7 @@ Terima kasih.`;
                 </div>
               </div>
 
-              <form onSubmit={(e) => { e.preventDefault(); submitOrder(); }}>
+              <form onSubmit={(e) => { e.preventDefault(); if (isSubmittingOrder) return; submitOrder(); }}>
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-bold text-slate-900 mb-3">Kaedah Penghantaran</h3>
@@ -611,8 +640,15 @@ Terima kasih.`;
                   </div>
 
                   <div className="flex flex-col gap-2">
-                    <button type="submit" className="w-full bg-yellow-400 text-slate-900 py-3 rounded hover:bg-yellow-500 font-bold">
-                      ✅ Hantar ke WhatsApp
+                    <button type="submit" disabled={isSubmittingOrder} className={`w-full ${isSubmittingOrder ? 'bg-yellow-300 cursor-not-allowed' : 'bg-yellow-400 hover:bg-yellow-500'} text-slate-900 py-3 rounded font-bold flex items-center justify-center gap-2`}>
+                      {isSubmittingOrder ? (
+                        <>
+                          <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-900"></span>
+                          Menyimpan pesanan...
+                        </>
+                      ) : (
+                        '✅ Hantar ke WhatsApp'
+                      )}
                     </button>
                     <button type="button" onClick={() => setShowCheckoutModal(false)} className="w-full bg-gray-100 text-slate-700 py-2 rounded">
                       Kembali
