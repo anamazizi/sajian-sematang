@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase/client';
 import { Product } from '../../types/database';
+import { toDatetimeLocal } from '@/lib/utils';
 
 interface ProductFormProps {
   product?: Product;
@@ -25,6 +26,8 @@ export interface ProductFormData {
   is_preorder: boolean;
   available_from: string;
   available_until: string;
+preorder_start?: string;
+preorder_end?: string;
   options: Array<{
     id?: string; // For existing options
     option_group: string;
@@ -75,8 +78,8 @@ export default function ProductForm({
     stock_quantity: product?.stock_quantity ? product.stock_quantity.toString() : '',
     is_available: product?.is_available ?? true,
     is_preorder: product?.is_preorder || false,
-    available_from: product?.available_from || '',
-    available_until: product?.available_until || '',
+    available_from: toDatetimeLocal(product?.preorder_start || product?.available_from),
+    available_until: toDatetimeLocal(product?.preorder_end || product?.available_until),
     options: [], // Will be loaded separately if editing existing product
   });
 
@@ -178,8 +181,10 @@ export default function ProductForm({
       stock_quantity,
       is_available: data.is_available,
       is_preorder: data.is_preorder,
-      available_from: data.available_from,
-      available_until: data.available_until,
+      available_from: data.is_preorder && data.available_from ? new Date(data.available_from).toISOString() : '',
+      available_until: data.is_preorder && data.available_until ? new Date(data.available_until).toISOString() : '',
+      preorder_start: data.is_preorder && data.available_from ? new Date(data.available_from).toISOString() : undefined,
+      preorder_end: data.is_preorder && data.available_until ? new Date(data.available_until).toISOString() : undefined,
       options: data.options.map(option => ({
         id: option.id,
         option_group: option.option_group,

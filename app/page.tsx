@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { getMalaysiaTime } from '@/lib/utils';
 import { CustomerProduct } from '@/types/database';
 import { useCart } from '@/contexts/CartContext';
 import OptionSelector from '@/components/OptionSelector';
@@ -392,53 +393,113 @@ Terima kasih.`;
                             <p className="text-slate-600 font-bold text-xl">
                               RM{product.price.toFixed(2)}
                             </p>
-                            {product.is_preorder && (
-                              <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
-                                Pre-Order
-                              </span>
-                            )}
+                            {(() => {
+                               const startDate = product.preorder_start || product.available_from;
+                               const endDate = product.preorder_end || product.available_until;
+                               const now = getMalaysiaTime();
+                               let badge = null;
+                               let statusText = null;
+                               if (product.is_preorder && startDate && endDate) {
+                                 const start = new Date(startDate);
+                                 const end = new Date(endDate);
+                                 if (now < start) {
+                                   badge = <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-medium">Belum Dibuka</span>;
+                                   // Format tarikh untuk paparan
+                                   const openDate = new Date(startDate);
+                                   statusText = `Dibuka Pada: ${openDate.toLocaleDateString('ms-MY', { weekday: 'long', day: 'numeric', month: 'short' })}, ${openDate.toLocaleTimeString('ms-MY', { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+                                 } else if (now >= start && now <= end) {
+                                   badge = <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">Pre-Order Aktif</span>;
+                                   // Calculate remaining time
+                                   const remaining = end.getTime() - now.getTime();
+                                   const hours = Math.floor(remaining / (1000 * 60 * 60));
+                                   const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                                   statusText = `Tamat dalam: ${hours} jam ${minutes} minit`;
+                                 } else if (now > end) {
+                                   badge = <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">Pre-Order Ditutup</span>;
+                                 }
+                               } else if (product.is_preorder) {
+                                 // Pre-order tanpa tarikh: anggap aktif
+                                 badge = <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">Pre-Order</span>;
+                               }
+                               return (
+                                 <>
+                                   {badge}
+                                   {statusText && <p className="text-xs text-gray-600 mt-1">{statusText}</p>}
+                                 </>
+                               );
+                             })()}
                           </div>
 
                           {/* Add to Cart Button */}
-                          {quantity === 0 ? (
-                            <button
-                              onClick={() => handleAddToCart(product)}
-                              className="w-full bg-yellow-500 text-white py-2.5 rounded-lg hover:bg-yellow-600 transition font-semibold"
-                            >
-                              Tambah ke Pesanan
-                            </button>
-                          ) : (
-                            <div className="flex items-center justify-between bg-yellow-50 p-2 rounded-lg border-2 border-yellow-200">
-                              {quantity === 1 ? (
-                                <button
-                                  onClick={() => {
-                                    if (confirm('🗑️ Buang item ini?')) {
-                                      removeFromCart(product.id);
-                                    }
-                                  }}
-                                  className="bg-red-500 text-white w-8 h-8 rounded-lg hover:bg-red-600 transition font-bold"
-                                >
-                                  🗑️
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => removeFromCart(product.id)}
-                                  className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
-                                >
-                                  −
-                                </button>
-                              )}
-                              <span className="text-slate-900 font-bold text-base">
-                                {quantity}
-                              </span>
-                              <button
-                                onClick={() => handleAddToCart(product)}
-                                className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
-                              >
-                                +
-                              </button>
-                            </div>
-                          )}
+                          {(() => {
+                             const startDate = product.preorder_start || product.available_from;
+                             const endDate = product.preorder_end || product.available_until;
+                             const now = getMalaysiaTime();
+                             let buttonText = 'Tambah ke Pesanan';
+                             let buttonDisabled = false;
+                             let buttonOnClick = () => handleAddToCart(product);
+                             if (product.is_preorder && startDate && endDate) {
+                               const start = new Date(startDate);
+                               const end = new Date(endDate);
+                               if (now < start) {
+                                 buttonText = 'Belum Dibuka';
+                                 buttonDisabled = true;
+                                 buttonOnClick = async () => {};
+                               } else if (now >= start && now <= end) {
+                                 // aktif - boleh tempah
+                                 buttonText = 'Tempah';
+                               } else if (now > end) {
+                                 buttonText = 'Telah Ditutup';
+                                 buttonDisabled = true;
+                                 buttonOnClick = async () => {};
+                               }
+                             }
+                             if (quantity === 0) {
+                               return (
+                                 <button
+                                   onClick={buttonOnClick}
+                                   disabled={buttonDisabled}
+                                   className={`w-full ${buttonDisabled ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-yellow-500 text-white hover:bg-yellow-600'} py-2.5 rounded-lg transition font-semibold`}
+                                 >
+                                   {buttonText}
+                                 </button>
+                               );
+                             } else {
+                               // Cart quantity controls
+                               return (
+                                 <div className="flex items-center justify-between bg-yellow-50 p-2 rounded-lg border-2 border-yellow-200">
+                                   {quantity === 1 ? (
+                                     <button
+                                       onClick={() => {
+                                         if (confirm('🗑️ Buang item ini?')) {
+                                           removeFromCart(product.id);
+                                         }
+                                       }}
+                                       className="bg-red-500 text-white w-8 h-8 rounded-lg hover:bg-red-600 transition font-bold"
+                                     >
+                                       🗑️
+                                     </button>
+                                   ) : (
+                                     <button
+                                       onClick={() => removeFromCart(product.id)}
+                                       className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
+                                     >
+                                       −
+                                     </button>
+                                   )}
+                                   <span className="text-slate-900 font-bold text-base">
+                                     {quantity}
+                                   </span>
+                                   <button
+                                     onClick={() => handleAddToCart(product)}
+                                     className="bg-yellow-500 text-white w-8 h-8 rounded-lg hover:bg-yellow-600 transition font-bold"
+                                   >
+                                     +
+                                   </button>
+                                 </div>
+                               );
+                             }
+                           })()}
                         </div>
                       </div>
                     );

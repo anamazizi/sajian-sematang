@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { toDatetimeLocal } from '@/lib/utils';
 
 export default function AdminProductEditModal({ product, categories, isOpen, onClose, onSave }: any) {
   // Debug: Log received categories
@@ -93,8 +94,8 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
         stock_quantity: product.stock_quantity?.toString() || '0',
         is_available: product.is_available !== false,
         is_preorder: product.is_preorder || false,
-        preorder_start: product.preorder_start || '',
-        preorder_end: product.preorder_end || '',
+        preorder_start: toDatetimeLocal(product.preorder_start || product.available_from),
+        preorder_end: toDatetimeLocal(product.preorder_end || product.available_until),
       });
       
       fetchCategoriesIfNeeded();
@@ -153,8 +154,10 @@ export default function AdminProductEditModal({ product, categories, isOpen, onC
         stock_quantity: parseInt(formData.stock_quantity),
         is_available: formData.is_available,
         is_preorder: formData.is_preorder,
-        preorder_start: formData.is_preorder && formData.preorder_start ? formData.preorder_start : null,
-        preorder_end: formData.is_preorder && formData.preorder_end ? formData.preorder_end : null,
+        preorder_start: formData.is_preorder && formData.preorder_start ? new Date(formData.preorder_start).toISOString() : null,
+        preorder_end: formData.is_preorder && formData.preorder_end ? new Date(formData.preorder_end).toISOString() : null,
+        available_from: formData.is_preorder && formData.preorder_start ? new Date(formData.preorder_start).toISOString() : null,
+        available_until: formData.is_preorder && formData.preorder_end ? new Date(formData.preorder_end).toISOString() : null,
         options: productOptions.map(option => ({
           ...option,
           price_adjustment: parseFloat(option.price_adjustment)

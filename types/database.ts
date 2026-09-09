@@ -54,6 +54,8 @@ export interface Product {
   // Automated scheduling
   available_from?: string | null;
   available_until?: string | null;
+preorder_start?: string | null;
+preorder_end?: string | null;
   created_at: string;
   updated_at?: string;
 }
@@ -76,6 +78,8 @@ export interface CustomerProduct {
   is_preorder: boolean;
   available_from?: string | null;
   available_until?: string | null;
+preorder_start?: string | null;
+preorder_end?: string | null;
   created_at: string;
   updated_at?: string;
 }

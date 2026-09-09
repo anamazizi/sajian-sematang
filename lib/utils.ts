@@ -356,6 +356,18 @@ export function isTodayInMalaysia(utcTimestamp: string): boolean {
   );
 }
 
+/**
+ * Convert ISO date string to datetime-local input value (YYYY-MM-DDTHH:mm)
+ * Returns empty string if input is null/undefined/invalid
+ */
+export function toDatetimeLocal(isoStr: string | null | undefined): string {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 // Format date for display (Malaysia timezone)
 export function formatDate(dateString: string): string {
   return new Date(dateString).toLocaleString('ms-MY', {

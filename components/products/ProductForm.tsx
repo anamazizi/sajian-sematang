@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Product, ProductFormData } from '../../types/database';
+import { toDatetimeLocal } from '@/lib/utils';
 
 interface ProductFormProps {
   product?: Product;
@@ -26,8 +27,8 @@ export default function ProductForm({
     is_available: product?.is_available ?? true,
     stock_quantity: product?.stock_quantity || 0,
     is_preorder: product?.is_preorder || false,
-    available_from: product?.available_from || null,
-    available_until: product?.available_until || null,
+    available_from: product?.available_from || product?.preorder_start || null,
+    available_until: product?.available_until || product?.preorder_end || null,
   });
 
   const [submitting, setSubmitting] = useState(false);
