@@ -33,7 +33,8 @@ export default function HomePage() {
     name: '',
     phone: '',
     address: '',
-    deliveryMode: 'Self-Pickup' as 'Delivery' | 'Self-Pickup'
+    deliveryMode: 'Self-Pickup' as 'Delivery' | 'Self-Pickup',
+    customerPinLocation: ''
   });
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
@@ -45,6 +46,7 @@ export default function HomePage() {
     if (user) {
       fetchProducts();
       fetchCategories();
+      loadUserData();
     }
   }, [user]);
 
@@ -195,7 +197,7 @@ export default function HomePage() {
         // Fetch user profile
         const { data: profile } = await supabase
           .from('users')
-          .select('name, phone_number, address')
+          .select('name, phone_number, address, google_maps_url')
           .eq('id', user.id)
           .single();
 
@@ -204,7 +206,8 @@ export default function HomePage() {
             ...prev,
             name: profile.name || '',
             phone: profile.phone_number || '',
-            address: profile.address || ''
+            address: profile.address || '',
+            customerPinLocation: profile.google_maps_url || ''
           }));
         } else {
           // Use auth user info as fallback
@@ -292,7 +295,7 @@ export default function HomePage() {
         customer_name: checkoutForm.name.trim(),
         customer_phone: checkoutForm.phone.trim(),
         customer_address: checkoutForm.address.trim(),
-        customer_pin_location: undefined, // TODO: implement location pin
+        customer_pin_location: checkoutForm.customerPinLocation.trim() || undefined,
         delivery_mode: checkoutForm.deliveryMode,
         delivery_fee: deliveryFee,
         calculated_distance: undefined, // TODO: implement distance calculation
@@ -651,6 +654,11 @@ export default function HomePage() {
                       <div>
                         <label className="block text-sm font-bold text-slate-900 mb-1">Alamat *</label>
                         <textarea value={checkoutForm.address} onChange={(e) => handleCheckoutFormChange('address', e.target.value)} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" required />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-slate-900 mb-1">Google Maps URL (jika ada)</label>
+                        <input type="text" value={checkoutForm.customerPinLocation} onChange={(e) => handleCheckoutFormChange('customerPinLocation', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" placeholder="Contoh: https://maps.google.com/?q=4.2167,100.6333" />
+                        <p className="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ada. Sistem akan menghasilkan pautan berdasarkan alamat.</p>
                       </div>
                     </div>
                   </div>

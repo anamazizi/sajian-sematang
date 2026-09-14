@@ -168,6 +168,9 @@ export function generateWhatsAppLink(orderDetails: {
   // HARUS KE ADMIN HQ SAHAJA: +601110890100
   const adminNumber = '601110890100';
   
+  // Potong Order ID kepada 8 aksara pertama untuk WhatsApp
+  const shortOrderId = orderDetails.orderId.slice(0, 8);
+  
   // Format items untuk pesanan
   const itemsFormatted = orderDetails.items.map(item => {
     const itemTotal = item.price * item.quantity;
@@ -197,7 +200,17 @@ export function generateWhatsAppLink(orderDetails: {
   if (orderDetails.deliveryMode === 'Delivery') {
     // Untuk Delivery, tunjukkan alamat dan Google Maps
     addressDisplay = orderDetails.customerAddress || '-';
-    mapsDisplay = orderDetails.customerPinLocation || '-';
+    
+    // Google Maps link: guna customerPinLocation jika ada, jika tidak buat carian berdasarkan alamat
+    if (orderDetails.customerPinLocation) {
+      mapsDisplay = orderDetails.customerPinLocation;
+    } else if (orderDetails.customerAddress) {
+      // Generate Google Maps search link dari alamat
+      const encodedAddress = encodeURIComponent(orderDetails.customerAddress);
+      mapsDisplay = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    } else {
+      mapsDisplay = '-';
+    }
   } else {
     // Untuk Self-Pickup, jangan tunjukkan alamat atau maps
     addressDisplay = 'Ambil Sendiri';
@@ -210,7 +223,7 @@ export function generateWhatsAppLink(orderDetails: {
   const rawMessage = `🍽️ *ORDER SAJIAN SEMATANG*
 
 🧾 *Order ID:*
-${orderDetails.orderId}
+${shortOrderId}
 
 👤 *Nama:*
 ${orderDetails.customerName}
