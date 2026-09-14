@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { getMalaysiaTime } from '@/lib/utils';
+import { getMalaysiaTime, extractCoordinatesFromUrlAsync, calculateDeliveryFeeFromCoordinates } from '@/lib/utils';
 import { CustomerProduct } from '@/types/database';
 import { useCart } from '@/contexts/CartContext';
 import OptionSelector from '@/components/OptionSelector';
@@ -37,6 +37,11 @@ export default function HomePage() {
     customerPinLocation: ''
   });
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  
+  // Delivery calculation state
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [calculatedDistance, setCalculatedDistance] = useState(0);
+  const [calculatingDeliveryFee, setCalculatingDeliveryFee] = useState(false);
 
   useEffect(() => {
     checkUser();
@@ -49,6 +54,55 @@ export default function HomePage() {
       loadUserData();
     }
   }, [user]);
+
+  // Calculate delivery fee when customerPinLocation or deliveryMode changes
+  useEffect(() => {
+    if (!showCheckoutModal) return;
+
+    const calculateDelivery = async () => {
+      // Reset for Self-Pickup
+      if (checkoutForm.deliveryMode === 'Self-Pickup') {
+        setDeliveryFee(0);
+        setCalculatedDistance(0);
+        setCalculatingDeliveryFee(false);
+        return;
+      }
+
+      // Only calculate if customerPinLocation is provided
+      if (!checkoutForm.customerPinLocation.trim()) {
+        setDeliveryFee(0);
+        setCalculatedDistance(0);
+        setCalculatingDeliveryFee(false);
+        return;
+      }
+
+      setCalculatingDeliveryFee(true);
+      try {
+        // Extract coordinates from URL
+        const coords = await extractCoordinatesFromUrlAsync(checkoutForm.customerPinLocation);
+        
+        if (coords) {
+          // Calculate delivery fee from coordinates using RPC
+          const result = await calculateDeliveryFeeFromCoordinates(coords.lat, coords.lng);
+          
+          setCalculatedDistance(result.distance_km);
+          setDeliveryFee(result.delivery_fee);
+        } else {
+          // Could not extract coordinates
+          setCalculatedDistance(0);
+          setDeliveryFee(0);
+        }
+      } catch (error) {
+        console.error('Error calculating delivery fee:', error);
+        setCalculatedDistance(0);
+        setDeliveryFee(0);
+      } finally {
+        setCalculatingDeliveryFee(false);
+      }
+    };
+
+    calculateDelivery();
+  }, [checkoutForm.customerPinLocation, checkoutForm.deliveryMode, showCheckoutModal]);
 
   async function checkUser() {
     const supabase = createClient();
@@ -228,6 +282,13 @@ export default function HomePage() {
       ...prev,
       [field]: value
     }));
+
+    // If deliveryMode changes to Self-Pickup, reset delivery fee immediately
+    if (field === 'deliveryMode' && value === 'Self-Pickup') {
+      setDeliveryFee(0);
+      setCalculatedDistance(0);
+      setCalculatingDeliveryFee(false);
+    }
   }
 
   // Submit order and generate WhatsApp message
@@ -286,8 +347,7 @@ export default function HomePage() {
       }));
 
       const subtotal = getCartTotal();
-      const deliveryFee = checkoutForm.deliveryMode === 'Delivery' ? 6 : 0;
-      const totalPrice = subtotal + deliveryFee;
+      const totalPrice = subtotal + (checkoutForm.deliveryMode === 'Delivery' ? deliveryFee : 0);
 
       // Call server action to create order
       const result = await createOrder({
@@ -297,8 +357,8 @@ export default function HomePage() {
         customer_address: checkoutForm.address.trim(),
         customer_pin_location: checkoutForm.customerPinLocation.trim() || undefined,
         delivery_mode: checkoutForm.deliveryMode,
-        delivery_fee: deliveryFee,
-        calculated_distance: undefined, // TODO: implement distance calculation
+        delivery_fee: checkoutForm.deliveryMode === 'Delivery' ? deliveryFee : 0,
+        calculated_distance: checkoutForm.deliveryMode === 'Delivery' ? calculatedDistance : undefined,
         total_price: totalPrice,
         items,
         special_notes: '', // TODO: add notes field in checkout form
@@ -325,11 +385,12 @@ export default function HomePage() {
         alert('✅ Pesanan anda telah disimpan ke database dan WhatsApp dibuka! Sila selesaikan pesanan anda melalui WhatsApp.');
       } else {
         // Fallback: generate WhatsApp link manually
+        const currentDeliveryFee = checkoutForm.deliveryMode === 'Delivery' ? deliveryFee : 0;
         const orderId = result.order_id || `SS-${Date.now().toString().slice(-6)}`;
         const itemsList = sellerItems.map(item => 
           `${item.quantity}x ${item.name} - RM${(item.price * item.quantity).toFixed(2)}`
         ).join('\n');
-        const whatsappMessage = `🍽️ *ORDER SAJIAN SEMATANG*\n\n🧾 *Order ID:*\n${orderId}\n\n👤 *Nama:*\n${checkoutForm.name}\n\n📞 *Telefon:*\n${checkoutForm.phone}\n\n📍 *Alamat:*\n${checkoutForm.address}\n\n🗺️ *Google Maps:*\n-\n\n--------------------\n\n🛒 *PESANAN*\n\n${itemsList}\n\n--------------------\n\nSubtotal: RM${subtotal.toFixed(2)}\nDelivery: RM${deliveryFee.toFixed(2)}\n\n💰 *JUMLAH: RM${totalPrice.toFixed(2)}*\n\n🚚 *Kaedah:*\n${checkoutForm.deliveryMode === 'Delivery' ? 'Penghantaran' : 'Ambil Sendiri'}\n\nTerima kasih.`;
+        const whatsappMessage = `🍽️ *ORDER SAJIAN SEMATANG*\\n\\n🧾 *Order ID:*\\n${orderId}\\n\\n👤 *Nama:*\\n${checkoutForm.name}\\n\\n📞 *Telefon:*\\n${checkoutForm.phone}\\n\\n📍 *Alamat:*\\n${checkoutForm.address}\\n\\n🗺️ *Google Maps:*\\n-\\n\\n--------------------\\n\\n🛒 *PESANAN*\\n\\n${itemsList}\\n\\n--------------------\\n\\nSubtotal: RM${subtotal.toFixed(2)}\\nDelivery: RM${currentDeliveryFee.toFixed(2)}\\n\\n💰 *JUMLAH: RM${totalPrice.toFixed(2)}*\\n\\n🚚 *Kaedah:*\\n${checkoutForm.deliveryMode === 'Delivery' ? 'Penghantaran' : 'Ambil Sendiri'}\\n\\nTerima kasih.`;
         const encodedMessage = encodeURIComponent(whatsappMessage);
         const whatsappUrl = `https://wa.me/601110890100?text=${encodedMessage}`;
         window.open(whatsappUrl, '_blank');
@@ -659,6 +720,32 @@ export default function HomePage() {
                         <label className="block text-sm font-bold text-slate-900 mb-1">Google Maps URL (jika ada)</label>
                         <input type="text" value={checkoutForm.customerPinLocation} onChange={(e) => handleCheckoutFormChange('customerPinLocation', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" placeholder="Contoh: https://maps.google.com/?q=4.2167,100.6333" />
                         <p className="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ada. Sistem akan menghasilkan pautan berdasarkan alamat.</p>
+                        
+                        {/* Warning for Delivery mode with invalid URL */}
+                        {checkoutForm.deliveryMode === 'Delivery' && 
+                         checkoutForm.customerPinLocation.trim() && 
+                         !calculatingDeliveryFee && 
+                         calculatedDistance === 0 && 
+                         deliveryFee === 0 && (
+                          <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                            <p className="text-xs text-yellow-800">
+                              ⚠️ <strong>URL peta tidak dapat dikira.</strong> Sila pastikan URL Google Maps yang sah atau gunakan peta interaktif.
+                            </p>
+                          </div>
+                        )}
+                        
+                        {/* Information when calculation is successful */}
+                        {checkoutForm.deliveryMode === 'Delivery' && 
+                         checkoutForm.customerPinLocation.trim() && 
+                         !calculatingDeliveryFee && 
+                         calculatedDistance > 0 && 
+                         deliveryFee > 0 && (
+                          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
+                            <p className="text-xs text-green-800">
+                              ✅ <strong>Jarak dikira:</strong> ~{calculatedDistance.toFixed(1)}km, Caj: RM{deliveryFee.toFixed(2)}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -672,12 +759,30 @@ export default function HomePage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-900 font-medium">Caj Delivery</span>
-                        <span className="text-slate-900 font-medium">{checkoutForm.deliveryMode === 'Delivery' ? 'RM6.00' : 'RM0.00'}</span>
+                        <span className="text-slate-900 font-medium">
+                          {checkoutForm.deliveryMode === 'Delivery' ? (
+                            calculatingDeliveryFee ? (
+                              <span className="text-sm text-gray-500">Mengira...</span>
+                            ) : (
+                              `RM${deliveryFee.toFixed(2)}`
+                            )
+                          ) : (
+                            'RM0.00'
+                          )}
+                          {checkoutForm.deliveryMode === 'Delivery' && calculatedDistance > 0 && !calculatingDeliveryFee && (
+                            <span className="text-xs text-gray-500 ml-2">(~{calculatedDistance.toFixed(1)}km)</span>
+                          )}
+                        </span>
                       </div>
                       <div className="border-t pt-2 mt-2">
                         <div className="flex justify-between">
                           <span className="text-slate-950 font-bold">Jumlah</span>
-                          <span className="text-slate-950 font-bold">RM{(getCartTotal() + (checkoutForm.deliveryMode === 'Delivery' ? 6 : 0)).toFixed(2)}</span>
+                          <span className="text-slate-950 font-bold">
+                            RM{(
+                              getCartTotal() + 
+                              (checkoutForm.deliveryMode === 'Delivery' ? deliveryFee : 0)
+                            ).toFixed(2)}
+                          </span>
                         </div>
                       </div>
                     </div>
