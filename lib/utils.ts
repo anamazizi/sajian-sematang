@@ -138,16 +138,25 @@ export async function extractCoordinatesFromUrlAsync(url: string): Promise<{ lat
         body: JSON.stringify({ url }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.warn('Failed to resolve maps shortlink:', errorData.error || response.statusText);
+      const data = await response.json();
+      
+      // Check for new response format with success field
+      if (data.success === true && data.lat && data.lng) {
+        console.log(`✅ Successfully resolved shortlink: ${url} -> lat: ${data.lat}, lng: ${data.lng}`);
+        return { lat: data.lat, lng: data.lng };
+      } else if (data.success === false) {
+        console.warn(`❌ Failed to resolve shortlink ${url}: ${data.error || 'Unknown error'}`);
         return null;
       }
-
-      const data = await response.json();
+      
+      // Fallback to old response format (backward compatibility)
       if (data.lat && data.lng) {
         return { lat: data.lat, lng: data.lng };
       }
+      
+      // If no coordinates found
+      console.warn(`❌ No coordinates found in resolved URL: ${url}`);
+      return null;
     } catch (error) {
       console.error('Error resolving maps shortlink:', error);
       return null;

@@ -42,6 +42,7 @@ export default function HomePage() {
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [calculatedDistance, setCalculatedDistance] = useState(0);
   const [calculatingDeliveryFee, setCalculatingDeliveryFee] = useState(false);
+  const [coordsExtractionError, setCoordsExtractionError] = useState<string | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -65,6 +66,7 @@ export default function HomePage() {
         setDeliveryFee(0);
         setCalculatedDistance(0);
         setCalculatingDeliveryFee(false);
+        setCoordsExtractionError(null);
         return;
       }
 
@@ -87,15 +89,28 @@ export default function HomePage() {
           
           setCalculatedDistance(result.distance_km);
           setDeliveryFee(result.delivery_fee);
+          setCoordsExtractionError(null); // Clear any previous error
         } else {
           // Could not extract coordinates
           setCalculatedDistance(0);
           setDeliveryFee(0);
+          
+          // Set error message if URL is provided but coordinates can't be extracted
+          if (checkoutForm.customerPinLocation.trim()) {
+            if (checkoutForm.customerPinLocation.includes('maps.app.goo.gl')) {
+              setCoordsExtractionError('URL shortlink maps.app.goo.gl tidak dapat dikira. Sila pastikan URL sah atau gunakan butang GPS.');
+            } else {
+              setCoordsExtractionError('Koordinat tidak dapat diekstrak dari URL. Sila pastikan URL Google Maps yang sah dengan koordinat.');
+            }
+          } else {
+            setCoordsExtractionError(null);
+          }
         }
       } catch (error) {
         console.error('Error calculating delivery fee:', error);
         setCalculatedDistance(0);
         setDeliveryFee(0);
+        setCoordsExtractionError('Ralat semasa mengira delivery fee. Sila cuba lagi.');
       } finally {
         setCalculatingDeliveryFee(false);
       }
@@ -287,6 +302,75 @@ export default function HomePage() {
     if (field === 'deliveryMode' && value === 'Self-Pickup') {
       setDeliveryFee(0);
       setCalculatedDistance(0);
+      setCalculatingDeliveryFee(false);
+      setCoordsExtractionError(null);
+    }
+  }
+
+  // Handle using current GPS location
+  async function handleUseCurrentLocation() {
+    if (!navigator.geolocation) {
+      alert('Browser anda tidak menyokong GPS. Sila gunakan Google Maps URL.');
+      return;
+    }
+
+    setCalculatingDeliveryFee(true);
+    
+    try {
+      const position = await new Promise<any>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      
+      // Create Google Maps URL from coordinates
+      const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+      
+      // Update form with GPS coordinates
+      setCheckoutForm(prev => ({
+        ...prev,
+        customerPinLocation: googleMapsUrl
+      }));
+
+      // Immediately calculate delivery fee from coordinates
+      const result = await calculateDeliveryFeeFromCoordinates(latitude, longitude);
+      
+      setCalculatedDistance(result.distance_km);
+      setDeliveryFee(result.delivery_fee);
+      setCoordsExtractionError(null); // Clear any extraction error
+      
+      alert(`✅ Lokasi GPS berjaya diperoleh: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\nURL Google Maps: ${googleMapsUrl}`);
+
+    } catch (error: any) {
+      console.error('GPS Error:', error);
+      
+      // Check for Geolocation API errors
+      if (error.code !== undefined) {
+        switch (error.code) {
+          case 1: // PERMISSION_DENIED
+            alert('Akses lokasi ditolak. Sila benarkan akses lokasi dalam tetapan browser anda.');
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            alert('Maklumat lokasi tidak tersedia. Sila pastikan GPS dihidupkan.');
+            break;
+          case 3: // TIMEOUT
+            alert('Masa untuk mendapatkan lokasi tamat. Sila cuba lagi.');
+            break;
+          default:
+            alert('Ralat mendapatkan lokasi GPS. Sila gunakan Google Maps URL.');
+        }
+      } else {
+        alert('Ralat tidak dijangka semasa mendapatkan lokasi.');
+      }
+      
+      // Reset states on error
+      setCalculatedDistance(0);
+      setDeliveryFee(0);
+    } finally {
       setCalculatingDeliveryFee(false);
     }
   }
@@ -721,15 +805,28 @@ export default function HomePage() {
                         <input type="text" value={checkoutForm.customerPinLocation} onChange={(e) => handleCheckoutFormChange('customerPinLocation', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" placeholder="Contoh: https://maps.google.com/?q=4.2167,100.6333" />
                         <p className="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ada. Sistem akan menghasilkan pautan berdasarkan alamat.</p>
                         
-                        {/* Warning for Delivery mode with invalid URL */}
+                        {/* GPS Location Button */}
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={handleUseCurrentLocation}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded hover:bg-blue-100 transition text-sm font-medium"
+                          >
+                            <span className="text-lg">📍</span>
+                            Guna Lokasi Semasa (GPS)
+                          </button>
+                          <p className="text-xs text-gray-500 mt-1 text-center">
+                            Izinkan akses lokasi dalam browser anda
+                          </p>
+                        </div>
+                        
+                        {/* Warning for Delivery mode with coordinate extraction error */}
                         {checkoutForm.deliveryMode === 'Delivery' && 
-                         checkoutForm.customerPinLocation.trim() && 
-                         !calculatingDeliveryFee && 
-                         calculatedDistance === 0 && 
-                         deliveryFee === 0 && (
+                         coordsExtractionError && 
+                         !calculatingDeliveryFee && (
                           <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
                             <p className="text-xs text-yellow-800">
-                              ⚠️ <strong>URL peta tidak dapat dikira.</strong> Sila pastikan URL Google Maps yang sah atau gunakan peta interaktif.
+                              ⚠️ <strong>{coordsExtractionError}</strong>
                             </p>
                           </div>
                         )}
