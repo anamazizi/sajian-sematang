@@ -16,6 +16,7 @@ export interface User {
   google_maps_url?: string;  // For delivery location
   latitude?: number;
   longitude?: number;
+  delivery_fee?: number;      // Cached delivery fee based on coordinates
   is_active: boolean;
   seller_id?: string;
   created_at: string;

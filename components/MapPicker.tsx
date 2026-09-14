@@ -17,8 +17,8 @@ interface MapPickerProps {
   className?: string;
 }
 
-const DEFAULT_LAT = 3.1390;
-const DEFAULT_LNG = 101.6869;
+const DEFAULT_LAT = 4.2167;
+const DEFAULT_LNG = 100.6333;
 
 export default function MapPicker(props: MapPickerProps) {
   const { initialLat, initialLng, initialAddress = '', onLocationChange, readonly = false, className = 'h-[400px] w-full rounded-lg' } = props;
@@ -106,11 +106,11 @@ export default function MapPicker(props: MapPickerProps) {
               onClick={() => {
                 setLatitude(DEFAULT_LAT);
                 setLongitude(DEFAULT_LNG);
-                setAddress('Kuala Lumpur (Default)');
+                setAddress('Manjung Stadium (Default)');
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
             >
-              🏙️ Kuala Lumpur (Default)
+              🏟️ Manjung Stadium (Default)
             </button>
           </div>
         )}
@@ -131,7 +131,7 @@ export default function MapPicker(props: MapPickerProps) {
                   if (!isNaN(value)) setLatitude(value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="3.1390"
+                placeholder="4.2167"
                 disabled={readonly}
               />
             </div>
@@ -147,7 +147,7 @@ export default function MapPicker(props: MapPickerProps) {
                   if (!isNaN(value)) setLongitude(value);
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="101.6869"
+                placeholder="100.6333"
                 disabled={readonly}
               />
             </div>

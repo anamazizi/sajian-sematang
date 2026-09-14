@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { User } from '@/types/database';
-import { getMalaysiaTime } from '@/lib/utils';
+import { getMalaysiaTime, extractCoordinatesFromUrlAsync, calculateDeliveryFeeFromCoordinates } from '@/lib/utils';
+import MapPicker from '@/components/MapPicker';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -22,11 +23,22 @@ export default function ProfilePage() {
   const [googleMapsUrl, setGoogleMapsUrl] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Map picker state
+  const [mapLocation, setMapLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+    googleMapsLink: string;
+  } | null>(null);
+  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [calculatedDistance, setCalculatedDistance] = useState(0);
+  const [calculatingDeliveryFee, setCalculatingDeliveryFee] = useState(false);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
+\n  useEffect(() => {\n    if (!mapLocation) return;\n\n    const calculateFee = async () => {\n      try {\n        setCalculatingDeliveryFee(true);\n        const result = await calculateDeliveryFeeFromCoordinates(mapLocation.latitude, mapLocation.longitude);\n        setCalculatedDistance(result.distance_km);\n        setDeliveryFee(result.delivery_fee);\n      } catch (error) {\n        console.error('Error calculating delivery fee:', error);\n      } finally {\n        setCalculatingDeliveryFee(false);\n      }\n    };\n\n    calculateFee();\n  }, [mapLocation]);
   async function checkAuth() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -52,6 +64,28 @@ export default function ProfilePage() {
         setPhone(existingProfile.phone_number || '');
         setAddress(existingProfile.address || '');
         setGoogleMapsUrl(existingProfile.google_maps_url || '');
+        
+        // Set map location if latitude/longitude exist
+        if (existingProfile.latitude && existingProfile.longitude) {
+          setMapLocation({
+            latitude: existingProfile.latitude,
+            longitude: existingProfile.longitude,
+            address: existingProfile.address || '',
+            googleMapsLink: existingProfile.google_maps_url || `https://www.google.com/maps?q=${existingProfile.latitude},${existingProfile.longitude}`
+          });
+          
+          // Calculate delivery fee based on stored coordinates
+          try {
+            setCalculatingDeliveryFee(true);
+            const result = await calculateDeliveryFeeFromCoordinates(existingProfile.latitude, existingProfile.longitude);
+            setCalculatedDistance(result.distance_km);
+            setDeliveryFee(result.delivery_fee);
+          } catch (error) {
+            console.error('Error calculating delivery fee:', error);
+          } finally {
+            setCalculatingDeliveryFee(false);
+          }
+        }
       } else {
         setName(session.user.user_metadata?.full_name || '');
       }
@@ -82,6 +116,34 @@ export default function ProfilePage() {
 
       if (!user) throw new Error('Sesi tamat');
 
+      // Determine coordinates
+      let latitude: number | undefined = undefined;
+      let longitude: number | undefined = undefined;
+      let calculatedDeliveryFee = 0;
+      let calculatedDistance = 0;
+
+      if (mapLocation) {
+        latitude = mapLocation.latitude;
+        longitude = mapLocation.longitude;
+      } else if (googleMapsUrl.trim()) {
+        const coords = await extractCoordinatesFromUrlAsync(googleMapsUrl);
+        if (coords) {
+          latitude = coords.lat;
+          longitude = coords.lng;
+        }
+      }
+
+      // Calculate delivery fee if coordinates available
+      if (latitude && longitude) {
+        try {
+          const result = await calculateDeliveryFeeFromCoordinates(latitude, longitude);
+          calculatedDeliveryFee = result.delivery_fee;
+          calculatedDistance = result.distance_km;
+        } catch (error) {
+          console.error('Error calculating delivery fee:', error);
+        }
+      }
+
       // Phase R6.3: Use Malaysia timezone for updated_at
       const profileData = {
         id: user.id,
@@ -90,6 +152,8 @@ export default function ProfilePage() {
         phone_number: phone.trim(),
         address: address.trim(),
         google_maps_url: googleMapsUrl.trim() || null,
+        latitude: latitude || null,
+        longitude: longitude || null,
         role: profile?.role || 'customer',
         is_active: true,
         updated_at: getMalaysiaTime().toISOString(),
@@ -242,6 +306,33 @@ export default function ProfilePage() {
                 📍 Untuk pengiraan jarak penghantaran yang tepat
               </p>
             </div>
+\n            {/* Map Picker for precise location selection */}
+            <div>
+              <label className=\"block text-gray-700 font-medium mb-2\">
+                Pilih Lokasi di Peta (Pilihan)
+              </label>
+              <div className=\"border border-gray-300 rounded-lg overflow-hidden mb-3\">
+                <MapPicker
+                  initialLat={mapLocation?.latitude || null}
+                  initialLng={mapLocation?.longitude || null}
+                  initialAddress={address}
+                  onLocationChange={setMapLocation}
+                  className=\"h-[350px]\"\n                />
+              </div>
+              <p className=\"text-xs text-gray-500 mb-3\">
+                💡 Gunakan butang \"Kesan Lokasi Saya (GPS)\" atau seret penanda pada peta untuk pilih lokasi destinasi dengan tepat. Koordinat akan disimpan untuk pengiraan jarak penghantaran.
+              </p>
+            </div>\n\n            {/* Delivery fee display */}
+            {deliveryFee > 0 && (
+              <div className=\"p-3 bg-green-50 border border-green-200 rounded\">
+                <p className=\"text-sm text-green-800\">
+                  ✅ <strong>Jarak dikira:</strong> ~{calculatedDistance.toFixed(1)}km, Caj penghantaran: RM{deliveryFee.toFixed(2)}
+                </p>
+                <p className=\"text-xs text-green-600 mt-1\">
+                  Caj penghantaran ini akan digunakan untuk tempahan anda.
+                </p>
+              </div>
+            )}
 
             {/* Submit Button */}
             <button

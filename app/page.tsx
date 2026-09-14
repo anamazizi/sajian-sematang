@@ -8,7 +8,6 @@ import { getMalaysiaTime, extractCoordinatesFromUrlAsync, calculateDeliveryFeeFr
 import { CustomerProduct } from '@/types/database';
 import { useCart } from '@/contexts/CartContext';
 import OptionSelector from '@/components/OptionSelector';
-import MapPicker from '@/components/MapPicker';
 import { createOrder } from '@/app/actions/create-order';
 
 interface GroupedProducts {
@@ -45,14 +44,9 @@ export default function HomePage() {
   const [calculatingDeliveryFee, setCalculatingDeliveryFee] = useState(false);
   const [coordsExtractionError, setCoordsExtractionError] = useState<string | null>(null);
   
-  // Map picker state
-  const [showMapPicker, setShowMapPicker] = useState(false);
-  const [mapLocation, setMapLocation] = useState<{
-    latitude: number;
-    longitude: number;
-    address: string;
-    googleMapsLink: string;
-  } | null>(null);
+  const [customerLatitude, setCustomerLatitude] = useState<number | null>(null);
+  const [customerLongitude, setCustomerLongitude] = useState<number | null>(null);
+
 
   useEffect(() => {
     checkUser();
@@ -69,8 +63,6 @@ export default function HomePage() {
   // Calculate delivery fee when customerPinLocation or deliveryMode changes
   useEffect(() => {
     if (!showCheckoutModal) {
-      // Reset map picker when checkout modal is closed
-      setShowMapPicker(false);
       return;
     }
 
@@ -84,8 +76,8 @@ export default function HomePage() {
         return;
       }
 
-      // Only calculate if customerPinLocation is provided
-      if (!checkoutForm.customerPinLocation.trim()) {
+      // Use coordinates from profile if available, otherwise require customerPinLocation
+      if (!checkoutForm.customerPinLocation.trim() && !(customerLatitude && customerLongitude)) {
         setDeliveryFee(0);
         setCalculatedDistance(0);
         setCalculatingDeliveryFee(false);
@@ -280,7 +272,7 @@ export default function HomePage() {
         // Fetch user profile
         const { data: profile } = await supabase
           .from('users')
-          .select('name, phone_number, address, google_maps_url')
+          .select('name, phone_number, address, google_maps_url, latitude, longitude, delivery_fee')
           .eq('id', user.id)
           .single();
 
@@ -292,6 +284,18 @@ export default function HomePage() {
             address: profile.address || '',
             customerPinLocation: profile.google_maps_url || ''
           }));
+          
+          // Set delivery fee from profile if available
+          if (profile.delivery_fee) {
+            setDeliveryFee(profile.delivery_fee);
+            // Note: distance will be calculated when needed
+          }
+
+          // Set latitude/longitude for delivery calculation
+          if (profile.latitude && profile.longitude) {
+            setCustomerLatitude(profile.latitude);
+            setCustomerLongitude(profile.longitude);
+          }
         } else {
           // Use auth user info as fallback
           setCheckoutForm(prev => ({
@@ -320,117 +324,14 @@ export default function HomePage() {
       setCoordsExtractionError(null);
     }
     
-    // If user manually enters a URL, switch back to manual input view
-    if (field === 'customerPinLocation' && value.trim() && showMapPicker) {
-      setShowMapPicker(false);
-    }
+
   }
 
   // Handle using current GPS location
-  async function handleUseCurrentLocation() {
-    if (!navigator.geolocation) {
-      alert('Browser anda tidak menyokong GPS. Sila gunakan Google Maps URL.');
-      return;
-    }
 
-    setCalculatingDeliveryFee(true);
-    
-    try {
-      const position = await new Promise<any>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        });
-      });
-
-      const { latitude, longitude } = position.coords;
-      
-      // Create Google Maps URL from coordinates
-      const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-      
-      // Update form with GPS coordinates
-      setCheckoutForm(prev => ({
-        ...prev,
-        customerPinLocation: googleMapsUrl
-      }));
-      
-      // Switch to manual view to show the generated URL
-      setShowMapPicker(false);
-
-      // Immediately calculate delivery fee from coordinates
-      const result = await calculateDeliveryFeeFromCoordinates(latitude, longitude);
-      
-      setCalculatedDistance(result.distance_km);
-      setDeliveryFee(result.delivery_fee);
-      setCoordsExtractionError(null); // Clear any extraction error
-      
-      alert(`✅ Lokasi GPS berjaya diperoleh: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}\nURL Google Maps: ${googleMapsUrl}`);
-
-    } catch (error: any) {
-      console.error('GPS Error:', error);
-      
-      // Check for Geolocation API errors
-      if (error.code !== undefined) {
-        switch (error.code) {
-          case 1: // PERMISSION_DENIED
-            alert('Akses lokasi ditolak. Sila benarkan akses lokasi dalam tetapan browser anda.');
-            break;
-          case 2: // POSITION_UNAVAILABLE
-            alert('Maklumat lokasi tidak tersedia. Sila pastikan GPS dihidupkan.');
-            break;
-          case 3: // TIMEOUT
-            alert('Masa untuk mendapatkan lokasi tamat. Sila cuba lagi.');
-            break;
-          default:
-            alert('Ralat mendapatkan lokasi GPS. Sila gunakan Google Maps URL.');
-        }
-      } else {
-        alert('Ralat tidak dijangka semasa mendapatkan lokasi.');
-      }
-      
-      // Reset states on error
-      setCalculatedDistance(0);
-      setDeliveryFee(0);
-    } finally {
-      setCalculatingDeliveryFee(false);
-    }
-  }
 
   // Handle map location changes from MapPicker
-  async function handleMapLocationChange(location: {
-    latitude: number;
-    longitude: number;
-    address: string;
-    googleMapsLink: string;
-  }) {
-    // Update map location state
-    setMapLocation(location);
-    
-    // Update checkout form with Google Maps URL
-    setCheckoutForm(prev => ({
-      ...prev,
-      customerPinLocation: location.googleMapsLink
-    }));
 
-    // If delivery mode is selected, calculate delivery fee
-    if (checkoutForm.deliveryMode === 'Delivery') {
-      setCalculatingDeliveryFee(true);
-      try {
-        const result = await calculateDeliveryFeeFromCoordinates(location.latitude, location.longitude);
-        setCalculatedDistance(result.distance_km);
-        setDeliveryFee(result.delivery_fee);
-        setCoordsExtractionError(null); // Clear any extraction error
-      } catch (error) {
-        console.error('Error calculating delivery fee from map:', error);
-        setCalculatedDistance(0);
-        setDeliveryFee(0);
-        setCoordsExtractionError('Ralat semasa mengira delivery fee dari peta.');
-      } finally {
-        setCalculatingDeliveryFee(false);
-      }
-    }
-  }
 
   // Submit order and generate WhatsApp message
   async function submitOrder() {
@@ -847,87 +748,40 @@ export default function HomePage() {
                     <div className="space-y-3">
                       <div>
                         <label className="block text-sm font-bold text-slate-900 mb-1">Nama *</label>
-                        <input type="text" value={checkoutForm.name} onChange={(e) => handleCheckoutFormChange('name', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" required />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-slate-900">
+                          {checkoutForm.name}
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-slate-900 mb-1">Telefon *</label>
-                        <input type="tel" value={checkoutForm.phone} onChange={(e) => handleCheckoutFormChange('phone', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" required />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-slate-900">
+                          {checkoutForm.phone}
+                        </div>
                       </div>
                       <div>
                         <label className="block text-sm font-bold text-slate-900 mb-1">Alamat *</label>
-                        <textarea value={checkoutForm.address} onChange={(e) => handleCheckoutFormChange('address', e.target.value)} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" required />
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-slate-900 whitespace-pre-line">
+                          {checkoutForm.address}
+                        </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-slate-900 mb-1">Lokasi Destinasi Penghantaran</label>
-                        
-                        {/* Toggle between manual input and map picker */}
-                        <div className="flex gap-2 mb-3">
-                          <button
-                            type="button"
-                            onClick={() => setShowMapPicker(false)}
-                            className={`flex-1 px-3 py-2 rounded border text-sm font-medium ${!showMapPicker ? 'bg-yellow-100 border-yellow-300 text-yellow-800' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'}`}
-                          >
-                            📝 Manual URL
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowMapPicker(true)}
-                            className={`flex-1 px-3 py-2 rounded border text-sm font-medium ${showMapPicker ? 'bg-yellow-100 border-yellow-300 text-yellow-800' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'}`}
-                          >
-                            🗺️ Buka Peta & Pin Lokasi
-                          </button>
+                        <label className="block text-sm font-bold text-slate-900 mb-1">Pautan Google Maps</label>
+                        <div className="w-full px-3 py-2 border border-gray-300 rounded bg-gray-50 text-slate-900 whitespace-pre-line break-all">
+                          {checkoutForm.customerPinLocation || 'Tiada pautan Google Maps yang disimpan'}
                         </div>
                         
-                        {showMapPicker ? (
-                          // Map Picker Interface
-                          <div className="space-y-3">
-                            <div className="border border-gray-300 rounded-lg overflow-hidden">
-                              <MapPicker
-                                initialLat={mapLocation?.latitude || null}
-                                initialLng={mapLocation?.longitude || null}
-                                initialAddress={checkoutForm.address}
-                                onLocationChange={handleMapLocationChange}
-                                className="h-[350px]"
-                              />
-                            </div>
-                            
-                            <div className="p-3 bg-blue-50 border border-blue-200 rounded">
-                              <p className="text-sm text-blue-800">
-                                💡 <strong>Arahan:</strong> Gunakan butang "Kesan Lokasi Saya (GPS)" atau seret penanda pada peta untuk pilih lokasi destinasi. Koordinat akan digunakan untuk mengira jarak penghantaran.
-                              </p>
-                            </div>
-                          </div>
-                        ) : (
-                          // Manual Input Interface
-                          <>
-                            <div className="mb-3">
-                              <label className="block text-sm font-medium text-slate-700 mb-1">Google Maps URL (jika ada)</label>
-                              <input 
-                                type="text" 
-                                value={checkoutForm.customerPinLocation} 
-                                onChange={(e) => handleCheckoutFormChange('customerPinLocation', e.target.value)} 
-                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" 
-                                placeholder="Contoh: https://maps.google.com/?q=4.2167,100.6333" 
-                              />
-                              <p className="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ada. Sistem akan menghasilkan pautan berdasarkan alamat.</p>
-                            </div>
-                            
-                            {/* GPS Location Button */}
-                            <div className="mb-3">
-                              <button
-                                type="button"
-                                onClick={handleUseCurrentLocation}
-                                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded hover:bg-blue-100 transition text-sm font-medium"
-                              >
-                                <span className="text-lg">📍</span>
-                                Guna Lokasi Semasa (GPS)
-                              </button>
-                              <p className="text-xs text-gray-500 mt-1 text-center">
-                                Izinkan akses lokasi dalam browser anda
-                              </p>
-                            </div>
-                          </>
-                        )}
+                        {/* Profile update button */}
+                        <div className="mt-3">
+                          <Link
+                            href="/profile"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                          >
+                            ✏️ Kemaskini / Ubah di Profil
+                          </Link>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Maklumat profil anda diambil daripada rekod terkini. Jika tidak tepat, sila kemaskini di halaman Profil.
+                          </p>
+                        </div>
                         
                         {/* Warning for Delivery mode with coordinate extraction error */}
                         {checkoutForm.deliveryMode === 'Delivery' && 
