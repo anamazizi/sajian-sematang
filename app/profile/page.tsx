@@ -38,7 +38,24 @@ export default function ProfilePage() {
     checkAuth();
   }, []);
 
-\n  useEffect(() => {\n    if (!mapLocation) return;\n\n    const calculateFee = async () => {\n      try {\n        setCalculatingDeliveryFee(true);\n        const result = await calculateDeliveryFeeFromCoordinates(mapLocation.latitude, mapLocation.longitude);\n        setCalculatedDistance(result.distance_km);\n        setDeliveryFee(result.delivery_fee);\n      } catch (error) {\n        console.error('Error calculating delivery fee:', error);\n      } finally {\n        setCalculatingDeliveryFee(false);\n      }\n    };\n\n    calculateFee();\n  }, [mapLocation]);
+  useEffect(() => {
+    if (!mapLocation) return;
+
+    const calculateFee = async () => {
+      try {
+        setCalculatingDeliveryFee(true);
+        const result = await calculateDeliveryFeeFromCoordinates(mapLocation.latitude, mapLocation.longitude);
+        setCalculatedDistance(result.distance_km);
+        setDeliveryFee(result.delivery_fee);
+      } catch (error) {
+        console.error("Error calculating delivery fee:", error);
+      } finally {
+        setCalculatingDeliveryFee(false);
+      }
+    };
+
+    calculateFee();
+  }, [mapLocation]);
   async function checkAuth() {
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -166,6 +183,7 @@ export default function ProfilePage() {
       if (upsertError) throw upsertError;
 
       setSuccess('✅ Profil berjaya disimpan!');
+      setSaving(false);
 
       setTimeout(() => {
         router.push('/');
@@ -306,29 +324,30 @@ export default function ProfilePage() {
                 📍 Untuk pengiraan jarak penghantaran yang tepat
               </p>
             </div>
-\n            {/* Map Picker for precise location selection */}
+             {/* Map Picker for precise location selection */}
             <div>
-              <label className=\"block text-gray-700 font-medium mb-2\">
+              <label className="block text-gray-700 font-medium mb-2">
                 Pilih Lokasi di Peta (Pilihan)
               </label>
-              <div className=\"border border-gray-300 rounded-lg overflow-hidden mb-3\">
+              <div className="border border-gray-300 rounded-lg overflow-hidden mb-3">
                 <MapPicker
                   initialLat={mapLocation?.latitude || null}
                   initialLng={mapLocation?.longitude || null}
                   initialAddress={address}
                   onLocationChange={setMapLocation}
-                  className=\"h-[350px]\"\n                />
+                  className="h-[350px]"                 />
               </div>
-              <p className=\"text-xs text-gray-500 mb-3\">
-                💡 Gunakan butang \"Kesan Lokasi Saya (GPS)\" atau seret penanda pada peta untuk pilih lokasi destinasi dengan tepat. Koordinat akan disimpan untuk pengiraan jarak penghantaran.
+              <p className="text-xs text-gray-500 mb-3">
+                💡 Gunakan butang "Kesan Lokasi Saya (GPS)" atau seret penanda pada peta untuk pilih lokasi destinasi dengan tepat. Koordinat akan disimpan untuk pengiraan jarak penghantaran.
               </p>
-            </div>\n\n            {/* Delivery fee display */}
+            </div>
+            {/* Delivery fee display */}
             {deliveryFee > 0 && (
-              <div className=\"p-3 bg-green-50 border border-green-200 rounded\">
-                <p className=\"text-sm text-green-800\">
+              <div className="p-3 bg-green-50 border border-green-200 rounded">
+                <p className="text-sm text-green-800">
                   ✅ <strong>Jarak dikira:</strong> ~{calculatedDistance.toFixed(1)}km, Caj penghantaran: RM{deliveryFee.toFixed(2)}
                 </p>
-                <p className=\"text-xs text-green-600 mt-1\">
+                <p className="text-xs text-green-600 mt-1">
                   Caj penghantaran ini akan digunakan untuk tempahan anda.
                 </p>
               </div>
