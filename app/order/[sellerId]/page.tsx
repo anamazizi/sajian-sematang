@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import MapPicker from '../../../components/MapPicker';
 import { supabase } from '../../../lib/supabase/client';
 import { CustomerProfile } from '../../../types/database';
-import { getCustomerProfile, saveCustomerProfile, clearCustomerProfile, calculateDeliveryFee } from '../../../lib/utils';
+import { getCustomerProfile, saveCustomerProfile, clearCustomerProfile, extractCoordinatesFromUrl, calculateDeliveryFeeFromCoordinates } from '../../../lib/utils';
 import { createOrder } from '../../actions/create-order';
 import { useCart } from '../../../contexts/CartContext';
 import Link from 'next/link';
@@ -108,17 +108,56 @@ export default function OrderFormPage() {
     }
   }
 
-  // Manual delivery fee logic (pending Google API integration)
+  // Delivery fee calculation using server-side RPC (Seksyen 24)
   useEffect(() => {
-    if (deliveryMode === 'Delivery') {
-      // Set to RM 0.00 - will be confirmed via WhatsApp
+    if (deliveryMode !== 'Delivery') {
       setDeliveryFee(0);
       setCalculatedDistance(0);
-    } else {
-      setDeliveryFee(0);
-      setCalculatedDistance(0);
+      return;
     }
-  }, [deliveryMode]);
+
+    // Determine customer coordinates
+    let customerLat: number | null = null;
+    let customerLng: number | null = null;
+
+    // Try to extract coordinates from Google Maps URL
+    if (customerPinLocation.trim()) {
+      const coords = extractCoordinatesFromUrl(customerPinLocation);
+      if (coords) {
+        customerLat = coords.lat;
+        customerLng = coords.lng;
+      }
+    }
+
+    // Fallback to mapLocation (from MapPicker)
+    if ((customerLat === null || customerLng === null) && mapLocation) {
+      customerLat = mapLocation.latitude;
+      customerLng = mapLocation.longitude;
+    }
+
+    // If no coordinates, cannot calculate delivery fee
+    if (customerLat === null || customerLng === null) {
+      setDeliveryFee(0);
+      setCalculatedDistance(0);
+      return;
+    }
+
+    // Calculate delivery fee using server-side RPC
+    const calculateFee = async () => {
+      try {
+        const result = await calculateDeliveryFeeFromCoordinates(customerLat!, customerLng!);
+        setDeliveryFee(result.delivery_fee);
+        setCalculatedDistance(result.distance_km);
+      } catch (err) {
+        console.error('Error calculating delivery fee:', err);
+        // Fallback to zero fee (will be validated later)
+        setDeliveryFee(0);
+        setCalculatedDistance(0);
+      }
+    };
+
+    calculateFee();
+  }, [deliveryMode, customerPinLocation, mapLocation]);
 
   function getTotalPrice() {
     return getCartSubtotal() + deliveryFee;

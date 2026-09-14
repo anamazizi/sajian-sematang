@@ -1,4 +1,5 @@
 import { CustomerProfile } from '../types/database';
+import { supabase } from './supabase/client';
 
 // ============================================
 // PHASE R6.2: Profile Management
@@ -135,6 +136,101 @@ export function calculateDeliveryFee(
   const fee = Math.floor(distanceKm);
   
   return Math.max(minFee, fee);
+}
+/**
+ * Get store coordinates from database (replaces DEFAULT_STORE_COORDS)
+ * Falls back to hardcoded coordinates if database fetch fails
+ */
+export async function getStoreCoordinates(): Promise<{ lat: number; lng: number }> {
+  try {
+    const { data, error } = await supabase
+      .from('store_settings')
+      .select('latitude, longitude')
+      .eq('is_active', true)
+      .limit(1)
+      .single();
+
+    if (error || !data) {
+      console.warn('⚠️ Store coordinates not found in database, using default');
+      return DEFAULT_STORE_COORDS;
+    }
+
+    return {
+      lat: data.latitude,
+      lng: data.longitude
+    };
+  } catch (err) {
+    console.error('Error fetching store coordinates:', err);
+    return DEFAULT_STORE_COORDS;
+  }
+}
+
+/**
+ * Calculate delivery fee using server-side RPC (Master Prompt Seksyen 24)
+ * @param customerLatitude - Customer latitude
+ * @param customerLongitude - Customer longitude
+ * @param minFee - Minimum fee (default RM3)
+ * @returns Promise<{ distance_km: number; delivery_fee: number; store_latitude: number; store_longitude: number }>
+ */
+export async function calculateDeliveryFeeFromCoordinates(
+  customerLatitude: number,
+  customerLongitude: number,
+  minFee: number = 3
+): Promise<{ distance_km: number; delivery_fee: number; store_latitude: number; store_longitude: number }> {
+  try {
+    const { data, error } = await supabase
+      .rpc('calculate_delivery_fee', {
+        customer_latitude: customerLatitude,
+        customer_longitude: customerLongitude,
+        min_fee: minFee
+      });
+
+    if (error) {
+      console.error('RPC calculate_delivery_fee error:', error);
+      // Fallback to client-side calculation using store coordinates from database
+      const storeCoords = await getStoreCoordinates();
+      const distanceKm = calculateDistance(storeCoords.lat, storeCoords.lng, customerLatitude, customerLongitude);
+      const deliveryFee = calculateDeliveryFee(distanceKm, minFee);
+      return {
+        distance_km: distanceKm,
+        delivery_fee: deliveryFee,
+        store_latitude: storeCoords.lat,
+        store_longitude: storeCoords.lng
+      };
+    }
+
+    // Ensure data structure matches expectation
+    if (data?.error) {
+      console.warn('RPC returned error:', data.error);
+      // Fallback as above
+      const storeCoords = await getStoreCoordinates();
+      const distanceKm = calculateDistance(storeCoords.lat, storeCoords.lng, customerLatitude, customerLongitude);
+      const deliveryFee = calculateDeliveryFee(distanceKm, minFee);
+      return {
+        distance_km: distanceKm,
+        delivery_fee: deliveryFee,
+        store_latitude: storeCoords.lat,
+        store_longitude: storeCoords.lng
+      };
+    }
+
+    // Normalize response
+    return {
+      distance_km: data.distance_km || 0,
+      delivery_fee: data.delivery_fee || minFee,
+      store_latitude: data.store_latitude || DEFAULT_STORE_COORDS.lat,
+      store_longitude: data.store_longitude || DEFAULT_STORE_COORDS.lng
+    };
+  } catch (err) {
+    console.error('Unexpected error in calculateDeliveryFeeFromCoordinates:', err);
+    // Ultimate fallback
+    return {
+      distance_km: 0,
+      delivery_fee: minFee,
+      store_latitude: DEFAULT_STORE_COORDS.lat,
+      store_longitude: DEFAULT_STORE_COORDS.lng
+    };
+  }
 }
 
 export function formatDeliveryMode(mode: string): string {

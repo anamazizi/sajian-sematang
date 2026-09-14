@@ -742,6 +742,15 @@ D. Build Gate Verification:
    * ✅ Semua security layers maintained (RLS + Rate Limiting + Audit).
    * ✅ Architecture compliance dengan Master Prompt Seksyen 28/64 (Order Snapshot), 29 (Price Security), 66 (RLS).
 
+E. Store Location & Delivery Fee Calculation (Seksyen 23 & 24):
+   * ✅ Migration SQL: `supabase/20_create_store_settings_and_delivery_rpc.sql`
+   * ✅ Table `store_settings` dengan RLS policies.
+   * ✅ PostgreSQL function `haversine_distance()` untuk kira jarak geospatial.
+   * ✅ RPC `calculate_delivery_fee()` untuk server-side delivery fee calculation.
+   * ✅ Frontend integration: Updated `lib/utils.ts` dengan fungsi `calculateDeliveryFeeFromCoordinates`.
+   * ✅ Updated `app/order/[sellerId]/page.tsx` untuk guna RPC server-side calculation.
+   * ✅ Hardcoded `DEFAULT_STORE_COORDS` digantikan dengan database store settings.
+
 ===============================================================================
 
 5. FASA SEMASA & TUGAS SETERUSNYA
