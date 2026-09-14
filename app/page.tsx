@@ -8,6 +8,7 @@ import { getMalaysiaTime, extractCoordinatesFromUrlAsync, calculateDeliveryFeeFr
 import { CustomerProduct } from '@/types/database';
 import { useCart } from '@/contexts/CartContext';
 import OptionSelector from '@/components/OptionSelector';
+import MapPicker from '@/components/MapPicker';
 import { createOrder } from '@/app/actions/create-order';
 
 interface GroupedProducts {
@@ -43,6 +44,15 @@ export default function HomePage() {
   const [calculatedDistance, setCalculatedDistance] = useState(0);
   const [calculatingDeliveryFee, setCalculatingDeliveryFee] = useState(false);
   const [coordsExtractionError, setCoordsExtractionError] = useState<string | null>(null);
+  
+  // Map picker state
+  const [showMapPicker, setShowMapPicker] = useState(false);
+  const [mapLocation, setMapLocation] = useState<{
+    latitude: number;
+    longitude: number;
+    address: string;
+    googleMapsLink: string;
+  } | null>(null);
 
   useEffect(() => {
     checkUser();
@@ -58,7 +68,11 @@ export default function HomePage() {
 
   // Calculate delivery fee when customerPinLocation or deliveryMode changes
   useEffect(() => {
-    if (!showCheckoutModal) return;
+    if (!showCheckoutModal) {
+      // Reset map picker when checkout modal is closed
+      setShowMapPicker(false);
+      return;
+    }
 
     const calculateDelivery = async () => {
       // Reset for Self-Pickup
@@ -305,6 +319,11 @@ export default function HomePage() {
       setCalculatingDeliveryFee(false);
       setCoordsExtractionError(null);
     }
+    
+    // If user manually enters a URL, switch back to manual input view
+    if (field === 'customerPinLocation' && value.trim() && showMapPicker) {
+      setShowMapPicker(false);
+    }
   }
 
   // Handle using current GPS location
@@ -335,6 +354,9 @@ export default function HomePage() {
         ...prev,
         customerPinLocation: googleMapsUrl
       }));
+      
+      // Switch to manual view to show the generated URL
+      setShowMapPicker(false);
 
       // Immediately calculate delivery fee from coordinates
       const result = await calculateDeliveryFeeFromCoordinates(latitude, longitude);
@@ -372,6 +394,41 @@ export default function HomePage() {
       setDeliveryFee(0);
     } finally {
       setCalculatingDeliveryFee(false);
+    }
+  }
+
+  // Handle map location changes from MapPicker
+  async function handleMapLocationChange(location: {
+    latitude: number;
+    longitude: number;
+    address: string;
+    googleMapsLink: string;
+  }) {
+    // Update map location state
+    setMapLocation(location);
+    
+    // Update checkout form with Google Maps URL
+    setCheckoutForm(prev => ({
+      ...prev,
+      customerPinLocation: location.googleMapsLink
+    }));
+
+    // If delivery mode is selected, calculate delivery fee
+    if (checkoutForm.deliveryMode === 'Delivery') {
+      setCalculatingDeliveryFee(true);
+      try {
+        const result = await calculateDeliveryFeeFromCoordinates(location.latitude, location.longitude);
+        setCalculatedDistance(result.distance_km);
+        setDeliveryFee(result.delivery_fee);
+        setCoordsExtractionError(null); // Clear any extraction error
+      } catch (error) {
+        console.error('Error calculating delivery fee from map:', error);
+        setCalculatedDistance(0);
+        setDeliveryFee(0);
+        setCoordsExtractionError('Ralat semasa mengira delivery fee dari peta.');
+      } finally {
+        setCalculatingDeliveryFee(false);
+      }
     }
   }
 
@@ -801,24 +858,76 @@ export default function HomePage() {
                         <textarea value={checkoutForm.address} onChange={(e) => handleCheckoutFormChange('address', e.target.value)} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" required />
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-slate-900 mb-1">Google Maps URL (jika ada)</label>
-                        <input type="text" value={checkoutForm.customerPinLocation} onChange={(e) => handleCheckoutFormChange('customerPinLocation', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" placeholder="Contoh: https://maps.google.com/?q=4.2167,100.6333" />
-                        <p className="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ada. Sistem akan menghasilkan pautan berdasarkan alamat.</p>
+                        <label className="block text-sm font-bold text-slate-900 mb-1">Lokasi Destinasi Penghantaran</label>
                         
-                        {/* GPS Location Button */}
-                        <div className="mt-2">
+                        {/* Toggle between manual input and map picker */}
+                        <div className="flex gap-2 mb-3">
                           <button
                             type="button"
-                            onClick={handleUseCurrentLocation}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded hover:bg-blue-100 transition text-sm font-medium"
+                            onClick={() => setShowMapPicker(false)}
+                            className={`flex-1 px-3 py-2 rounded border text-sm font-medium ${!showMapPicker ? 'bg-yellow-100 border-yellow-300 text-yellow-800' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'}`}
                           >
-                            <span className="text-lg">📍</span>
-                            Guna Lokasi Semasa (GPS)
+                            📝 Manual URL
                           </button>
-                          <p className="text-xs text-gray-500 mt-1 text-center">
-                            Izinkan akses lokasi dalam browser anda
-                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setShowMapPicker(true)}
+                            className={`flex-1 px-3 py-2 rounded border text-sm font-medium ${showMapPicker ? 'bg-yellow-100 border-yellow-300 text-yellow-800' : 'bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200'}`}
+                          >
+                            🗺️ Buka Peta & Pin Lokasi
+                          </button>
                         </div>
+                        
+                        {showMapPicker ? (
+                          // Map Picker Interface
+                          <div className="space-y-3">
+                            <div className="border border-gray-300 rounded-lg overflow-hidden">
+                              <MapPicker
+                                initialLat={mapLocation?.latitude || null}
+                                initialLng={mapLocation?.longitude || null}
+                                initialAddress={checkoutForm.address}
+                                onLocationChange={handleMapLocationChange}
+                                className="h-[350px]"
+                              />
+                            </div>
+                            
+                            <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+                              <p className="text-sm text-blue-800">
+                                💡 <strong>Arahan:</strong> Gunakan butang "Kesan Lokasi Saya (GPS)" atau seret penanda pada peta untuk pilih lokasi destinasi. Koordinat akan digunakan untuk mengira jarak penghantaran.
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          // Manual Input Interface
+                          <>
+                            <div className="mb-3">
+                              <label className="block text-sm font-medium text-slate-700 mb-1">Google Maps URL (jika ada)</label>
+                              <input 
+                                type="text" 
+                                value={checkoutForm.customerPinLocation} 
+                                onChange={(e) => handleCheckoutFormChange('customerPinLocation', e.target.value)} 
+                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-yellow-400 text-slate-900" 
+                                placeholder="Contoh: https://maps.google.com/?q=4.2167,100.6333" 
+                              />
+                              <p className="text-xs text-gray-500 mt-1">Biarkan kosong jika tidak ada. Sistem akan menghasilkan pautan berdasarkan alamat.</p>
+                            </div>
+                            
+                            {/* GPS Location Button */}
+                            <div className="mb-3">
+                              <button
+                                type="button"
+                                onClick={handleUseCurrentLocation}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded hover:bg-blue-100 transition text-sm font-medium"
+                              >
+                                <span className="text-lg">📍</span>
+                                Guna Lokasi Semasa (GPS)
+                              </button>
+                              <p className="text-xs text-gray-500 mt-1 text-center">
+                                Izinkan akses lokasi dalam browser anda
+                              </p>
+                            </div>
+                          </>
+                        )}
                         
                         {/* Warning for Delivery mode with coordinate extraction error */}
                         {checkoutForm.deliveryMode === 'Delivery' && 
