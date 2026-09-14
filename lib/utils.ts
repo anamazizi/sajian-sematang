@@ -117,6 +117,45 @@ export function extractCoordinatesFromUrl(url: string): { lat: number; lng: numb
     return null;
   }
 }
+/**
+ * Async version of extractCoordinatesFromUrl that can resolve shortlinks (maps.app.goo.gl)
+ * by calling an API endpoint to follow redirects and extract coordinates.
+ * Falls back to synchronous extraction if URL is already a full Google Maps URL with coordinates.
+ */
+export async function extractCoordinatesFromUrlAsync(url: string): Promise<{ lat: number; lng: number } | null> {
+  // First try synchronous extraction (works for most full URLs)
+  const syncResult = extractCoordinatesFromUrl(url);
+  if (syncResult) {
+    return syncResult;
+  }
+
+  // If URL is a maps.app.goo.gl shortlink without coordinates in query params, resolve via API
+  if (url.includes('maps.app.goo.gl')) {
+    try {
+      const response = await fetch('/api/resolve-maps', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('Failed to resolve maps shortlink:', errorData.error || response.statusText);
+        return null;
+      }
+
+      const data = await response.json();
+      if (data.lat && data.lng) {
+        return { lat: data.lat, lng: data.lng };
+      }
+    } catch (error) {
+      console.error('Error resolving maps shortlink:', error);
+      return null;
+    }
+  }
+
+  return null;
+}
 
 // Calculate delivery fee based on distance (Master Prompt Seksyen 24)
 export function calculateDeliveryFee(

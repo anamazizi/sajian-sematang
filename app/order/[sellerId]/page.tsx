@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import MapPicker from '../../../components/MapPicker';
 import { supabase } from '../../../lib/supabase/client';
 import { CustomerProfile } from '../../../types/database';
-import { getCustomerProfile, saveCustomerProfile, clearCustomerProfile, extractCoordinatesFromUrl, calculateDeliveryFeeFromCoordinates } from '../../../lib/utils';
+import { getCustomerProfile, saveCustomerProfile, clearCustomerProfile, extractCoordinatesFromUrl, extractCoordinatesFromUrlAsync, calculateDeliveryFeeFromCoordinates } from '../../../lib/utils';
 import { createOrder } from '../../actions/create-order';
 import { useCart } from '../../../contexts/CartContext';
 import Link from 'next/link';
@@ -31,6 +31,7 @@ export default function OrderFormPage() {
   
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [calculatedDistance, setCalculatedDistance] = useState(0);
+  const [calculatingDeliveryFee, setCalculatingDeliveryFee] = useState(false);
 // State untuk MapPicker
   const [mapLocation, setMapLocation] = useState<{
     latitude: number;
@@ -109,7 +110,8 @@ export default function OrderFormPage() {
   }
 
   // Delivery fee calculation using server-side RPC (Seksyen 24)
-  useEffect(() => {
+  // Recalculate delivery fee when dependencies change
+  const recalculateDeliveryFee = useCallback(async () => {
     if (deliveryMode !== 'Delivery') {
       setDeliveryFee(0);
       setCalculatedDistance(0);
@@ -120,12 +122,19 @@ export default function OrderFormPage() {
     let customerLat: number | null = null;
     let customerLng: number | null = null;
 
-    // Try to extract coordinates from Google Maps URL
+    // Try to extract coordinates from Google Maps URL (async, supports shortlinks)
     if (customerPinLocation.trim()) {
-      const coords = extractCoordinatesFromUrl(customerPinLocation);
-      if (coords) {
-        customerLat = coords.lat;
-        customerLng = coords.lng;
+      setCalculatingDeliveryFee(true);
+      try {
+        const coords = await extractCoordinatesFromUrlAsync(customerPinLocation);
+        if (coords) {
+          customerLat = coords.lat;
+          customerLng = coords.lng;
+        }
+      } catch (error) {
+        console.error('Error extracting coordinates:', error);
+      } finally {
+        setCalculatingDeliveryFee(false);
       }
     }
 
@@ -143,21 +152,48 @@ export default function OrderFormPage() {
     }
 
     // Calculate delivery fee using server-side RPC
-    const calculateFee = async () => {
-      try {
-        const result = await calculateDeliveryFeeFromCoordinates(customerLat!, customerLng!);
-        setDeliveryFee(result.delivery_fee);
-        setCalculatedDistance(result.distance_km);
-      } catch (err) {
-        console.error('Error calculating delivery fee:', err);
-        // Fallback to zero fee (will be validated later)
-        setDeliveryFee(0);
-        setCalculatedDistance(0);
+    try {
+      const result = await calculateDeliveryFeeFromCoordinates(customerLat!, customerLng!);
+      setDeliveryFee(result.delivery_fee);
+      setCalculatedDistance(result.distance_km);
+    } catch (err) {
+      console.error('Error calculating delivery fee:', err);
+      // Fallback to zero fee (will be validated later)
+      setDeliveryFee(0);
+      setCalculatedDistance(0);
+    }
+  }, [deliveryMode, customerPinLocation, mapLocation]);
+
+  // Effect to recalculate when dependencies change (debounced for URL input)
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  useEffect(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    // Debounce recalculation for URL input changes (500ms)
+    timeoutRef.current = setTimeout(() => {
+      recalculateDeliveryFee();
+    }, 500);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
+  }, [recalculateDeliveryFee]);
 
-    calculateFee();
-  }, [deliveryMode, customerPinLocation, mapLocation]);
+  // Also recalculate immediately when delivery mode changes (no debounce)
+  useEffect(() => {
+    if (deliveryMode !== 'Delivery') {
+      setDeliveryFee(0);
+      setCalculatedDistance(0);
+      return;
+    }
+    // If we have coordinates, recalculate without debounce
+    if (customerPinLocation.trim() || mapLocation) {
+      recalculateDeliveryFee();
+    }
+  }, [deliveryMode]);
 
   function getTotalPrice() {
     return getCartSubtotal() + deliveryFee;
@@ -398,7 +434,7 @@ export default function OrderFormPage() {
                   <div className="text-2xl mb-1">🚗</div>
                   <div className="font-semibold text-slate-900">Penghantaran</div>
                   <div className="text-xs text-gray-600">
-                    {deliveryFee > 0 ? `RM${deliveryFee.toFixed(2)}` : 'Auto-calculate'}
+                    {calculatingDeliveryFee ? 'Mengira...' : (deliveryFee > 0 ? `RM${deliveryFee.toFixed(2)}` : 'Auto-calculate')}
                   </div>
                 </button>
               </div>
@@ -407,9 +443,9 @@ export default function OrderFormPage() {
             {deliveryMode === 'Delivery' && calculatedDistance > 0 && (
               <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-700">
-                  📏 Jarak anggaran: ~{calculatedDistance.toFixed(1)}km
+                  📏 Jarak anggaran: {calculatingDeliveryFee ? 'Mengira...' : `~${calculatedDistance.toFixed(1)}km`}
                   <br />
-                  💵 Caj penghantaran: RM{deliveryFee.toFixed(2)}
+                  💵 Caj penghantaran: {calculatingDeliveryFee ? 'Mengira...' : `RM${deliveryFee.toFixed(2)}`}
                 </p>
               </div>
             )}
@@ -576,12 +612,19 @@ export default function OrderFormPage() {
                         placeholder="https://maps.google.com/..."
                         disabled={submitting}
                       />
-                      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                          💡 <strong>Tips:</strong> Klik "Tunjuk Peta Interaktif" untuk pilih lokasi dengan mudah menggunakan peta.
-                          Atau tampal pautan Google Maps sahaja.
+                      {customerPinLocation.trim() && deliveryMode === 'Delivery' && !calculatingDeliveryFee && deliveryFee === 0 && calculatedDistance === 0 && (
+                      <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg mb-3">
+                        <p className="text-sm text-yellow-800">
+                          ⚠️ <strong>URL peta tidak dapat dikira.</strong> Sila pastikan URL Google Maps yang sah atau gunakan peta interaktif.
                         </p>
                       </div>
+                    )}
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        💡 <strong>Tips:</strong> Klik "Tunjuk Peta Interaktif" untuk pilih lokasi dengan mudah menggunakan peta.
+                        Atau tampal pautan Google Maps sahaja.
+                      </p>
+                    </div>
                     </div>
                   )}
                   
